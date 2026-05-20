@@ -115,6 +115,13 @@
   .stars { display: inline-flex; gap: 2px; cursor: pointer; }
   .stars span { font-size: 22px; color: #d1d5db; }
   .stars span.on { color: #f59e0b; }
+  /* compact 1–5 rating widget used in His Impressions / Couple's Context */
+  .mini-stars { display: inline-flex; gap: 2px; cursor: pointer; user-select: none; }
+  .mini-stars span { font-size: 18px; color: #d1d5db; line-height: 1; }
+  .mini-stars span.on { color: #f59e0b; }
+  .rating-grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
+  .rating-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+  .rating-row > span:first-child { color: var(--text); }
   .help { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
   /* Popup detail view */
@@ -150,6 +157,12 @@
   .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  /* Friend variant: bright blue, triangle silhouette via clip-path */
+  .person-marker.friend { background: #2563eb; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); width: 18px; height: 18px; font-size: 0; }
+  /* City Info sub-tab nav (re-used by Cost / Lifestyle / Community) */
+  .citytab-btn { padding: 8px 14px; border: none; background: none; cursor: pointer; font-weight: 400; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 13px; }
+  .citytab-btn.active { font-weight: 600; border-bottom-color: var(--accent); }
+  .citytab-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
   .trauma-marker { background: #b91c1c; color: white; font-size: 10px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
   /* Her pin (single color, distinct from his status-colored pins) */
   .pin-marker.kind-me { background: #8b5cf6 !important; }
@@ -209,11 +222,27 @@
         <button class="clearStars" onclick="setMinScore(0)">clear</button>
       </div>
     </div>
+    <div style="padding:6px 10px 0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+      <label for="sortSelect">Sort:</label>
+      <select id="sortSelect" onchange="setSortBy(this.value)" style="flex:1;padding:3px 6px;font-size:11px;border:1px solid var(--line);border-radius:4px;background:white">
+        <option value="status">Status (interview-first)</option>
+        <option value="score">Decision score (high→low)</option>
+        <option value="excitement">His excitement (high→low)</option>
+        <option value="herFit">Her career fit (high→low)</option>
+        <option value="lifestyle">Lifestyle fit (high→low)</option>
+        <option value="salary">Salary (high→low)</option>
+        <option value="dateApplied">Date applied (newest)</option>
+        <option value="company">Practice name (A→Z)</option>
+        <option value="location">Location (A→Z)</option>
+        <option value="distance">Distance from home (near→far)</option>
+      </select>
+    </div>
     <div id="jobList"></div>
     <div id="manageBar">
       <button id="manageBtn" onclick="toggleManageMenu(event)">Manage ▾</button>
       <div id="manageMenu">
         <button onclick="openSettings(); closeManageMenu()">Sync to Google Sheet…</button>
+        <button onclick="openProfile(); closeManageMenu()">Profile (his / her info)…</button>
         <button onclick="openDestinations(); closeManageMenu()">Plane destinations…</button>
         <button onclick="openPeople(); closeManageMenu()">Family & friends…</button>
         <button onclick="openWeights(); closeManageMenu()">Decision matrix weights…</button>
@@ -335,10 +364,6 @@
       <label>Cons</label>
       <textarea id="f_cons" placeholder="Concerns / red flags?"></textarea>
 
-      <label>His vibe tags</label>
-      <input id="f_hisVibe" placeholder="e.g. exciting, busy, surgical-heavy, well-equipped (comma-separated)" />
-      <div class="help">Short tags for the gut feeling about this practice. Comma-separated.</div>
-
       <label>Notes</label>
       <textarea id="f_notes"></textarea>
 
@@ -385,25 +410,103 @@
       </details>
 
       <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
-        <summary>Her thoughts (Isabel)</summary>
+        <summary>His Impressions (Dillon)</summary>
+        <div class="help" style="margin-bottom:6px">Categorical ratings + gut feelings about location & lifestyle fit for him. Shows up in the "His Impressions" modal.</div>
+
+        <label>Location fit ratings (1–5)</label>
+        <div class="rating-grid">
+          <div class="rating-row"><span>Community / social fit</span><div class="mini-stars" data-field="hisCommFit"></div></div>
+          <div class="rating-row"><span>Educational opportunities</span><div class="mini-stars" data-field="hisEducFit"></div></div>
+          <div class="rating-row"><span>Career growth potential</span><div class="mini-stars" data-field="hisCareerGrowth"></div></div>
+          <div class="rating-row"><span>Outdoor / recreation</span><div class="mini-stars" data-field="hisOutdoorFit"></div></div>
+          <div class="rating-row"><span>Culture / arts scene</span><div class="mini-stars" data-field="hisCultureFit"></div></div>
+          <div class="rating-row"><span>Urban ↔ small-town fit</span><div class="mini-stars" data-field="hisUrbanRural"></div></div>
+          <div class="rating-row"><span>Safety / stability</span><div class="mini-stars" data-field="hisSafety"></div></div>
+        </div>
+
+        <label>His vibe tags</label>
+        <input id="f_hisVibe" placeholder="e.g. exciting, busy, surgical-heavy, well-equipped (comma-separated)" />
+        <div class="help">Short tags for the gut feeling about this practice / location.</div>
+
+        <label>His interests / hobbies</label>
+        <input id="f_hisInterests" placeholder="e.g. cycling, BBQ, woodworking, college football (comma-separated)" />
+        <div class="help">Used to surface relevant Meetup / Reddit links for the city.</div>
+
+        <label style="margin-top:8px">Relocation readiness</label>
+        <div class="grid-2">
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">Year 1 — "Will I survive it?"</label>
+            <textarea id="f_his1Yr" placeholder="Initial settling-in feeling…" style="min-height:50px"></textarea>
+          </div>
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">5-year projection</label>
+            <textarea id="f_his5Yr" placeholder="Career growth, kids, stability…" style="min-height:50px"></textarea>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">10-year vision</label>
+            <textarea id="f_his10Yr" placeholder="Can we settle here long-term?" style="min-height:50px"></textarea>
+          </div>
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">Escape velocity</label>
+            <textarea id="f_hisEscape" placeholder="How hard to leave if things go wrong?" style="min-height:50px"></textarea>
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+        <summary>Couple's Context (Isabel)</summary>
         <div class="help" style="margin-bottom:6px">All of this shows up in "Her situation" — not on the main job page.</div>
 
-        <label>Her career fit (1-5)</label>
+        <label>Her overall career fit (1–5)</label>
         <div class="stars" id="partnerStarInput"></div>
+
+        <label>Her field / keyword for job search</label>
+        <input id="f_herCareerField" placeholder="e.g. computational chemistry, ML research, postdoc" />
+        <div class="help">Used to auto-generate a LinkedIn jobs search link for this city in "Her situation".</div>
 
         <label>Her vibe tags</label>
         <input id="f_herVibe" placeholder="e.g. lonely, exciting, isolating, home-y, safe, scary, energizing (comma-separated)" />
 
+        <label>Her interests / hobbies</label>
+        <input id="f_herInterests" placeholder="e.g. hiking, running, book clubs, board games (comma-separated)" />
+        <div class="help">Used later to surface relevant Reddit / Meetup links for the city.</div>
+
+        <label style="margin-top:10px">Location fit ratings (1–5)</label>
+        <div class="rating-grid">
+          <div class="rating-row"><span>Community / social fit</span><div class="mini-stars" data-field="herCommFit"></div></div>
+          <div class="rating-row"><span>Educational / growth for her</span><div class="mini-stars" data-field="herEducFit"></div></div>
+          <div class="rating-row"><span>Job market for her field</span><div class="mini-stars" data-field="herPartnerCareer"></div></div>
+          <div class="rating-row"><span>Outdoor / recreation</span><div class="mini-stars" data-field="herOutdoorFit"></div></div>
+          <div class="rating-row"><span>Culture / arts scene</span><div class="mini-stars" data-field="herCultureFit"></div></div>
+          <div class="rating-row"><span>Urban ↔ small-town fit</span><div class="mini-stars" data-field="herUrbanRural"></div></div>
+          <div class="rating-row"><span>Safety / stability</span><div class="mini-stars" data-field="herSafety"></div></div>
+        </div>
+
+        <label style="margin-top:10px">Relocation readiness</label>
         <div class="grid-2">
           <div>
-            <label>5-year feeling</label>
-            <textarea id="f_her5Year" placeholder="How would I feel living here for 5 years?" style="min-height:60px"></textarea>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">Year 1 — "Will I survive it?"</label>
+            <textarea id="f_her1Yr" placeholder="Initial settling-in feeling…" style="min-height:50px"></textarea>
           </div>
           <div>
-            <label>30-year feeling</label>
-            <textarea id="f_her30Year" placeholder="How would I feel raising a family / spending my career here?" style="min-height:60px"></textarea>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">5-year feeling</label>
+            <textarea id="f_her5Year" placeholder="How would I feel living here for 5 years?" style="min-height:50px"></textarea>
           </div>
         </div>
+        <div class="grid-2">
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">10-year vision</label>
+            <textarea id="f_her10Yr" placeholder="Can we see ourselves settling here long-term?" style="min-height:50px"></textarea>
+          </div>
+          <div>
+            <label style="font-weight:400;font-size:12px;color:var(--muted)">Escape velocity</label>
+            <textarea id="f_herEscape" placeholder="How hard would it be to leave if things go wrong?" style="min-height:50px"></textarea>
+          </div>
+        </div>
+        <!-- Legacy 30-year field hidden but preserved in data model so old entries aren't lost; render in modals only if present. -->
+        <input type="hidden" id="f_her30Year" />
 
         <label>Her notes</label>
         <textarea id="f_partnerNotes" placeholder="What would I need to be happy here?
@@ -518,6 +621,48 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
 </div>
 
 <!-- People Modal -->
+<!-- Profile (his/her settings) Modal -->
+<div class="modal-backdrop" id="profileModal">
+  <div class="modal" style="width:min(620px,94vw)">
+    <h2>Profile — his & her info</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Set the names, home bases, and default interests used throughout the app. These power the "His Impressions" and "Her Situation" modals, the relocation-cost estimate, the LinkedIn job search, and the default values when adding a new job.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px">
+      <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
+        <h3 style="margin:0 0 8px;font-size:14px;color:#b45309">His (the OMFS resident)</h3>
+        <label style="font-size:12px;color:var(--muted)">Name</label>
+        <input id="pf_him_name" placeholder="e.g. Dillon" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
+        <input id="pf_him_home" placeholder="e.g. Grand Rapids, MI" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Role / position</label>
+        <input id="pf_him_role" placeholder="e.g. OMFS resident" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Default interests (comma-separated)</label>
+        <input id="pf_him_interests" placeholder="e.g. cycling, BBQ, woodworking" />
+        <div class="help" style="margin-top:4px">Prefills the per-job "His interests" box when adding new jobs.</div>
+      </div>
+      <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
+        <h3 style="margin:0 0 8px;font-size:14px;color:#9d174d">Hers (the partner)</h3>
+        <label style="font-size:12px;color:var(--muted)">Name</label>
+        <input id="pf_her_name" placeholder="e.g. Isabel" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
+        <input id="pf_her_home" placeholder="e.g. Notre Dame, IN" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Role / position</label>
+        <input id="pf_her_role" placeholder="e.g. PhD candidate, comp chem" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Career field (LinkedIn keyword)</label>
+        <input id="pf_her_field" placeholder="e.g. computational chemistry" />
+        <label style="font-size:12px;color:var(--muted);margin-top:6px">Default interests (comma-separated)</label>
+        <input id="pf_her_interests" placeholder="e.g. hiking, book clubs, board games" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" onclick="closeProfile()">Cancel</button>
+      <button type="button" class="primary" onclick="saveProfileFromForm()">Save</button>
+    </div>
+    <div id="profileStatus" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="peopleModal">
   <div class="modal" style="width:min(560px,94vw)">
     <h2>Family & friends</h2>
@@ -552,6 +697,17 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     <div id="situationBody"></div>
     <div class="modal-actions">
       <button type="button" class="primary" onclick="closeSituation()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- His Impressions Modal -->
+<div class="modal-backdrop" id="hisImpressionsModal" style="z-index:1100">
+  <div class="modal" style="width:min(620px,94vw)">
+    <h2 id="hisImpressionsTitle">His Impressions</h2>
+    <div id="hisImpressionsBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="primary" onclick="closeHisImpressions()">Close</button>
     </div>
   </div>
 </div>
@@ -685,7 +841,14 @@ const FIELDS = ['id','kind','type','company','location','lat','lng','status','sa
   'partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','dsoAffiliation',
   'partnerFit','partnerNotes','distanceFamily','dualCareer',
   'hisVibe','herVibe','her5Year','her30Year','parentId',
-  'practiceGroup','carCity','carCityLat','carCityLng','carMiles','carMinutes'];
+  'practiceGroup','carCity','carCityLat','carCityLng','carMiles','carMinutes',
+  // His Impressions — relocation readiness textareas + interests
+  'his1Yr','his5Yr','his10Yr','hisEscape','hisInterests',
+  // Couple's Context — relocation + interests + her career field for LinkedIn link
+  'her1Yr','her10Yr','herEscape','herInterests','herCareerField',
+  // Categorical 1-5 ratings (his + her parallel set)
+  'hisCommFit','hisEducFit','hisCareerGrowth','hisOutdoorFit','hisCultureFit','hisUrbanRural','hisSafety',
+  'herCommFit','herEducFit','herPartnerCareer','herOutdoorFit','herCultureFit','herUrbanRural','herSafety'];
 
 function getSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -866,7 +1029,17 @@ let showCityDistance = false;
 let cityDistanceLayer = null;
 let showAirports = false;
 let airportsLayer = null;
-const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId'];
+const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId',
+  // His Impressions — new lifestyle/fit fields
+  'his1Yr','his5Yr','his10Yr','hisEscape','hisInterests',
+  // Couple's Context — new lifestyle/fit fields for her
+  'her1Yr','her10Yr','herEscape','herInterests','herCareerField'];
+
+// 1–5 categorical ratings (stored on the job as numbers). His + her parallel set.
+const RATING_FIELDS = [
+  'hisCommFit','hisEducFit','hisCareerGrowth','hisOutdoorFit','hisCultureFit','hisUrbanRural','hisSafety',
+  'herCommFit','herEducFit','herPartnerCareer','herOutdoorFit','herCultureFit','herUrbanRural','herSafety'
+];
 
 const MAJOR_CITIES = [
   {name:'New York', lat:40.7128, lng:-74.0060, col:187},
@@ -1824,6 +1997,14 @@ async function pullFromSheet() {
         weights = { ...DEFAULT_WEIGHTS, ...cfg.weights };
         localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
       }
+      if (cfg.profile && typeof cfg.profile === 'object') {
+        profile = {
+          him: { ...DEFAULT_PROFILE.him, ...(cfg.profile.him || {}) },
+          her: { ...DEFAULT_PROFILE.her, ...(cfg.profile.her || {}) }
+        };
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        if (typeof refreshHomeBases === 'function') refreshHomeBases();
+      }
     }
     renderMarkers();
     renderList();
@@ -1929,25 +2110,32 @@ document.getElementById('layersModal').addEventListener('click', e => {
 
 function openCityStatsModal(job, view) {
   view = view || 'col';
-  document.getElementById('citystatsTitle').textContent = `${job.location || 'City'} — ${view === 'col' ? 'Cost of Living' : 'Lifestyle'}`;
+  const titles = { col: 'Cost of Living', lifestyle: 'Lifestyle', community: 'Community & Friends' };
+  document.getElementById('citystatsTitle').textContent = `${job.location || 'City'} — ${titles[view] || 'City info'}`;
   const body = document.getElementById('citystatsBody');
   const s = job.cityStats;
-  if (!s) {
+  if (!s && view !== 'community') {
     body.innerHTML = `<p style="color:var(--muted)">No snapshot compiled yet.</p>
       <button class="primary" onclick="window._jobmapRefreshCityStats('${job.id}','${view}')" style="padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:white;cursor:pointer">Compile snapshot</button>`;
     document.getElementById('cityStatsModal').classList.add('open');
     return;
   }
+  const tabBtn = (key, label) => `<button class="citytab-btn ${view===key?'active':''}" onclick="window._jobmapShowCityStats('${job.id}','${key}')">${label}</button>`;
+  let viewHtml = '';
+  if (view === 'col') viewHtml = renderCOLView(job, s || {});
+  else if (view === 'lifestyle') viewHtml = renderLifestyleView(job, s || {});
+  else if (view === 'community') viewHtml = renderCommunityView(job);
   body.innerHTML = `
-    <div style="display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:14px">
-      <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:${view==='col'?'600':'400'};border-bottom:2px solid ${view==='col'?'var(--accent)':'transparent'};margin-bottom:-1px">Cost of Living</button>
-      <button onclick="window._jobmapShowCityStats('${job.id}','lifestyle')" style="padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:${view==='lifestyle'?'600':'400'};border-bottom:2px solid ${view==='lifestyle'?'var(--accent)':'transparent'};margin-bottom:-1px">Lifestyle</button>
+    <div class="citytab-nav">
+      ${tabBtn('col', 'Cost of Living')}
+      ${tabBtn('lifestyle', 'Lifestyle')}
+      ${tabBtn('community', 'Community & Friends')}
     </div>
-    ${view === 'col' ? renderCOLView(job, s) : renderLifestyleView(job, s)}
-    <div style="margin-top:14px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px">
+    ${viewHtml}
+    ${s ? `<div style="margin-top:14px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px">
       <span>Compiled ${escape(s.fetchedAt || 'recently')}</span>
       <button onclick="window._jobmapRefreshCityStats('${job.id}','${view}')" style="padding:4px 10px;font-size:11px;border:1px solid var(--line);background:white;border-radius:6px;cursor:pointer">Refresh</button>
-    </div>
+    </div>` : ''}
   `;
   document.getElementById('cityStatsModal').classList.add('open');
 }
@@ -2078,11 +2266,35 @@ function renderCOLView(job, s) {
 function renderLifestyleView(job, s) {
   const sec = (s.wiki && s.wiki.sections) || {};
   const seasonOrder = ['Spring','Summer','Fall','Winter'];
+  const census = s.census || null;
+  const nearMetro = (typeof nearestMajorCity === 'function') ? nearestMajorCity(job) : null;
+  const relo = estimateRelocationCost(job);
+  const L = generateLifestyleLinks(job);
+
+  // Quick-glance "lifestyle snapshot" pulled from the data we already have
+  const snapshotItems = [];
+  if (census && census.medianAge) snapshotItems.push(['Median age', census.medianAge + ' yrs']);
+  if (census && census.medianRent) snapshotItems.push(['Median rent', fmtMoney(census.medianRent) + '/mo']);
+  if (census && census.medianHomeValue) snapshotItems.push(['Median home', fmtMoney(census.medianHomeValue)]);
+  if (census && census.bachelorsOrHigher) snapshotItems.push(['Bachelor’s+', census.bachelorsOrHigher + '%']);
+  if (nearMetro) snapshotItems.push(['Nearest metro', `${nearMetro.city.name} (${nearMetro.dist} mi)`]);
+  if (relo) snapshotItems.push(['Move from ' + HIS_HOME_BASE.name, `~${fmtMoney(relo.cost)} (${relo.miles.toLocaleString()} mi)`]);
+  const snapshotBlock = snapshotItems.length > 0 ? `
+    <h3 style="font-size:14px;margin:0 0 8px">Lifestyle snapshot</h3>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:13px;margin-bottom:14px">
+      ${snapshotItems.map(([k,v]) => `<div style="display:flex;justify-content:space-between;padding:4px 8px;background:#f9fafb;border-radius:6px"><span style="color:var(--muted)">${escape(k)}</span><b>${escape(String(v))}</b></div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:10px">Relocation cost is a $1.10/mi + $1500 baseline heuristic. Real moves vary 2–4×.</div>
+  ` : '';
+
   return `
     ${job.lifestyle ? `<div style="background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 12px;border-radius:4px;margin-bottom:14px">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Your vibe notes</div>
       <div style="font-size:13px;line-height:1.5">${escape(job.lifestyle)}</div>
     </div>` : ''}
+
+    ${snapshotBlock}
+
     ${s.wiki ? `
       <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
         ${s.wiki.thumb ? `<img src="${escape(s.wiki.thumb)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" />` : ''}
@@ -2095,7 +2307,7 @@ function renderLifestyleView(job, s) {
     ` : ''}
 
     ${s.weather ? `
-      <h3 style="font-size:14px;margin:14px 0 8px">Weather by season (${s.weatherYear} averages)</h3>
+      <h3 style="font-size:14px;margin:14px 0 8px">Climate (${s.weatherYear} averages)</h3>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
         ${seasonOrder.filter(n => s.weather[n]).map(n => `
           <div style="border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center">
@@ -2127,17 +2339,106 @@ function renderLifestyleView(job, s) {
       <p style="font-size:13px;line-height:1.5">${escape(sec['Demographics'])}</p>
     ` : ''}
 
+    <h3 style="font-size:14px;margin:14px 0 8px">Local pulse — what people actually say</h3>
+    <div class="city-links" style="font-size:13px">
+      <a href="${escape(L.reddit)}" target="_blank" title="City subreddit (may 404 — use search link if so)">Reddit r/${escape((job.location||'').split(',')[0].toLowerCase().replace(/\s+/g,''))}</a>
+      <a href="${escape(L.redditSearch)}" target="_blank" title="Find the right city subreddit">Reddit search</a>
+      <a href="${escape(L.nextdoor)}" target="_blank" title="Find your local Nextdoor neighborhood">Nextdoor</a>
+      ${L.linkedinHer ? `<a href="${escape(L.linkedinHer)}" target="_blank" title="LinkedIn jobs in her field for this city">LinkedIn jobs (her)</a>` : ''}
+    </div>
+
     <h3 style="font-size:14px;margin:14px 0 8px">Dive deeper</h3>
     <div class="city-links" style="font-size:13px">
-      <a href="https://www.greatschools.org/search/search.page?q=${encodeURIComponent(job.location)}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
-      <a href="https://www.niche.com/places-to-live/search/best-places-to-live/?q=${encodeURIComponent(job.location)}" target="_blank" title="Niche rankings: best for families, young pros, retirees">Niche rankings</a>
-      <a href="https://www.walkscore.com/score/${encodeURIComponent(job.location)}" target="_blank" title="Walkability, bikeability, transit (0-100)">Walk Score</a>
-      <a href="https://www.areavibes.com/${encodeURIComponent(job.location)}/livability/" target="_blank" title="Crime, safety, amenities">AreaVibes (safety)</a>
-      <a href="https://www.bestplaces.net/city/${encodeURIComponent(job.location)}" target="_blank" title="Climate, crime, education, economy summary">BestPlaces overview</a>
+      <a href="${escape(L.greatschools)}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
+      <a href="${escape(L.niche)}" target="_blank" title="Niche rankings: best for families, young pros, retirees">Niche rankings</a>
+      <a href="${escape(L.walkscore)}" target="_blank" title="Walkability, bikeability, transit (0-100). Walk Score API is paid; this is the public web view.">Walk Score</a>
+      <a href="${escape(L.areavibes)}" target="_blank" title="Crime, safety, amenities">AreaVibes (safety)</a>
+      <a href="${escape(L.bestplaces)}" target="_blank" title="Climate, crime, education, economy summary">BestPlaces overview</a>
       <a href="https://www.tripadvisor.com/Search?q=${encodeURIComponent(job.location)}" target="_blank" title="Top-rated attractions, restaurants, neighborhoods">TripAdvisor</a>
-      <a href="https://www.google.com/search?q=things+to+do+in+${encodeURIComponent(job.location)}" target="_blank" title="Activities, restaurants, parks, nightlife">Things to Do</a>
     </div>
   `;
+}
+
+function renderCommunityView(job) {
+  if (job.lat == null) return '<p style="color:var(--muted)">No coordinates for this job yet.</p>';
+  const L = generateLifestyleLinks(job);
+  const interests = (job.herInterests || '').split(',').map(s => s.trim()).filter(Boolean);
+  const point = { lat: job.lat, lng: job.lng };
+
+  // Family vs friends (with type fallback for legacy entries)
+  const family = people.filter(p => p.lat != null && (p.type || 'family') === 'family');
+  const friends = people.filter(p => p.lat != null && p.type === 'friend');
+  const personRow = (p, badge, color) => {
+    const miles = haversine(point, p);
+    const collegeNote = p.college ? ` <span style="color:var(--muted);font-size:11px">· ${escape(p.college)}</span>` : '';
+    const owner = p.owner || 'both';
+    const ownerBadge = owner === 'him' ? `<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:4px">${escape(profile.him.name)}</span>`
+                     : owner === 'her' ? `<span style="font-size:10px;background:#fce7f3;color:#9d174d;padding:1px 5px;border-radius:3px;margin-left:4px">${escape(profile.her.name)}</span>`
+                     : '';
+    return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f3f4f6">
+      <span><span style="display:inline-block;width:14px;color:${color}">${badge}</span><b>${escape(p.name)}</b>${ownerBadge} <span style="color:var(--muted);font-size:11px">(${escape(p.location)})</span>${collegeNote}</span>
+      <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
+    </div>`;
+  };
+  const familyBlock = family.length === 0 ? '' : `
+    <h3 style="font-size:14px;margin:0 0 8px">💗 Family (${family.length})</h3>
+    <div style="margin-bottom:14px">${family.map(p => personRow(p, '♥', '#ec4899')).join('')}</div>
+  `;
+  const friendsBlock = friends.length === 0 ? '' : `
+    <h3 style="font-size:14px;margin:0 0 8px">🔺 Friends (${friends.length})</h3>
+    <div style="margin-bottom:14px">${friends.map(p => personRow(p, '▲', '#2563eb')).join('')}</div>
+  `;
+
+  // College ties — group by college among all people (any friend/family with the same college)
+  const colleges = {};
+  people.forEach(p => {
+    if (p.college && p.lat != null) {
+      const k = p.college.trim();
+      if (!colleges[k]) colleges[k] = [];
+      colleges[k].push(p);
+    }
+  });
+  const collegeBlock = Object.keys(colleges).length === 0 ? '' : `
+    <h3 style="font-size:14px;margin:14px 0 8px">🎓 College ties</h3>
+    ${Object.entries(colleges).map(([col, ppl]) => `<div style="font-size:13px;padding:4px 0"><b>${escape(col)}:</b> ${ppl.map(p => escape(p.name)).join(', ')}</div>`).join('')}
+  `;
+
+  // Family distance summary (job.distanceFamily) + dual-career notes
+  const dfBlock = (job.distanceFamily || job.dualCareer) ? `
+    <h3 style="font-size:14px;margin:14px 0 8px">Your notes</h3>
+    ${job.distanceFamily ? `<div style="font-size:13px;margin-bottom:4px"><b>Family distance:</b> ${escape(job.distanceFamily)}</div>` : ''}
+    ${job.dualCareer ? `<div style="font-size:13px;margin-bottom:4px"><b>Dual-career:</b> ${escape(job.dualCareer)}</div>` : ''}
+  ` : '';
+
+  // Hobbies → Meetup links + relevant subreddit searches
+  const hobbyBlock = interests.length === 0 ? '' : `
+    <h3 style="font-size:14px;margin:14px 0 8px">Her interests — local communities</h3>
+    <div style="font-size:13px;margin-bottom:6px;color:var(--muted)">From the interests you added on this job. Each opens a search.</div>
+    <div class="city-links" style="font-size:13px">
+      ${interests.map(interest => {
+        const enc = encodeURIComponent(interest);
+        const loc = encodeURIComponent(job.location);
+        return `<a href="https://www.meetup.com/find/?keywords=${enc}&location=${loc}" target="_blank" title="Meetup groups for ${escape(interest)} in ${escape(job.location)}">Meetup: ${escape(interest)}</a>
+                <a href="https://www.google.com/search?q=${enc}+${loc}+clubs+groups" target="_blank" title="Search for local clubs/groups for ${escape(interest)}">Search: ${escape(interest)} clubs</a>`;
+      }).join('')}
+    </div>
+  `;
+
+  // Community pulse links (Reddit/Nextdoor)
+  const pulseBlock = `
+    <h3 style="font-size:14px;margin:14px 0 8px">Community pulse</h3>
+    <div class="city-links" style="font-size:13px">
+      <a href="${escape(L.reddit)}" target="_blank">Reddit r/${escape((job.location||'').split(',')[0].toLowerCase().replace(/\s+/g,''))}</a>
+      <a href="${escape(L.redditSearch)}" target="_blank">Reddit search</a>
+      <a href="${escape(L.nextdoor)}" target="_blank">Nextdoor</a>
+    </div>
+  `;
+
+  const empty = family.length === 0 && friends.length === 0 && interests.length === 0 && !job.distanceFamily && !job.dualCareer;
+  if (empty) {
+    return `<p style="color:var(--muted);font-size:13px">No community info yet. Add family/friends in Manage → Family & friends, set her interests in this job's "Couple's Context", or add a distance-from-family note.</p>${pulseBlock}`;
+  }
+  return familyBlock + friendsBlock + collegeBlock + dfBlock + hobbyBlock + pulseBlock;
 }
 function closeCityStatsModal() { document.getElementById('cityStatsModal').classList.remove('open'); }
 document.getElementById('cityStatsModal').addEventListener('click', e => {
@@ -2233,19 +2534,42 @@ function renderComparison() {
 
     // ── 4. DECISION SCORE ──
     sectionHeader('Decision score'),
-    ['Score (weighted)', j => { const s = decisionScore(j); if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c};font-size:16px">${s}</b>/100`; }],
+    ['Score (unified)', j => { const s = decisionScore(j); if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c};font-size:16px">${s}</b>/100`; }],
+    ['Career subscore', j => { const b = decisionBreakdown(j); const s = b.career && b.career.score; if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c}">${s}</b>/100`; }],
+    ['Lifestyle subscore', j => { const b = decisionBreakdown(j); const s = b.lifestyle && b.lifestyle.score; if (s == null) return '<span style="color:var(--muted)">unrated</span>'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c}">${s}</b>/100`; }],
 
     // ── 5. CITY / LIFESTYLE ──
     sectionHeader('City & lifestyle'),
     ['Cost of living notes', j => escape(j.col || '—')],
     ['Lifestyle / vibe', j => escape(j.lifestyle || '—')],
 
-    // ── 6. HER OPPORTUNITIES & SENTIMENT ──
+    // ── 5b. LIFESTYLE RATINGS — his + her per dimension ──
+    sectionHeader('Lifestyle ratings (his / her)'),
+    ...LIFESTYLE_AXES.map(axis => [axis.label, j => {
+      const h = Number(j[axis.his]) || 0;
+      const r = Number(j[axis.her]) || 0;
+      if (h === 0 && r === 0) return '<span style="color:var(--muted)">—</span>';
+      const stars = (n, color) => n ? `<span style="color:${color}">${'★'.repeat(n)}</span><span style="color:#d1d5db">${'★'.repeat(5-n)}</span>` : '<span style="color:#d1d5db">—</span>';
+      return `<div style="font-size:11px;line-height:1.3"><span title="His">H</span> ${stars(h, '#f59e0b')}<br><span title="Her">S</span> ${stars(r, '#ec4899')}</div>`;
+    }]),
+
+    // ── 6. HIS IMPRESSIONS (relocation readiness) ──
+    sectionHeader('His relocation readiness'),
+    ['1-year feeling (his)', j => `<span style="white-space:pre-wrap">${escape(j.his1Yr || '—')}</span>`],
+    ['5-year projection (his)', j => `<span style="white-space:pre-wrap">${escape(j.his5Yr || '—')}</span>`],
+    ['10-year vision (his)', j => `<span style="white-space:pre-wrap">${escape(j.his10Yr || '—')}</span>`],
+    ['Escape velocity (his)', j => `<span style="white-space:pre-wrap">${escape(j.hisEscape || '—')}</span>`],
+
+    // ── 7. HER OPPORTUNITIES & SENTIMENT ──
     sectionHeader('Her career & sentiment'),
-    ['Her career fit', j => j.partnerFit ? '★'.repeat(j.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-j.partnerFit) + '</span>' : '—'],
+    ['Her career fit (overall)', j => j.partnerFit ? '★'.repeat(j.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-j.partnerFit) + '</span>' : '—'],
+    ['Her field / keyword', j => j.herCareerField ? `${escape(j.herCareerField)}${j.location ? ` <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(j.herCareerField)}&location=${encodeURIComponent(j.location)}" target="_blank" style="font-size:11px">LinkedIn ↗</a>` : ''}` : '—'],
     ['Her vibe', j => j.herVibe ? renderVibeChips(j.herVibe, '#ec4899') : '—'],
-    ['5-year feeling', j => `<span style="white-space:pre-wrap">${escape(j.her5Year || '—')}</span>`],
-    ['30-year feeling', j => `<span style="white-space:pre-wrap">${escape(j.her30Year || '—')}</span>`],
+    ['Her interests', j => j.herInterests ? renderVibeChips(j.herInterests, '#9333ea') : '—'],
+    ['1-year feeling (her)', j => `<span style="white-space:pre-wrap">${escape(j.her1Yr || '—')}</span>`],
+    ['5-year feeling (her)', j => `<span style="white-space:pre-wrap">${escape(j.her5Year || '—')}</span>`],
+    ['10-year vision (her)', j => `<span style="white-space:pre-wrap">${escape(j.her10Yr || '—')}</span>`],
+    ['Escape velocity (her)', j => `<span style="white-space:pre-wrap">${escape(j.herEscape || '—')}</span>`],
     ['Her notes', j => `<span style="white-space:pre-wrap">${escape(j.partnerNotes || '—')}</span>`],
     ['Career overlap (50mi)', j => `<b>${overlapCount(j)}</b> place${overlapCount(j)===1?'':'s'}`],
     ['Dual-career notes', j => escape(j.dualCareer || '—')],
@@ -2347,20 +2671,39 @@ document.getElementById('destinationsModal').addEventListener('click', e => {
 /* ---------- People (family & friends) ---------- */
 function openPeople() {
   const list = document.getElementById('peopleList');
-  list.innerHTML = people.map((p, i) => `
-    <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px;margin-bottom:8px">
-      <input id="p_name_${i}" value="${escape(p.name || '')}" placeholder="Name (e.g. My mom)" />
-      <input id="p_loc_${i}" value="${escape(p.location || '')}" placeholder="City, State" />
-      <button type="button" onclick="removePerson(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+  list.innerHTML = people.map((p, i) => {
+    const type = p.type || 'family';
+    const owner = p.owner || 'both';
+    return `
+    <div style="border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px">
+        <input id="p_name_${i}" value="${escape(p.name || '')}" placeholder="Name (e.g. My mom)" />
+        <input id="p_loc_${i}" value="${escape(p.location || '')}" placeholder="City, State" />
+        <button type="button" onclick="removePerson(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
+        <select id="p_type_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px">
+          <option value="family" ${type==='family'?'selected':''}>💗 Family</option>
+          <option value="friend" ${type==='friend'?'selected':''}>🔺 Friend</option>
+        </select>
+        <select id="p_owner_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px" title="Whose person is this? Affects which modal shows them.">
+          <option value="him" ${owner==='him'?'selected':''}>${escape(profile.him.name)}'s</option>
+          <option value="her" ${owner==='her'?'selected':''}>${escape(profile.her.name)}'s</option>
+          <option value="both" ${owner==='both'?'selected':''}>Both</option>
+        </select>
+        <input id="p_college_${i}" value="${escape(p.college || '')}" placeholder="College (optional)" style="font-size:13px" />
+      </div>
     </div>
-  `).join('') + `
+  `;
+  }).join('') + `
     <button type="button" onclick="addPersonRow()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:white;cursor:pointer;font-size:12px;margin-top:4px">+ Add person</button>
+    <div class="help" style="margin-top:6px">Family pins are pink hearts, friends are blue triangles. "Whose person" decides whether the entry shows in His Impressions, Her Situation, or both. College field clusters people on the Community tab.</div>
   `;
   document.getElementById('peopleStatus').textContent = '';
   document.getElementById('peopleModal').classList.add('open');
 }
 function closePeople() { document.getElementById('peopleModal').classList.remove('open'); }
-function addPersonRow() { people.push({ name: '', location: '', lat: null, lng: null }); openPeople(); }
+function addPersonRow() { people.push({ name: '', location: '', lat: null, lng: null, type: 'family', owner: 'both', college: '' }); openPeople(); }
 function removePerson(i) { people.splice(i, 1); openPeople(); }
 async function savePeopleFromForm() {
   const status = document.getElementById('peopleStatus');
@@ -2369,16 +2712,22 @@ async function savePeopleFromForm() {
   for (let i = 0; i < people.length; i++) {
     const name = document.getElementById('p_name_' + i).value.trim();
     const loc = document.getElementById('p_loc_' + i).value.trim();
+    const typeEl = document.getElementById('p_type_' + i);
+    const ownerEl = document.getElementById('p_owner_' + i);
+    const collegeEl = document.getElementById('p_college_' + i);
+    const type = (typeEl && typeEl.value) || 'family';
+    const owner = (ownerEl && ownerEl.value) || 'both';
+    const college = collegeEl ? collegeEl.value.trim() : '';
     if (!name || !loc) continue;
     const existing = people[i];
     if (existing && existing.location === loc && existing.lat != null) {
-      newPeople.push({ ...existing, name, location: loc });
+      newPeople.push({ ...existing, name, location: loc, type, owner, college });
       continue;
     }
     try {
       const coords = await geocode(loc);
       if (!coords) { status.textContent = `Couldn't find "${loc}"`; status.style.color = '#b91c1c'; return; }
-      newPeople.push({ name, location: loc, lat: coords.lat, lng: coords.lng });
+      newPeople.push({ name, location: loc, lat: coords.lat, lng: coords.lng, type, owner, college });
     } catch (e) {
       status.textContent = `Lookup failed for "${loc}"`; status.style.color = '#b91c1c'; return;
     }
@@ -2400,21 +2749,30 @@ function drawPeople() {
   peopleLayer = L.layerGroup().addTo(map);
   people.forEach(p => {
     if (p.lat == null) return;
+    const type = p.type || 'family';
+    const isFriend = type === 'friend';
+    const html = isFriend
+      ? `<div class="person-marker friend"></div>`
+      : `<div class="person-marker">♥</div>`;
+    const collegeNote = p.college ? ` · ${p.college}` : '';
     L.marker([p.lat, p.lng], {
       icon: L.divIcon({
         className: 'label-icon',
-        html: `<div class="person-marker">♥</div>`,
+        html,
         iconSize: null,
         iconAnchor: [10, 10]
       })
-    }).addTo(peopleLayer).bindTooltip(`${p.name} (${p.location})`, { direction: 'top' });
+    }).addTo(peopleLayer).bindTooltip(`${p.name} (${p.location})${collegeNote}`, { direction: 'top' });
   });
 }
 
 /* ---------- Decision Matrix Weights ---------- */
 const WEIGHTS_KEY = 'jobmap.weights.v1';
 const DEFAULT_WEIGHTS = {
-  hisExcite: 8, herFit: 8, salaryNet: 7, familyClose: 5, careerOverlap: 6, comp: 4, weatherFit: 2
+  // Career / financial
+  hisExcite: 8, herFit: 8, salaryNet: 7, familyClose: 5, careerOverlap: 6, comp: 4, weatherFit: 2,
+  // Lifestyle dimensions (average of his + her categorical rating, only counts when at least one rated)
+  lifeCommunity: 4, lifeEducation: 3, lifeCareer: 4, lifeOutdoor: 4, lifeCulture: 3, lifeUrban: 3, lifeSafety: 4
 };
 let weights = (() => {
   try { return { ...DEFAULT_WEIGHTS, ...(JSON.parse(localStorage.getItem(WEIGHTS_KEY)) || {}) }; }
@@ -2423,16 +2781,33 @@ let weights = (() => {
 const WEIGHT_LABELS = {
   hisExcite:'His excitement', herFit:'Her career fit', salaryNet:'Take-home pay',
   familyClose:'Closeness to family/friends', careerOverlap:'Comp chem / ML jobs nearby (50mi)',
-  comp:'Total comp (gross)', weatherFit:'Weather (subjective — use his/her notes)'
+  comp:'Total comp (gross)', weatherFit:'Weather (subjective — use his/her notes)',
+  lifeCommunity:'Lifestyle — Community / social', lifeEducation:'Lifestyle — Education / growth',
+  lifeCareer:'Lifestyle — Career growth (both)', lifeOutdoor:'Lifestyle — Outdoor / recreation',
+  lifeCulture:'Lifestyle — Culture / arts', lifeUrban:'Lifestyle — Urban ↔ small-town fit',
+  lifeSafety:'Lifestyle — Safety / stability'
+};
+// Track which weights are "lifestyle" so we can split the total in the breakdown
+const LIFESTYLE_WEIGHT_KEYS = ['lifeCommunity','lifeEducation','lifeCareer','lifeOutdoor','lifeCulture','lifeUrban','lifeSafety'];
+const LIFESTYLE_WEIGHT_TO_AXIS = {
+  lifeCommunity:'community', lifeEducation:'education', lifeCareer:'career',
+  lifeOutdoor:'outdoor', lifeCulture:'culture', lifeUrban:'urban', lifeSafety:'safety'
 };
 function openWeights() {
   const list = document.getElementById('weightsList');
-  list.innerHTML = Object.entries(weights).map(([k, v]) => `
+  const slider = (k, v) => `
     <div style="margin-bottom:10px">
       <label style="display:flex;justify-content:space-between;font-size:13px"><span>${escape(WEIGHT_LABELS[k] || k)}</span><span><b id="w_val_${k}">${v}</b></span></label>
       <input type="range" min="0" max="10" step="1" value="${v}" id="w_${k}" oninput="document.getElementById('w_val_${k}').textContent = this.value" style="width:100%" />
-    </div>
-  `).join('');
+    </div>`;
+  const careerKeys = Object.keys(weights).filter(k => !LIFESTYLE_WEIGHT_KEYS.includes(k));
+  const lifestyleKeys = LIFESTYLE_WEIGHT_KEYS.filter(k => k in weights);
+  list.innerHTML = `
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin:0 0 8px">Career & financial</h3>
+    ${careerKeys.map(k => slider(k, weights[k])).join('')}
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin:18px 0 8px">Lifestyle fit <span style="font-weight:400;text-transform:none;letter-spacing:0">(only counts when at least one of you rates that dimension)</span></h3>
+    ${lifestyleKeys.map(k => slider(k, weights[k])).join('')}
+  `;
   document.getElementById('weightsModal').classList.add('open');
 }
 function closeWeights() { document.getElementById('weightsModal').classList.remove('open'); }
@@ -2450,32 +2825,71 @@ document.getElementById('weightsModal').addEventListener('click', e => {
 
 function decisionScore(job) {
   if (job.kind === 'me') return null;
+  const b = decisionBreakdown(job);
+  return b.total;
+}
+
+// Returns { total, career: {score, weightedSum, weightSum}, lifestyle: {...}, factors: {key: {val, label}} }
+// Lifestyle axes that nobody has rated are excluded from the lifestyle weightSum so empty data doesn't drag the score to 0.
+function decisionBreakdown(job) {
+  if (job.kind === 'me') return { total: null };
   const factors = {};
-  factors.hisExcite = (job.excitement || 0) / 5;
-  factors.herFit = (job.partnerFit || 0) / 5;
+  factors.hisExcite = { val: (job.excitement || 0) / 5, label: `${job.excitement || 0}/5 stars` };
+  factors.herFit = { val: (job.partnerFit || 0) / 5, label: `${job.partnerFit || 0}/5 stars` };
   const gross = parseSalary(job.salary);
-  factors.comp = gross ? Math.min(gross / 600000, 1) : 0; // scale: $0-600k
+  factors.comp = { val: gross ? Math.min(gross / 600000, 1) : 0, label: gross ? fmtMoney(gross) : 'unknown' };
   if (gross && job.cityStats && job.cityStats.tax) {
     const net = computeNetPay(gross, job.cityStats.tax.code).net;
-    factors.salaryNet = Math.min(net / 400000, 1);
+    factors.salaryNet = { val: Math.min(net / 400000, 1), label: fmtMoney(net) + ' net' };
   } else if (gross) {
-    factors.salaryNet = Math.min(gross * 0.62 / 400000, 1); // rough 38% tax assumption
-  } else factors.salaryNet = 0;
-  // Family closeness: avg miles to all family pins, scale 0-2000mi
+    factors.salaryNet = { val: Math.min(gross * 0.62 / 400000, 1), label: '~' + fmtMoney(gross * 0.62) + ' net (est.)' };
+  } else factors.salaryNet = { val: 0, label: 'unknown' };
   if (people.length > 0 && job.lat != null) {
     const dists = people.filter(p => p.lat != null).map(p => haversine({lat:job.lat,lng:job.lng}, p));
-    const avg = dists.length ? dists.reduce((a,b)=>a+b,0)/dists.length : 2000;
-    factors.familyClose = Math.max(0, 1 - avg / 2000);
-  } else factors.familyClose = 0.5; // neutral if no family pins
-  factors.careerOverlap = Math.min(overlapCount(job) / 8, 1); // 8+ overlap = max score
-  factors.weatherFit = 0.5; // neutral baseline (subjective)
+    const avg = dists.length ? Math.round(dists.reduce((a,b)=>a+b,0)/dists.length) : 2000;
+    factors.familyClose = { val: Math.max(0, 1 - avg / 2000), label: `avg ${avg} mi from family` };
+  } else factors.familyClose = { val: 0.5, label: 'no family added (neutral)' };
+  const oc = overlapCount(job);
+  factors.careerOverlap = { val: Math.min(oc / 8, 1), label: `${oc} place${oc===1?'':'s'} within 50mi` };
+  factors.weatherFit = { val: 0.5, label: 'neutral (subjective)' };
 
-  let total = 0, weightSum = 0;
+  // Lifestyle axes — each contributes only if at least one of his/her rated it.
+  const agg = lifestyleAggregate(job);
+  const axisByKey = Object.fromEntries(agg.axes.map(a => [a.key, a]));
+  LIFESTYLE_WEIGHT_KEYS.forEach(k => {
+    const axis = axisByKey[LIFESTYLE_WEIGHT_TO_AXIS[k]];
+    if (axis && axis.avg != null) {
+      const stars = Math.round(axis.avg * 5);
+      factors[k] = { val: axis.avg, label: `${stars}/5 (his+her avg)`, lifestyle: true, rated: true };
+    } else {
+      factors[k] = { val: 0, label: 'not rated — skipped', lifestyle: true, rated: false };
+    }
+  });
+
+  // Split into career vs lifestyle subscores. Lifestyle weights for un-rated axes are pulled out of weightSum
+  // so missing ratings don't penalize the score.
+  let careerW = 0, careerSum = 0, lifeW = 0, lifeSum = 0;
   for (const k in weights) {
-    total += (factors[k] || 0) * weights[k];
-    weightSum += weights[k];
+    const f = factors[k];
+    if (!f) continue;
+    const w = weights[k];
+    if (f.lifestyle) {
+      if (f.rated) { lifeSum += f.val * w; lifeW += w; }
+    } else {
+      careerSum += f.val * w; careerW += w;
+    }
   }
-  return weightSum > 0 ? Math.round(total / weightSum * 100) : 0;
+  const careerScore = careerW > 0 ? careerSum / careerW : null;
+  const lifeScore = lifeW > 0 ? lifeSum / lifeW : null;
+  const totalW = careerW + lifeW;
+  const totalSum = careerSum + lifeSum;
+  const total = totalW > 0 ? Math.round(totalSum / totalW * 100) : 0;
+  return {
+    total,
+    career:    { score: careerScore == null ? null : Math.round(careerScore * 100), weightSum: careerW, weightedSum: careerSum },
+    lifestyle: { score: lifeScore   == null ? null : Math.round(lifeScore   * 100), weightSum: lifeW,   weightedSum: lifeSum },
+    factors
+  };
 }
 
 /* ---------- Timeline ---------- */
@@ -2519,13 +2933,100 @@ document.getElementById('timelineModal').addEventListener('click', e => {
   if (e.target.id === 'timelineModal') closeTimeline();
 });
 
+/* ---------- Profile (his/her names, home bases, fields, interests) ---------- */
+const PROFILE_KEY = 'jobmap.profile.v1';
+const DEFAULT_PROFILE = {
+  him: { name: 'Dillon', homeCity: 'Grand Rapids, MI', homeLat: 42.9634, homeLng: -85.6681, role: 'OMFS resident', interests: '' },
+  her: { name: 'Isabel', homeCity: 'Notre Dame, IN', homeLat: 41.7001, homeLng: -86.2379, role: 'PhD candidate', field: '', interests: '' }
+};
+function loadProfile() {
+  try { return { him: { ...DEFAULT_PROFILE.him, ...(JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}).him }, her: { ...DEFAULT_PROFILE.her, ...(JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}).her } }; }
+  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PROFILE)); }
+}
+let profile = loadProfile();
+function saveProfile() {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  syncConfigToSheet('profile', profile);
+}
+// Home-base getters used everywhere (His Impressions, Her Situation, relocation cost, etc.)
+function getHisHome() { return { name: profile.him.homeCity.split(',')[0].trim(), city: profile.him.homeCity, lat: profile.him.homeLat, lng: profile.him.homeLng, note: `${profile.him.name}'s current location` }; }
+function getHerHome() { return { name: profile.her.homeCity.split(',')[0].trim(), city: profile.her.homeCity, lat: profile.her.homeLat, lng: profile.her.homeLng, note: `${profile.her.name}'s current location` }; }
+// Back-compat const-style aliases: some downstream code reads HER_HOME_BASE as if it were a constant. Keep working.
+let HER_HOME_BASE = getHerHome();
+let HIS_HOME_BASE = getHisHome();
+function refreshHomeBases() { HER_HOME_BASE = getHerHome(); HIS_HOME_BASE = getHisHome(); }
+
+function openProfile() {
+  document.getElementById('pf_him_name').value = profile.him.name || '';
+  document.getElementById('pf_him_home').value = profile.him.homeCity || '';
+  document.getElementById('pf_him_role').value = profile.him.role || '';
+  document.getElementById('pf_him_interests').value = profile.him.interests || '';
+  document.getElementById('pf_her_name').value = profile.her.name || '';
+  document.getElementById('pf_her_home').value = profile.her.homeCity || '';
+  document.getElementById('pf_her_role').value = profile.her.role || '';
+  document.getElementById('pf_her_field').value = profile.her.field || '';
+  document.getElementById('pf_her_interests').value = profile.her.interests || '';
+  document.getElementById('profileStatus').textContent = '';
+  document.getElementById('profileModal').classList.add('open');
+}
+function closeProfile() { document.getElementById('profileModal').classList.remove('open'); }
+async function saveProfileFromForm() {
+  const status = document.getElementById('profileStatus');
+  const himHome = document.getElementById('pf_him_home').value.trim();
+  const herHome = document.getElementById('pf_her_home').value.trim();
+  status.textContent = 'Looking up home coordinates…'; status.style.color = '';
+
+  // Re-geocode home cities only if they changed
+  let himCoords = { lat: profile.him.homeLat, lng: profile.him.homeLng };
+  let herCoords = { lat: profile.her.homeLat, lng: profile.her.homeLng };
+  if (himHome && himHome !== profile.him.homeCity) {
+    try {
+      const c = await geocode(himHome);
+      if (!c) { status.textContent = `Couldn't find "${himHome}"`; status.style.color = '#b91c1c'; return; }
+      himCoords = c;
+    } catch (e) { status.textContent = `Lookup failed for "${himHome}"`; status.style.color = '#b91c1c'; return; }
+  }
+  if (herHome && herHome !== profile.her.homeCity) {
+    try {
+      const c = await geocode(herHome);
+      if (!c) { status.textContent = `Couldn't find "${herHome}"`; status.style.color = '#b91c1c'; return; }
+      herCoords = c;
+    } catch (e) { status.textContent = `Lookup failed for "${herHome}"`; status.style.color = '#b91c1c'; return; }
+  }
+
+  profile = {
+    him: {
+      name: document.getElementById('pf_him_name').value.trim() || DEFAULT_PROFILE.him.name,
+      homeCity: himHome || DEFAULT_PROFILE.him.homeCity,
+      homeLat: himCoords.lat, homeLng: himCoords.lng,
+      role: document.getElementById('pf_him_role').value.trim(),
+      interests: document.getElementById('pf_him_interests').value.trim()
+    },
+    her: {
+      name: document.getElementById('pf_her_name').value.trim() || DEFAULT_PROFILE.her.name,
+      homeCity: herHome || DEFAULT_PROFILE.her.homeCity,
+      homeLat: herCoords.lat, homeLng: herCoords.lng,
+      role: document.getElementById('pf_her_role').value.trim(),
+      field: document.getElementById('pf_her_field').value.trim(),
+      interests: document.getElementById('pf_her_interests').value.trim()
+    }
+  };
+  saveProfile();
+  refreshHomeBases();
+  renderMarkers();
+  renderList();
+  closeProfile();
+}
+document.getElementById('profileModal').addEventListener('click', e => {
+  if (e.target.id === 'profileModal') closeProfile();
+});
+
 /* ---------- My situation modal ---------- */
-const HER_HOME_BASE = { name: 'Notre Dame', lat: 41.7001, lng: -86.2379, note: 'Your current PhD location' };
 
 window._jobmapShowMySituation = function(jobId) {
   const job = jobs.find(j => j.id === jobId);
   if (!job) return;
-  document.getElementById('situationTitle').textContent = `${job.company} — her situation`;
+  document.getElementById('situationTitle').textContent = `${job.company} — ${profile.her.name}'s situation`;
   const body = document.getElementById('situationBody');
   if (job.lat == null) {
     body.innerHTML = '<p style="color:var(--muted)">No coordinates for this job yet.</p>';
@@ -2586,13 +3087,71 @@ window._jobmapShowMySituation = function(jobId) {
     </div>`;
   }
 
-  // Her thoughts: vibe, 5/30 year, notes, couple context
+  // Her thoughts: ratings, vibe, relocation timelines, notes, couple context
   const fitStars = job.partnerFit ? '★'.repeat(job.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-job.partnerFit) + '</span>' : '';
-  const herThoughtsBlock = (job.partnerFit || job.herVibe || job.her5Year || job.her30Year || job.partnerNotes) ? `<div class="popup-section"><strong>Her thoughts</strong>
-    ${fitStars ? `<div style="margin-top:4px;font-size:13px"><b>Career fit:</b> <span style="color:#ec4899">${fitStars}</span></div>` : ''}
+
+  // Categorical rating rows (only render dimensions she rated)
+  const herRatingRow = (label, val) => {
+    const n = Number(val) || 0;
+    if (!n) return '';
+    return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
+      <span>${escape(label)}</span>
+      <span><span style="color:#ec4899">${'★'.repeat(n)}</span><span style="color:#d1d5db">${'★'.repeat(5-n)}</span></span>
+    </div>`;
+  };
+  const herRatings = [
+    ['Community / social', job.herCommFit],
+    ['Educational / growth', job.herEducFit],
+    ['Job market for her field', job.herPartnerCareer],
+    ['Outdoor / recreation', job.herOutdoorFit],
+    ['Culture / arts', job.herCultureFit],
+    ['Urban ↔ small-town', job.herUrbanRural],
+    ['Safety / stability', job.herSafety],
+  ];
+  const anyHerRatings = herRatings.some(([_, v]) => Number(v) > 0);
+  const herRatingsBlock = anyHerRatings
+    ? `<div style="margin-top:8px;padding:8px;background:#fdf2f8;border-radius:6px">${herRatings.map(([l,v]) => herRatingRow(l, v)).join('')}</div>`
+    : '';
+
+  // LinkedIn jobs auto-link if her career field is set (per-job override or profile default)
+  const liLinks = generateLifestyleLinks(job);
+  const herField = (job.herCareerField || profile.her.field || '').trim();
+  const linkedinBlock = (herField && job.location) ? `
+    <div style="margin-top:10px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px">
+      🔎 <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(herField)}&location=${encodeURIComponent(job.location)}" target="_blank" style="color:#1d4ed8;font-weight:600">LinkedIn jobs in ${escape(herField)} near ${escape(job.location)} ↗</a>
+    </div>
+  ` : '';
+
+  // Meetup + Reddit links from her interests (per-job, falls back to profile.her.interests)
+  const herInterestsRaw = job.herInterests || profile.her.interests || '';
+  const herInterestList = herInterestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const meetupBlock = (herInterestList.length > 0 && job.location) ? `
+    <div style="margin-top:8px"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">Local communities for her interests</div>
+    <div class="city-links" style="font-size:12px">
+      ${herInterestList.map(interest => `<a href="https://www.meetup.com/find/?keywords=${encodeURIComponent(interest)}&location=${encodeURIComponent(job.location)}" target="_blank" title="Meetup groups for ${escape(interest)} in ${escape(job.location)}">Meetup: ${escape(interest)}</a>`).join('')}
+    </div></div>
+  ` : '';
+
+  const reloTxt = (label, val) => val ? `<div style="margin-top:6px;font-size:13px"><b>${escape(label)}:</b><br><span style="white-space:pre-wrap">${escape(val)}</span></div>` : '';
+  const hasHerRelo = job.her1Yr || job.her5Year || job.her10Yr || job.her30Year || job.herEscape;
+  const herReloBlock = hasHerRelo ? `<div style="margin-top:10px"><div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Relocation readiness</div>
+    ${reloTxt('Year 1', job.her1Yr)}
+    ${reloTxt('5-year feeling', job.her5Year)}
+    ${reloTxt('10-year vision', job.her10Yr)}
+    ${reloTxt('30-year feeling (legacy)', job.her30Year)}
+    ${reloTxt('Escape velocity', job.herEscape)}
+  </div>` : '';
+
+  const interestsBlock = herInterestsRaw ? `<div style="margin-top:8px"><div style="font-size:12px;color:var(--muted);margin-bottom:2px">Interests / hobbies</div>${renderVibeChips(herInterestsRaw, '#9333ea')}</div>` : '';
+
+  const herThoughtsBlock = (job.partnerFit || job.herVibe || hasHerRelo || job.partnerNotes || anyHerRatings || herInterestsRaw || herField) ? `<div class="popup-section"><strong>${escape(profile.her.name)}'s thoughts</strong>
+    ${fitStars ? `<div style="margin-top:4px;font-size:13px"><b>Overall career fit:</b> <span style="color:#ec4899">${fitStars}</span></div>` : ''}
     ${job.herVibe ? `<div style="margin-top:6px"><div style="font-size:12px;color:var(--muted);margin-bottom:2px">Vibe</div>${renderVibeChips(job.herVibe, '#ec4899')}</div>` : ''}
-    ${job.her5Year ? `<div style="margin-top:8px;font-size:13px"><b>5-year feeling:</b><br><span style="white-space:pre-wrap">${escape(job.her5Year)}</span></div>` : ''}
-    ${job.her30Year ? `<div style="margin-top:8px;font-size:13px"><b>30-year feeling:</b><br><span style="white-space:pre-wrap">${escape(job.her30Year)}</span></div>` : ''}
+    ${interestsBlock}
+    ${linkedinBlock}
+    ${meetupBlock}
+    ${herRatingsBlock}
+    ${herReloBlock}
     ${job.partnerNotes ? `<div style="margin-top:8px;font-size:13px"><b>Notes:</b><br><span style="white-space:pre-wrap">${escape(job.partnerNotes)}</span></div>` : ''}
   </div>` : '';
   const coupleBlock = (job.distanceFamily || job.dualCareer) ? `<div class="popup-section"><strong>Couple context</strong>
@@ -2600,14 +3159,15 @@ window._jobmapShowMySituation = function(jobId) {
     ${job.dualCareer ? `<div style="font-size:13px;margin-top:4px"><b>Dual-career:</b> ${escape(job.dualCareer)}</div>` : ''}
   </div>` : '';
 
-  // Family & friends distances
-  const peopleWithCoords = people.filter(p => p.lat != null);
-  const familyBlock = peopleWithCoords.length === 0 ? '' : `
-    <div class="popup-section"><strong>Family & friends</strong>
-      ${peopleWithCoords.map(p => {
+  // Family & friends — scoped to her (owner === 'her' or 'both'; legacy untyped entries default to 'both')
+  const herPeople = people.filter(p => p.lat != null && ((p.owner || 'both') === 'her' || (p.owner || 'both') === 'both'));
+  const familyBlock = herPeople.length === 0 ? '' : `
+    <div class="popup-section"><strong>Her family & friends nearby</strong>
+      ${herPeople.map(p => {
         const miles = haversine({lat:job.lat,lng:job.lng}, p);
+        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:#ec4899">♥</span>';
         return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
-          <span><b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})</span></span>
+          <span>${badge} <b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})${p.college ? ' · ' + escape(p.college) : ''}</span></span>
           <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
         </div>`;
       }).join('')}
@@ -2624,7 +3184,7 @@ window._jobmapShowMySituation = function(jobId) {
     ${coupleBlock}
     ${familyBlock}
     <div style="margin-top:10px;font-size:11px;color:var(--muted)">
-      Edit your home base by changing <code>HER_HOME_BASE</code> in the file (currently Notre Dame). Manage family in Manage → Family & friends.
+      Home base = ${escape(profile.her.homeCity)}. Change names, home bases, and default interests in Manage → Profile.
     </div>
   `;
   document.getElementById('situationModal').classList.add('open');
@@ -2632,6 +3192,103 @@ window._jobmapShowMySituation = function(jobId) {
 function closeSituation() { document.getElementById('situationModal').classList.remove('open'); }
 document.getElementById('situationModal').addEventListener('click', e => {
   if (e.target.id === 'situationModal') closeSituation();
+});
+
+/* ---------- His Impressions modal ---------- */
+window._jobmapShowHisImpressions = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  document.getElementById('hisImpressionsTitle').textContent = `${job.company} — ${profile.him.name}'s impressions`;
+  const body = document.getElementById('hisImpressionsBody');
+
+  // From his home + relocation cost
+  let homeBlock = '';
+  if (job.lat != null) {
+    const fromHome = haversine({lat:job.lat,lng:job.lng}, HIS_HOME_BASE);
+    const relo = estimateRelocationCost(job);
+    homeBlock = `<div class="popup-section"><strong>From ${escape(HIS_HOME_BASE.name)}</strong>
+      <div style="font-size:13px;margin-top:4px"><b>${fromHome.toLocaleString()} mi</b> · ${travelEstimate(fromHome)}</div>
+      ${relo ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">Estimated one-time relocation cost: <b>~${fmtMoney(relo.cost)}</b> <span style="opacity:0.7">($1.10/mi + $1500 baseline; real moves vary 2–4×)</span></div>` : ''}
+      <div style="color:var(--muted);font-size:11px;margin-top:2px">${escape(HIS_HOME_BASE.note)}</div>
+    </div>`;
+  }
+
+  const ratingRow = (label, val) => {
+    const n = Number(val) || 0;
+    if (!n) return '';
+    return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f3f4f6">
+      <span>${escape(label)}</span>
+      <span><span style="color:#f59e0b">${'★'.repeat(n)}</span><span style="color:#d1d5db">${'★'.repeat(5-n)}</span></span>
+    </div>`;
+  };
+  const ratings = [
+    ['Community / social fit', job.hisCommFit],
+    ['Educational opportunities', job.hisEducFit],
+    ['Career growth potential', job.hisCareerGrowth],
+    ['Outdoor / recreation', job.hisOutdoorFit],
+    ['Culture / arts scene', job.hisCultureFit],
+    ['Urban ↔ small-town fit', job.hisUrbanRural],
+    ['Safety / stability', job.hisSafety],
+  ];
+  const anyRatings = ratings.some(([_, v]) => Number(v) > 0);
+  const ratingsBlock = anyRatings
+    ? `<div class="popup-section"><strong>Location fit ratings</strong>${ratings.map(([l, v]) => ratingRow(l, v)).join('')}</div>`
+    : '';
+
+  const vibeBlock = job.hisVibe
+    ? `<div class="popup-section"><strong>Vibe tags</strong><div style="margin-top:4px">${renderVibeChips(job.hisVibe)}</div></div>`
+    : '';
+
+  // His interests + Meetup links (per-job or profile default)
+  const hisInterestsRaw = job.hisInterests || profile.him.interests || '';
+  const hisInterestList = hisInterestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const interestsBlock = hisInterestsRaw ? `<div class="popup-section"><strong>Interests / hobbies</strong>
+    <div style="margin-top:4px">${renderVibeChips(hisInterestsRaw, '#0891b2')}</div>
+    ${(hisInterestList.length > 0 && job.location) ? `<div style="margin-top:8px"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">Local communities for his interests</div>
+      <div class="city-links" style="font-size:12px">
+        ${hisInterestList.map(interest => `<a href="https://www.meetup.com/find/?keywords=${encodeURIComponent(interest)}&location=${encodeURIComponent(job.location)}" target="_blank" title="Meetup groups for ${escape(interest)} in ${escape(job.location)}">Meetup: ${escape(interest)}</a>`).join('')}
+      </div></div>` : ''}
+  </div>` : '';
+
+  const textBlock = (label, val) => val
+    ? `<div style="margin-top:8px;font-size:13px"><b>${escape(label)}:</b><br><span style="white-space:pre-wrap">${escape(val)}</span></div>`
+    : '';
+  const hasRelo = job.his1Yr || job.his5Yr || job.his10Yr || job.hisEscape;
+  const reloBlock = hasRelo
+    ? `<div class="popup-section"><strong>Relocation readiness</strong>
+        ${textBlock('Year 1 feeling', job.his1Yr)}
+        ${textBlock('5-year projection', job.his5Yr)}
+        ${textBlock('10-year vision', job.his10Yr)}
+        ${textBlock('Escape velocity', job.hisEscape)}
+      </div>`
+    : '';
+
+  // Family & friends scoped to him (owner === 'him' or 'both'; legacy untyped → 'both')
+  const hisPeople = (job.lat != null) ? people.filter(p => p.lat != null && ((p.owner || 'both') === 'him' || (p.owner || 'both') === 'both')) : [];
+  const familyBlock = hisPeople.length === 0 ? '' : `
+    <div class="popup-section"><strong>His family & friends nearby</strong>
+      ${hisPeople.map(p => {
+        const miles = haversine({lat:job.lat,lng:job.lng}, p);
+        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:#ec4899">♥</span>';
+        return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+          <span>${badge} <b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})${p.college ? ' · ' + escape(p.college) : ''}</span></span>
+          <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  const hasAnything = homeBlock || ratingsBlock || vibeBlock || interestsBlock || reloBlock || familyBlock;
+  if (!hasAnything) {
+    body.innerHTML = '<p style="color:var(--muted);font-size:13px">No impressions filled in yet. Edit this job and open the "His Impressions" section to add ratings, vibe tags, interests, and relocation thoughts.</p>';
+  } else {
+    body.innerHTML = homeBlock + ratingsBlock + vibeBlock + interestsBlock + reloBlock + familyBlock +
+      `<div style="margin-top:10px;font-size:11px;color:var(--muted)">Home base = ${escape(profile.him.homeCity)}. Change names, home bases, and default interests in Manage → Profile.</div>`;
+  }
+  document.getElementById('hisImpressionsModal').classList.add('open');
+};
+function closeHisImpressions() { document.getElementById('hisImpressionsModal').classList.remove('open'); }
+document.getElementById('hisImpressionsModal').addEventListener('click', e => {
+  if (e.target.id === 'hisImpressionsModal') closeHisImpressions();
 });
 
 /* ---------- Notes & info modal ---------- */
@@ -2701,7 +3358,7 @@ window._jobmapShowNotes = function(jobId) {
     ${careerHtml}
 
     <div class="popup-section city-links">
-      <strong>Cost of Living — searches that actually load</strong><br>
+      <strong>Cost of Living</strong><br>
       <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' cost of living')}" target="_blank" title="Google search — top results: Numbeo, BestPlaces, etc.">Cost of living search</a>
       <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' median rent')}" target="_blank" title="Google search for average rent">Rent search</a>
       <a href="https://www.zillow.com/homes/${city}_rb/" target="_blank" title="Home prices for sale">Zillow homes</a>
@@ -2712,15 +3369,20 @@ window._jobmapShowNotes = function(jobId) {
     </div>
 
     <div class="popup-section city-links">
-      <strong>Lifestyle & Location — searches that actually load</strong><br>
-      <a href="https://en.wikipedia.org/wiki/${city}" target="_blank" title="General overview, history, demographics">Wikipedia</a>
-      <a href="https://www.greatschools.org/search/search.page?q=${city}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
-      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' walk score bike score')}" target="_blank" title="Walkability, bikeability scores">Walkability search</a>
-      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' crime rate safety')}" target="_blank" title="Crime stats and safety info">Safety search</a>
-      <a href="https://www.google.com/search?q=${encodeURIComponent('best neighborhoods ' + (job.location||''))}" target="_blank" title="Top neighborhoods to live">Best neighborhoods</a>
-      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' weather climate')}" target="_blank" title="Climate, average temps, sunny days">Weather & climate</a>
-      <a href="https://www.google.com/search?q=${encodeURIComponent('things to do in ' + (job.location||''))}" target="_blank" title="Activities, restaurants, parks, nightlife">Things to do</a>
-      <a href="https://www.tripadvisor.com/Search?q=${city}" target="_blank" title="Top-rated attractions, restaurants">TripAdvisor</a>
+      <strong>Community pulse — what locals actually say</strong><br>
+      ${(() => {
+        const L = generateLifestyleLinks(job);
+        const interestLinks = L.meetupInterests.slice(0, 4).map(m => `<a href="${escape(m.url)}" target="_blank" title="Local meetups for this interest">Meetup: ${escape(m.label)}</a>`).join('');
+        return `
+          <a href="${escape(L.reddit)}" target="_blank" title="City subreddit (may 404 if r/${escape((job.location||'').split(',')[0].toLowerCase().replace(/\s+/g,''))} doesn't exist — use the search link)">Reddit r/${escape((job.location||'').split(',')[0].toLowerCase().replace(/\s+/g,''))}</a>
+          <a href="${escape(L.redditSearch)}" target="_blank" title="Search Reddit for the right city subreddit">Reddit search</a>
+          <a href="${escape(L.nextdoor)}" target="_blank" title="Find your local Nextdoor neighborhood">Nextdoor</a>
+          ${L.linkedinHer ? `<a href="${escape(L.linkedinHer)}" target="_blank" title="LinkedIn jobs in her field for this city">LinkedIn jobs (her)</a>` : ''}
+          ${interestLinks}
+          <a href="https://www.google.com/search?q=${encodeURIComponent('best neighborhoods ' + (job.location||''))}" target="_blank" title="Top neighborhoods to live">Best neighborhoods</a>
+          <a href="https://en.wikipedia.org/wiki/${city}" target="_blank" title="General overview, history, demographics">Wikipedia</a>
+        `;
+      })()}
     </div>
 
   `;
@@ -2777,43 +3439,27 @@ document.getElementById('scoreModal').addEventListener('click', e => {
 });
 
 function openScoreModal(job) {
-  const score = decisionScore(job);
+  const b = decisionBreakdown(job);
   document.getElementById('scoreTitle').textContent = `${job.company} — Decision score`;
   const body = document.getElementById('scoreBody');
-  if (score == null) {
+  if (b.total == null) {
     body.innerHTML = '<p style="color:var(--muted)">No score available for this pin.</p>';
     document.getElementById('scoreModal').classList.add('open');
     return;
   }
-  // Recompute factors here for display
-  const factors = {};
-  factors.hisExcite = { val: (job.excitement || 0) / 5, label: `${job.excitement || 0}/5 stars` };
-  factors.herFit = { val: (job.partnerFit || 0) / 5, label: `${job.partnerFit || 0}/5 stars` };
-  const gross = parseSalary(job.salary);
-  factors.comp = { val: gross ? Math.min(gross / 600000, 1) : 0, label: gross ? fmtMoney(gross) : 'unknown' };
-  if (gross && job.cityStats && job.cityStats.tax) {
-    const net = computeNetPay(gross, job.cityStats.tax.code).net;
-    factors.salaryNet = { val: Math.min(net / 400000, 1), label: fmtMoney(net) + ' net' };
-  } else if (gross) {
-    factors.salaryNet = { val: Math.min(gross * 0.62 / 400000, 1), label: '~' + fmtMoney(gross * 0.62) + ' net (est.)' };
-  } else factors.salaryNet = { val: 0, label: 'unknown' };
-  if (people.length > 0 && job.lat != null) {
-    const dists = people.filter(p => p.lat != null).map(p => haversine({lat:job.lat,lng:job.lng}, p));
-    const avg = dists.length ? Math.round(dists.reduce((a,b)=>a+b,0)/dists.length) : 2000;
-    factors.familyClose = { val: Math.max(0, 1 - avg / 2000), label: `avg ${avg} mi from family` };
-  } else factors.familyClose = { val: 0.5, label: 'no family added (neutral)' };
-  const oc = overlapCount(job);
-  factors.careerOverlap = { val: Math.min(oc / 8, 1), label: `${oc} place${oc===1?'':'s'} within 50mi` };
-  factors.weatherFit = { val: 0.5, label: 'neutral (subjective)' };
+  const score = b.total;
+  const factors = b.factors;
+  const colorFor = s => s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c';
+  const color = colorFor(score);
 
-  const color = score >= 70 ? '#047857' : score >= 50 ? '#b45309' : '#b91c1c';
-  const rows = Object.entries(weights).map(([k, w]) => {
+  // Two-group breakdown: career factors, then lifestyle factors
+  const renderRow = (k, w) => {
     const f = factors[k] || { val: 0, label: '—' };
-    const contribution = Math.round(f.val * w * 10);
-    const barWidth = w > 0 ? (f.val * 100) : 0;
-    return `<tr>
-      <td style="padding:8px 6px 8px 0;font-size:13px;width:160px;vertical-align:top">${escape(WEIGHT_LABELS[k] || k)}</td>
-      <td style="padding:8px 6px 8px 0;font-size:12px;color:var(--muted);width:140px;vertical-align:top">${escape(f.label)}</td>
+    const skipped = f.lifestyle && !f.rated;
+    const barWidth = w > 0 && !skipped ? (f.val * 100) : 0;
+    return `<tr style="${skipped ? 'opacity:0.45' : ''}">
+      <td style="padding:8px 6px 8px 0;font-size:13px;width:200px;vertical-align:top">${escape(WEIGHT_LABELS[k] || k)}</td>
+      <td style="padding:8px 6px 8px 0;font-size:12px;color:var(--muted);width:170px;vertical-align:top">${escape(f.label)}</td>
       <td style="padding:8px 6px 8px 0;vertical-align:middle">
         <div style="background:#e5e7eb;border-radius:3px;height:8px;overflow:hidden">
           <div style="background:${color};width:${barWidth}%;height:100%"></div>
@@ -2821,20 +3467,43 @@ function openScoreModal(job) {
       </td>
       <td style="padding:8px 0 8px 6px;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;vertical-align:top">weight ${w}</td>
     </tr>`;
-  }).join('');
+  };
+  const careerKeys = Object.keys(weights).filter(k => !LIFESTYLE_WEIGHT_KEYS.includes(k));
+  const lifestyleKeys = LIFESTYLE_WEIGHT_KEYS.filter(k => k in weights);
+  const careerRows = careerKeys.map(k => renderRow(k, weights[k])).join('');
+  const lifestyleRows = lifestyleKeys.map(k => renderRow(k, weights[k])).join('');
+
+  // Subscore chips
+  const chip = (label, val) => {
+    if (val == null) return `<div style="display:inline-block;padding:6px 10px;border-radius:6px;background:#f3f4f6;color:var(--muted);font-size:12px;margin-right:6px">${escape(label)}: <b>n/a</b></div>`;
+    const c = colorFor(val);
+    return `<div style="display:inline-block;padding:6px 10px;border-radius:6px;background:white;border:1px solid var(--line);font-size:12px;margin-right:6px">${escape(label)}: <b style="color:${c}">${val}</b>/100</div>`;
+  };
 
   body.innerHTML = `
     <div style="text-align:center;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:14px">
       <div style="font-size:48px;font-weight:700;color:${color};line-height:1">${score}</div>
-      <div style="color:var(--muted);font-size:13px;margin-top:4px">out of 100</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:4px">out of 100 · unified score</div>
+      <div style="margin-top:10px">
+        ${chip('Career & financial', b.career.score)}
+        ${chip('Lifestyle fit', b.lifestyle.score)}
+      </div>
+      ${b.lifestyle.score == null ? `<div style="margin-top:6px;font-size:11px;color:var(--muted)">Lifestyle ratings aren't filled in for this job yet — only career factors counted.</div>` : ''}
     </div>
+
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin:14px 0 6px">Career & financial</h3>
     <table style="width:100%;border-collapse:collapse">
       <thead><tr style="font-size:11px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:0.5px">
         <th style="padding:0 6px 6px 0">Factor</th><th style="padding:0 6px 6px 0">Value</th><th style="padding:0 6px 6px 0">Strength</th><th style="padding:0 0 6px 6px;text-align:right">Weight</th>
       </tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${careerRows}</tbody>
     </table>
-    <p style="font-size:11px;color:var(--muted);margin-top:10px">Score = Σ (factor × weight) / Σ weights, × 100. Edit weights to change how each factor is counted.</p>
+
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin:18px 0 6px">Lifestyle fit <span style="font-weight:400;text-transform:none;letter-spacing:0">(his + her avg per dimension)</span></h3>
+    <table style="width:100%;border-collapse:collapse">
+      <tbody>${lifestyleRows}</tbody>
+    </table>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px">Total = Σ (factor × weight) / Σ weights × 100. Lifestyle axes with no ratings are dimmed and excluded from the denominator so unrated dimensions don't drag the score down. Edit weights to change how each factor is counted.</p>
   `;
   document.getElementById('scoreModal').classList.add('open');
 }
@@ -3038,6 +3707,7 @@ function renderJobDetails(job) {
       ${job.link ? `<a href="${escape(job.link)}" target="_blank" style="${btn}">Open posting ↗</a>` : ''}
       <button onclick="window._jobmapShowNotes('${job.id}')" style="${btn}">Notes & info</button>
       <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="${btn}">City info</button>
+      ${job.kind !== 'me' ? `<button onclick="window._jobmapShowHisImpressions('${job.id}')" style="${btn}">His Impressions</button>` : ''}
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowMySituation('${job.id}')" style="${btn}">Her situation</button>` : ''}
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowScore('${job.id}')" style="${btn}">Decision matrix</button>` : ''}
     </div>
@@ -3100,10 +3770,15 @@ function renderJobDetails(job) {
       return `<div class="popup-section city-links">
         <strong>Other locations of ${escape(group)}</strong><br>
         ${siblings.length > 0
-          ? siblings.map(s => `<div style="margin:2px 0">→ <a href="#" onclick="focusJob('${s.id}');return false">${escape(s.company)}</a> <span style="color:var(--muted);font-size:11px">${escape(s.location)}</span></div>`).join('')
+          ? siblings.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px">
+              <span>→ ${escape(s.location)}</span>
+              <a href="https://www.google.com/search?q=${encodeURIComponent(group + ' ' + s.location)}" target="_blank" style="font-size:11px" title="Google search for this practice + location">search ↗</a>
+            </div>`).join('')
           : '<span style="color:var(--muted);font-size:11px">No other locations added yet</span>'}
-        <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find more on Google ↗</a>
-        <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps ↗</a>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find more on Google ↗</a>
+          <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps ↗</a>
+        </div>
       </div>`;
     })()}
 
@@ -3247,21 +3922,54 @@ function renderMarkers() {
   if (showCityDistance) drawCityDistance();
 }
 
+const SORT_KEY = 'jobmap.sortBy.v1';
+let sortBy = localStorage.getItem(SORT_KEY) || 'status';
+function setSortBy(v) {
+  sortBy = v;
+  localStorage.setItem(SORT_KEY, v);
+  renderList();
+}
+// Comparator for the currently-selected sort. Falls back to status order on ties / when no value.
+function jobSortComparator() {
+  const statusOrder = { interviewing: 0, applied: 1, offer: 2, potential: 3, rejected: 4 };
+  const byStatus = (a,b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+  const num = (a, b, getter) => (Number(getter(b)) || -Infinity) - (Number(getter(a)) || -Infinity);
+  const str = (a, b, getter) => (getter(a) || '').toString().toLowerCase().localeCompare((getter(b) || '').toString().toLowerCase());
+  const distFromHome = j => {
+    if (j.lat == null || typeof HIS_HOME_BASE === 'undefined') return Infinity;
+    return haversine({lat:j.lat,lng:j.lng}, HIS_HOME_BASE);
+  };
+  switch (sortBy) {
+    case 'score':       return (a,b) => { const sa = decisionScore(a), sb = decisionScore(b); return (sb ?? -Infinity) - (sa ?? -Infinity) || byStatus(a,b); };
+    case 'excitement':  return (a,b) => num(a,b, j => j.excitement) || byStatus(a,b);
+    case 'herFit':      return (a,b) => num(a,b, j => j.partnerFit) || byStatus(a,b);
+    case 'lifestyle':   return (a,b) => { const la = lifestyleAggregate(a).score, lb = lifestyleAggregate(b).score; return (lb ?? -Infinity) - (la ?? -Infinity) || byStatus(a,b); };
+    case 'salary':      return (a,b) => num(a,b, j => parseSalary(j.salary)) || byStatus(a,b);
+    case 'dateApplied': return (a,b) => str(b, a, j => j.dateApplied) || byStatus(a,b);  // newest first → reverse args
+    case 'company':     return (a,b) => str(a,b, j => j.company) || byStatus(a,b);
+    case 'location':    return (a,b) => str(a,b, j => j.location) || byStatus(a,b);
+    case 'distance':    return (a,b) => distFromHome(a) - distFromHome(b) || byStatus(a,b);
+    case 'status':
+    default:            return byStatus;
+  }
+}
+
 function renderList() {
   if (typeof updateFilterIndicator === 'function') updateFilterIndicator();
+  // Sync dropdown to current state (covers reload after persistence)
+  const sortSel = document.getElementById('sortSelect');
+  if (sortSel && sortSel.value !== sortBy) sortSel.value = sortBy;
   const list = document.getElementById('jobList');
   if (jobs.length === 0) {
     list.innerHTML = '<div style="padding:20px;color:#6b7280;font-size:13px;text-align:center">No jobs yet. Click "+ Add Job" to start.</div>';
     return;
   }
-  // sort: interviewing > applied > potential > offer > rejected
-  const order = { interviewing: 0, applied: 1, offer: 2, potential: 3, rejected: 4 };
   const filtered = jobs.filter(j => j.kind !== 'sister' && passesFilter(j));
   if (filtered.length === 0) {
     document.getElementById('jobList').innerHTML = '<div style="padding:20px;color:#6b7280;font-size:13px;text-align:center">No matches. Adjust filters or search above.</div>';
     return;
   }
-  const sorted = [...filtered].sort((a,b) => (order[a.status]||9) - (order[b.status]||9));
+  const sorted = [...filtered].sort(jobSortComparator());
   list.innerHTML = sorted.map(job => `
     <div class="job-card" onclick="focusJob('${job.id}')">
       <div class="row1">
@@ -3472,6 +4180,7 @@ function openJobForm(jobId) {
     f('f_location').value = j.location || '';
     EXTRA_FIELDS.forEach(k => { const el = document.getElementById('f_' + k); if (el) el.value = j[k] || ''; });
     setPartnerRating(j.partnerFit || 0);
+    resetMiniRatings(j);
     f('f_status').value = j.status || 'potential';
     f('f_salary').value = j.salary || '';
     f('f_dateApplied').value = j.dateApplied || '';
@@ -3488,6 +4197,14 @@ function openJobForm(jobId) {
     document.getElementById('jobForm').reset();
     setRating(0);
     setPartnerRating(0);
+    resetMiniRatings(null);
+    // Prefill from profile defaults — user can still override per job
+    const pfHisInt = document.getElementById('f_hisInterests');
+    const pfHerInt = document.getElementById('f_herInterests');
+    const pfHerField = document.getElementById('f_herCareerField');
+    if (pfHisInt && profile.him.interests) pfHisInt.value = profile.him.interests;
+    if (pfHerInt && profile.her.interests) pfHerInt.value = profile.her.interests;
+    if (pfHerField && profile.her.field) pfHerField.value = profile.her.field;
   }
   updateKindUI();
   document.getElementById('formModal').classList.add('open');
@@ -3518,6 +4235,93 @@ function setPartnerRating(n) {
   ).join('');
 }
 
+/* ---------- Mini-star widget (1–5 categorical ratings for His/Her dimensions) ---------- */
+let currentRatings = {};  // { fieldName: number 0-5 }
+function renderMiniStars(field) {
+  const el = document.querySelector(`.mini-stars[data-field="${field}"]`);
+  if (!el) return;
+  const n = currentRatings[field] || 0;
+  el.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="${i <= n ? 'on' : ''}" onclick="setMiniRating('${field}',${i})">★</span>`
+  ).join('');
+}
+function setMiniRating(field, n) {
+  // Click the active star again to clear (lets user un-rate)
+  if (currentRatings[field] === n) n = 0;
+  currentRatings[field] = n;
+  renderMiniStars(field);
+}
+function resetMiniRatings(jobOrNull) {
+  currentRatings = {};
+  RATING_FIELDS.forEach(f => {
+    currentRatings[f] = jobOrNull ? Number(jobOrNull[f]) || 0 : 0;
+    renderMiniStars(f);
+  });
+}
+
+/* ---------- Lifestyle helpers (city-specific links, relocation cost, lifestyle scoring) ---------- */
+// Build city-specific community / search links. Free to use, no API keys, just URL templates.
+function generateLifestyleLinks(job) {
+  const loc = job.location || '';
+  const cityRaw = loc.split(',')[0].trim();
+  const slug = cityRaw.toLowerCase().replace(/\s+/g, '');         // for r/austintexas style subs
+  const slugDash = cityRaw.toLowerCase().replace(/\s+/g, '-');    // for nextdoor / niche
+  const enc = encodeURIComponent(loc);
+  const encCity = encodeURIComponent(cityRaw);
+  const interests = (job.herInterests || '').split(',').map(s => s.trim()).filter(Boolean);
+  const field = (job.herCareerField || '').trim();
+  return {
+    reddit:      `https://www.reddit.com/r/${slug}/`,
+    redditSearch:`https://www.reddit.com/search/?q=${encCity}&type=sr`,  // sub picker when r/{city} is wrong
+    nextdoor:    `https://nextdoor.com/find-neighborhood/?searchTerm=${enc}`,
+    linkedinHer: field ? `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(field)}&location=${enc}` : null,
+    zillow:      `https://www.zillow.com/homes/${enc}_rb/`,
+    greatschools:`https://www.greatschools.org/search/search.page?q=${enc}`,
+    walkscore:   `https://www.walkscore.com/score/${enc}`,
+    areavibes:   `https://www.areavibes.com/${slugDash}/livability/`,
+    bestplaces:  `https://www.bestplaces.net/city/${enc}`,
+    niche:       `https://www.niche.com/places-to-live/search/best-places-to-live/?q=${enc}`,
+    meetupInterests: interests.map(interest => ({
+      label: interest,
+      url: `https://www.meetup.com/find/?keywords=${encodeURIComponent(interest)}&location=${enc}`
+    }))
+  };
+}
+
+// Rough one-time relocation cost from his current home (the OMFS resident is the one relocating).
+// Heuristic: $1.10/mile for a 2-bedroom local move + $1500 baseline. Real costs vary 2–4×.
+function estimateRelocationCost(job) {
+  if (job.lat == null || typeof HIS_HOME_BASE === 'undefined') return null;
+  const miles = haversine({lat: job.lat, lng: job.lng}, HIS_HOME_BASE);
+  const cost = Math.round((1500 + miles * 1.10) / 100) * 100;
+  return { miles, cost };
+}
+
+// Average of his + her categorical ratings per "axis" (0–1). Used by decision matrix + comparison.
+const LIFESTYLE_AXES = [
+  { key: 'community', label: 'Community / social',   his: 'hisCommFit',     her: 'herCommFit' },
+  { key: 'education', label: 'Education / growth',   his: 'hisEducFit',     her: 'herEducFit' },
+  { key: 'career',    label: 'Career growth / market', his: 'hisCareerGrowth', her: 'herPartnerCareer' },
+  { key: 'outdoor',   label: 'Outdoor / recreation', his: 'hisOutdoorFit',  her: 'herOutdoorFit' },
+  { key: 'culture',   label: 'Culture / arts',       his: 'hisCultureFit',  her: 'herCultureFit' },
+  { key: 'urban',     label: 'Urban ↔ small-town',   his: 'hisUrbanRural',  her: 'herUrbanRural' },
+  { key: 'safety',    label: 'Safety / stability',   his: 'hisSafety',      her: 'herSafety' }
+];
+function lifestyleAxisAvg(job, axis) {
+  const h = Number(job[axis.his]) || 0;
+  const r = Number(job[axis.her]) || 0;
+  const both = [h, r].filter(v => v > 0);
+  if (both.length === 0) return null;  // null = not rated
+  return both.reduce((a,b)=>a+b,0) / both.length / 5;  // normalized 0-1
+}
+function lifestyleAggregate(job) {
+  const axes = LIFESTYLE_AXES.map(a => ({ ...a, avg: lifestyleAxisAvg(job, a) }));
+  const rated = axes.filter(a => a.avg != null);
+  if (rated.length === 0) return { axes, score: null };
+  const score = rated.reduce((s, a) => s + a.avg, 0) / rated.length;
+  return { axes, score };  // score 0-1
+}
+
 async function geocode(location) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(location)}`;
   const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
@@ -3543,6 +4347,8 @@ async function saveJob(e) {
     partnerFit: currentPartnerRating
   };
   EXTRA_FIELDS.forEach(k => { if (k !== 'partnerFit') data[k] = get('f_' + k); });
+  // Persist 1–5 categorical ratings (his + her dimensions)
+  RATING_FIELDS.forEach(k => { data[k] = currentRatings[k] || 0; });
   if (data.kind === 'current') data.status = 'current';
   if (data.kind === 'sister') {
     if (!data.parentId) { alert('Pick a parent job for this sister location.'); return; }
