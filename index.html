@@ -1789,14 +1789,23 @@ async function pullFromSheet() {
     const remoteJobs = Array.isArray(remote) ? remote : (remote && Array.isArray(remote.jobs) ? remote.jobs : null);
     if (remoteJobs) {
       const dateOnly = v => (typeof v === 'string') ? (v.match(/^(\d{4}-\d{2}-\d{2})/) || [, v])[1] : v;
-      jobs = remoteJobs.map(j => ({
-        ...j,
-        lat: j.lat === '' ? null : Number(j.lat),
-        lng: j.lng === '' ? null : Number(j.lng),
-        excitement: j.excitement === '' ? 0 : Number(j.excitement),
-        dateApplied: dateOnly(j.dateApplied),
-        dateInterview: dateOnly(j.dateInterview),
-      }));
+      // Preserve local-only fields when the remote sheet returns them blank — this
+      // handles the case where the deployed Apps Script predates fields like `kind`
+      // or `parentId` and would otherwise silently drop sister-location links on reload.
+      const localById = Object.fromEntries(jobs.map(j => [j.id, j]));
+      jobs = remoteJobs.map(j => {
+        const local = localById[j.id] || {};
+        return {
+          ...j,
+          kind: j.kind || local.kind,
+          parentId: j.parentId || local.parentId,
+          lat: j.lat === '' ? null : Number(j.lat),
+          lng: j.lng === '' ? null : Number(j.lng),
+          excitement: j.excitement === '' ? 0 : Number(j.excitement),
+          dateApplied: dateOnly(j.dateApplied),
+          dateInterview: dateOnly(j.dateInterview),
+        };
+      });
       saveJobs();
     }
     // Pull shared config (people, destinations, weights) if the script supports it
