@@ -1,0 +1,3648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Job Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- PWA: "Add to Home Screen" support -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Job Map" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#4f46e5" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='38' fill='%234f46e5'/><path d='M90 28c-25 0-46 21-46 46 0 36 46 78 46 78s46-42 46-78c0-25-21-46-46-46zm0 62a16 16 0 110-32 16 16 0 010 32z' fill='white'/></svg>" />
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%234f46e5'/><path d='M16 5c-4 0-8 4-8 8 0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z' fill='white'/></svg>" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --panel: #ffffff;
+    --ink: #1f2330;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --potential: #9ca3af;
+    --applied: #3b82f6;
+    --interviewing: #f59e0b;
+    --offer: #10b981;
+    --rejected: #ef4444;
+    --current: #059669;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  #app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+  #sidebar { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  #sidebar header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  #sidebar header h1 { margin: 0 0 4px; font-size: 18px; }
+  #sidebar header p { margin: 0; color: var(--muted); font-size: 12px; }
+  #toolbar { padding: 10px 14px; display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+  #toolbar button { flex: 1; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; cursor: pointer; }
+  #toolbar button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  #toolbar button:hover { filter: brightness(0.97); }
+  #filterTrigger { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  #filterBtn { background: transparent; border: none; cursor: pointer; padding: 4px 0; font-size: 12px; color: var(--muted); font-family: inherit; display: inline-flex; align-items: center; gap: 4px; }
+  #filterBtn:hover { color: var(--ink); }
+  #filterDot { display: none; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+  #filterDot.active { display: inline-block; }
+  #jobCount { font-size: 11px; }
+  #filterBar { padding: 8px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; overflow: hidden; transition: max-height 0.2s ease, padding 0.2s ease; max-height: 200px; }
+  #filterBar.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom: none; }
+  #searchInput { width: 100%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
+  #statusChips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .starFilters { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .starFilters label { min-width: 56px; }
+  .starRow { display: inline-flex; gap: 2px; }
+  .starRow span { cursor: pointer; color: #d1d5db; font-size: 16px; line-height: 1; }
+  .starRow span.on { color: #f59e0b; }
+  .clearStars { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; text-decoration: underline; }
+  #filterBar { max-height: 280px; }
+  .chip { font-size: 10px; padding: 3px 8px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: white; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); user-select: none; }
+  .chip.on { color: white; border-color: transparent; }
+  .chip.on.s-potential { background: var(--potential); }
+  .chip.on.s-applied { background: var(--applied); }
+  .chip.on.s-interviewing { background: var(--interviewing); }
+  .chip.on.s-offer { background: var(--offer); }
+  .chip.on.s-rejected { background: var(--rejected); }
+  #syncStatus { font-size: 11px; color: var(--muted); padding: 6px 14px; border-bottom: 1px solid var(--line); display: none; }
+  #syncStatus.visible { display: block; }
+  #syncStatus.error { color: #b91c1c; }
+  #syncStatus.success { color: #047857; }
+  #jobList { overflow-y: auto; flex: 1; padding: 8px; }
+  .code-block { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; max-height: 240px; overflow: auto; white-space: pre; margin-top: 6px; }
+  .steps { font-size: 13px; line-height: 1.6; }
+  .steps li { margin-bottom: 8px; }
+  .steps code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .job-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: white; }
+  .job-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .job-card .row1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .job-card .company { font-weight: 600; font-size: 14px; }
+  .job-card .role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .job-card .loc { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .status-pill { font-size: 10px; padding: 2px 7px; border-radius: 999px; color: white; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  .status-potential { background: var(--potential); }
+  .status-applied { background: var(--applied); }
+  .status-interviewing { background: var(--interviewing); }
+  .status-offer { background: var(--offer); }
+  .status-rejected { background: var(--rejected); }
+  .status-current { background: var(--current); }
+  .excitement { color: #f59e0b; font-size: 11px; margin-top: 4px; }
+  #map { height: 100%; position: relative; }
+  #manageBar { position: relative; border-top: 1px solid var(--line); padding: 10px 12px; background: var(--panel); }
+  #manageBtn { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); background: white; border-radius: 8px; cursor: pointer; text-align: left; }
+  #manageBtn:hover { background: var(--accent-soft); }
+  #manageMenu { display: none; position: absolute; bottom: calc(100% - 4px); left: 12px; right: 12px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 4px; z-index: 100; }
+  #manageMenu.open { display: block; }
+  #manageMenu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; font-size: 13px; border-radius: 6px; font-family: inherit; color: var(--ink); }
+  #manageMenu button:hover { background: var(--accent-soft); }
+
+  /* Modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,18,30,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: white; border-radius: 14px; width: min(640px, 92vw); max-height: 90vh; overflow-y: auto; padding: 22px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .modal h2 { margin: 0 0 14px; font-size: 18px; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; font-weight: 500; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  .modal textarea { min-height: 60px; resize: vertical; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .modal-actions button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: white; cursor: pointer; font-size: 13px; }
+  .modal-actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .modal-actions .danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .stars { display: inline-flex; gap: 2px; cursor: pointer; }
+  .stars span { font-size: 22px; color: #d1d5db; }
+  .stars span.on { color: #f59e0b; }
+  .help { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Popup detail view */
+  .leaflet-popup-content { margin: 12px 14px; min-width: 240px; }
+  .popup-company { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .popup-role { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .popup-section { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; }
+  .popup-section strong { display: inline-block; min-width: 70px; color: var(--muted); font-weight: 500; }
+  /* Bigger, more readable text when popup-section is used inside the details modal */
+  #detailsBody .popup-section { font-size: 14px; padding-top: 12px; margin-top: 12px; line-height: 1.5; }
+  #detailsBody .popup-section strong { color: var(--ink); font-weight: 600; font-size: 14px; min-width: 90px; }
+  #detailsBody .popup-section .preserve-lines { white-space: pre-wrap; }
+  #detailsBody .city-links a { font-size: 13px; }
+  .popup-actions { margin-top: 10px; display: flex; gap: 6px; }
+  .popup-actions button { flex: 1; padding: 6px; border: 1px solid var(--line); background: white; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .popup-actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .city-links a { color: var(--accent); text-decoration: none; margin-right: 8px; }
+  .city-links a:hover { text-decoration: underline; }
+
+  .toggle-list { display: flex; flex-direction: column; gap: 8px; }
+  .toggle-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; user-select: none; margin: 0; }
+  .toggle-row:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .toggle-row input[type="checkbox"] { margin: 0; width: 16px; height: 16px; justify-self: center; }
+  .toggle-row .toggle-label { font-size: 13px; color: var(--ink); }
+
+  /* Strip default Leaflet divIcon background so label markers render cleanly */
+  .leaflet-div-icon.label-icon { background: transparent; border: none; padding: 0; }
+  .map-label { background: white; border: 1px solid #6366f1; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); display: inline-block; }
+  .airport-marker { background: #1e293b; color: white; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; }
+  .uni-marker { background: #16a34a; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
+  .pharma-marker { background: #ea580c; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
+  .pharma-marker.compchem { background: #7c3aed; }
+  .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
+  .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
+  .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  .trauma-marker { background: #b91c1c; color: white; font-size: 10px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  /* Her pin (single color, distinct from his status-colored pins) */
+  .pin-marker.kind-me { background: #8b5cf6 !important; }
+
+  /* Custom marker */
+  .pin-marker {
+    width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .pin-marker .inner { transform: rotate(45deg); display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 11px; font-weight: 700; }
+  .pin-badge { position: absolute; top: -6px; right: -8px; background: #06b6d4; color: white; font-size: 9px; font-weight: 700; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; display: flex; align-items: center; justify-content: center; transform: rotate(45deg); border: 1.5px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1; }
+
+  @media (max-width: 720px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 40vh 60vh; }
+    #sidebar { border-right: none; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside id="sidebar">
+    <header>
+      <h1>📍 Job Map</h1>
+      <p>Track applications, interviews & places</p>
+    </header>
+    <div id="toolbar">
+      <button class="primary" onclick="openJobForm()">+ Add Job</button>
+      <button onclick="openCompare()" title="Compare jobs side-by-side">Compare</button>
+      <button onclick="openTimeline()" title="Application/interview timeline">Timeline</button>
+      <button onclick="openLayers()" title="Map layers and overlays">Layers</button>
+    </div>
+    <div id="syncStatus"></div>
+    <div id="filterTrigger">
+      <button id="filterBtn" onclick="toggleFilterPanel()">Filter <span id="filterDot"></span> <span style="opacity:0.6">▾</span></button>
+      <span id="jobCount"></span>
+    </div>
+    <div id="filterBar" class="collapsed">
+      <input type="text" id="searchInput" placeholder="Search company, location, notes…" oninput="setSearch(this.value)" />
+      <div id="statusChips"></div>
+      <div class="starFilters">
+        <label>His ★ ≥</label>
+        <div id="hisStarFilter" class="starRow"></div>
+        <button class="clearStars" onclick="setMinExcite(0)">clear</button>
+      </div>
+      <div class="starFilters">
+        <label>Her ★ ≥</label>
+        <div id="herStarFilter" class="starRow"></div>
+        <button class="clearStars" onclick="setMinPartner(0)">clear</button>
+      </div>
+      <div class="starFilters">
+        <label>Score ≥</label>
+        <input type="range" id="scoreSlider" min="0" max="100" step="5" value="0" oninput="setMinScore(parseInt(this.value))" style="flex:1;max-width:140px" />
+        <span id="scoreSliderVal" style="font-variant-numeric:tabular-nums;font-size:11px;min-width:24px">0</span>
+        <button class="clearStars" onclick="setMinScore(0)">clear</button>
+      </div>
+    </div>
+    <div id="jobList"></div>
+    <div id="manageBar">
+      <button id="manageBtn" onclick="toggleManageMenu(event)">Manage ▾</button>
+      <div id="manageMenu">
+        <button onclick="openSettings(); closeManageMenu()">Sync to Google Sheet…</button>
+        <button onclick="openDestinations(); closeManageMenu()">Plane destinations…</button>
+        <button onclick="openPeople(); closeManageMenu()">Family & friends…</button>
+        <button onclick="openWeights(); closeManageMenu()">Decision matrix weights…</button>
+        <button onclick="exportData(); closeManageMenu()">Export backup</button>
+        <button onclick="document.getElementById('importFile').click(); closeManageMenu()">Import backup</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+      </div>
+    </div>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<!-- Job Form Modal -->
+<div class="modal-backdrop" id="formModal">
+  <div class="modal">
+    <h2 id="formTitle">Add a Job</h2>
+    <form id="jobForm" onsubmit="saveJob(event)">
+      <input type="hidden" id="jobId" />
+
+      <label>This pin is for</label>
+      <select id="f_kind" onchange="updateKindUI()">
+        <option value="omfs">His OMFS practice (status-colored pins)</option>
+        <option value="current">His CURRENT position (green pin)</option>
+        <option value="me">My possible employer — comp chem (purple pin)</option>
+        <option value="sister">Sister location (linked to a main job)</option>
+      </select>
+
+      <div id="sisterParentRow" style="display:none;margin-top:8px">
+        <label>Parent job *</label>
+        <select id="f_parentId"></select>
+        <div class="help">This pin will show on the map (slightly transparent) and clicking it opens the parent job's info. It won't appear in the job list.</div>
+      </div>
+
+      <label>Practice / Employer *</label>
+      <input id="f_company" required />
+
+      <label>Location (City, State/Country) *</label>
+      <input id="f_location" placeholder="e.g. Austin, TX" required />
+      <div class="help">We'll look up the coordinates automatically. Use "Remote" + a city if relevant.</div>
+
+      <div class="grid-2">
+        <div>
+          <label>Status</label>
+          <select id="f_status">
+            <option value="potential">Potential</option>
+            <option value="applied">Applied</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+            <option value="current">Current position</option>
+          </select>
+        </div>
+        <div>
+          <label>Base salary</label>
+          <input id="f_salary" placeholder="e.g. $400k or $400,000" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label>Estimated yearly production ($)</label>
+          <input id="f_estimatedProduction" placeholder="e.g. $1,200,000" />
+        </div>
+        <div>
+          <label>% of production added to income</label>
+          <input id="f_productionPercent" placeholder="e.g. 30" />
+        </div>
+      </div>
+      <div class="help">Total comp ≈ base + (production × percent). Used in the take-home calculation.</div>
+
+      <label>Excitement</label>
+      <div class="stars" id="starInput"></div>
+
+      <div class="grid-2">
+        <div>
+          <label>Date Applied</label>
+          <input type="date" id="f_dateApplied" />
+        </div>
+        <div>
+          <label>Phone interview</label>
+          <input type="date" id="f_datePhoneInterview" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>In-person interview #1</label>
+          <input type="date" id="f_dateInterview" />
+        </div>
+        <div>
+          <label>In-person interview #2</label>
+          <input type="date" id="f_dateInterview2" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Offer date</label>
+          <input type="date" id="f_offerDate" />
+        </div>
+        <div>
+          <label>Offer deadline</label>
+          <input type="date" id="f_offerDeadline" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label>Contact (recruiter, etc.)</label>
+          <input id="f_contact" />
+        </div>
+        <div>
+          <label>Job Posting URL</label>
+          <input id="f_link" placeholder="https://..." />
+        </div>
+      </div>
+
+      <label>Pros</label>
+      <textarea id="f_pros" placeholder="What's exciting about this one?"></textarea>
+
+      <label>Cons</label>
+      <textarea id="f_cons" placeholder="Concerns / red flags?"></textarea>
+
+      <label>His vibe tags</label>
+      <input id="f_hisVibe" placeholder="e.g. exciting, busy, surgical-heavy, well-equipped (comma-separated)" />
+      <div class="help">Short tags for the gut feeling about this practice. Comma-separated.</div>
+
+      <label>Notes</label>
+      <textarea id="f_notes"></textarea>
+
+      <details style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px">
+        <summary>OMFS specifics</summary>
+        <label>Practice group (links to sister locations)</label>
+        <input id="f_practiceGroup" placeholder="e.g. 'Smith OMFS Group' — for linking practice locations" />
+        <div class="help">Jobs with the same value here will link to each other as sister locations.</div>
+        <label>DSO affiliation</label>
+        <input id="f_dsoAffiliation" placeholder="e.g. Heartland Dental, MB2, Pacific Dental Services, or 'independent'" />
+        <div class="help">Informational — which DSO owns or supports this practice.</div>
+        <div class="grid-2">
+          <div>
+            <label>Partnership track</label>
+            <input id="f_partnershipTrack" placeholder="e.g. 2 yrs to buy-in" />
+          </div>
+          <div>
+            <label>Signing bonus</label>
+            <input id="f_signingBonus" placeholder="e.g. $50k" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Call schedule</label>
+            <input id="f_callSchedule" placeholder="e.g. 1:5, no trauma" />
+          </div>
+          <div>
+            <label>Loan repayment / PSLF</label>
+            <input id="f_loanAssist" placeholder="e.g. $25k/yr, PSLF eligible" />
+          </div>
+        </div>
+        <label>Case mix</label>
+        <textarea id="f_caseMix" placeholder="e.g. wisdom teeth 50%, implants 20%, trauma 15%, orthognathic 10%, pathology 5%"></textarea>
+        <div class="grid-2">
+          <div>
+            <label>Hospital affiliations</label>
+            <input id="f_hospitals" placeholder="e.g. Denver Health (Level 1 trauma)" />
+          </div>
+          <div>
+            <label>Malpractice / tail</label>
+            <input id="f_malpractice" placeholder="e.g. occurrence, tail covered" />
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+        <summary>Her thoughts (Isabel)</summary>
+        <div class="help" style="margin-bottom:6px">All of this shows up in "Her situation" — not on the main job page.</div>
+
+        <label>Her career fit (1-5)</label>
+        <div class="stars" id="partnerStarInput"></div>
+
+        <label>Her vibe tags</label>
+        <input id="f_herVibe" placeholder="e.g. lonely, exciting, isolating, home-y, safe, scary, energizing (comma-separated)" />
+
+        <div class="grid-2">
+          <div>
+            <label>5-year feeling</label>
+            <textarea id="f_her5Year" placeholder="How would I feel living here for 5 years?" style="min-height:60px"></textarea>
+          </div>
+          <div>
+            <label>30-year feeling</label>
+            <textarea id="f_her30Year" placeholder="How would I feel raising a family / spending my career here?" style="min-height:60px"></textarea>
+          </div>
+        </div>
+
+        <label>Her notes</label>
+        <textarea id="f_partnerNotes" placeholder="What would I need to be happy here?
+What am I worried about?
+Questions to ask Dillon / the practice…
+Things to research before deciding…
+Red flags I noticed…
+Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"></textarea>
+
+        <div class="grid-2">
+          <div>
+            <label>Distance from family</label>
+            <input id="f_distanceFamily" placeholder="e.g. 4 hr drive to parents" />
+          </div>
+          <div>
+            <label>Dual-career notes</label>
+            <input id="f_dualCareer" placeholder="e.g. both can WFH, good schools" />
+          </div>
+        </div>
+      </details>
+
+      <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+        <summary>City & lifestyle</summary>
+        <div class="grid-2">
+          <div>
+            <label>Cost of Living (notes)</label>
+            <input id="f_col" placeholder="e.g. rent ~$2k, cheaper than SF" />
+          </div>
+          <div>
+            <label>Weather / Lifestyle</label>
+            <input id="f_lifestyle" placeholder="e.g. warm, outdoorsy" />
+          </div>
+        </div>
+      </details>
+
+      <div class="modal-actions">
+        <button type="button" class="danger" id="deleteBtn" onclick="deleteJob()" style="display:none">Delete</button>
+        <button type="button" onclick="closeJobForm()">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Job Details Modal -->
+<div class="modal-backdrop" id="detailsModal">
+  <div class="modal" style="width:min(720px,96vw)">
+    <h2 id="detailsTitle" style="margin-bottom:4px">Job details</h2>
+    <div id="detailsSubtitle" style="color:var(--muted);font-size:13px;margin-bottom:14px"></div>
+    <div id="detailsBody"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="closeDetails()">Close</button>
+      <button type="button" class="primary" id="detailsEditBtn">Edit</button>
+    </div>
+  </div>
+</div>
+
+<!-- City Snapshot Modal -->
+<div class="modal-backdrop" id="cityStatsModal">
+  <div class="modal" style="width:min(720px,94vw)">
+    <h2 id="citystatsTitle">City Snapshot</h2>
+    <div id="citystatsBody"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="closeCityStatsModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Layers Modal -->
+<div class="modal-backdrop" id="layersModal">
+  <div class="modal" style="width:min(460px,94vw)">
+    <h2 style="margin:0 0 6px">Map Layers</h2>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Toggle overlays on the map.</p>
+    <div class="toggle-list">
+      <label class="toggle-row">
+        <input type="checkbox" id="peopleToggle" onchange="togglePeople(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ec4899;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ec4899;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="traumaToggle" onchange="toggleTrauma(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#b91c1c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #b91c1c;vertical-align:middle;margin-right:6px"></span>Level 1 trauma centers</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="cityDistanceToggle" onchange="toggleCityDistance(this.checked)" />
+        <span class="toggle-label">Show distance to nearest major city</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="airportsToggle" onchange="toggleAirports(this.checked)" />
+        <span class="toggle-label">Show major US airports</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="universitiesToggle" onchange="toggleUniversities(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Universities (comp chem / R1)</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="labsToggle" onchange="toggleLabs(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #dc2626;vertical-align:middle;margin-right:6px"></span>National labs & research institutes</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="mlLabsToggle" onchange="toggleMLLabs(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:14px;background:#06b6d4;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #06b6d4;vertical-align:middle;margin-right:6px"></span>AI / ML research labs</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="pharmaToggle" onchange="togglePharma(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span style="color:var(--muted);font-size:11px">(orange = big pharma · </span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:50%;vertical-align:middle;margin:0 3px"></span><span style="color:var(--muted);font-size:11px">violet = comp chem / AI drug discovery)</span></span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="primary" onclick="closeLayers()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- People Modal -->
+<div class="modal-backdrop" id="peopleModal">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2>Family & friends</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Add people whose location matters. Each of his pins will show drive/flight time to them.</p>
+    <div id="peopleList"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="closePeople()">Cancel</button>
+      <button type="button" class="primary" onclick="savePeopleFromForm()">Save</button>
+    </div>
+    <div id="peopleStatus" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div>
+
+<!-- Decision Weights Modal -->
+<div class="modal-backdrop" id="weightsModal">
+  <div class="modal" style="width:min(520px,94vw)">
+    <h2>Decision matrix weights</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Set how much each factor matters (0 = ignore, 10 = critical). The app auto-scores each job 0–100.</p>
+    <div id="weightsList"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="resetWeights()" style="margin-right:auto">Reset to defaults</button>
+      <button type="button" onclick="closeWeights()">Cancel</button>
+      <button type="button" class="primary" onclick="saveWeightsFromForm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Situation Modal -->
+<div class="modal-backdrop" id="situationModal" style="z-index:1100">
+  <div class="modal" style="width:min(620px,94vw)">
+    <h2 id="situationTitle">Her situation relative to this job</h2>
+    <div id="situationBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="primary" onclick="closeSituation()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes & Info Modal -->
+<div class="modal-backdrop" id="notesModal" style="z-index:1100">
+  <div class="modal" style="width:min(640px,94vw)">
+    <h2 id="notesTitle">Notes & info</h2>
+    <div id="notesBody"></div>
+    <div class="modal-actions">
+      <button type="button" id="notesEditBtn">Edit</button>
+      <button type="button" class="primary" onclick="closeNotes()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Family Distance Modal -->
+<div class="modal-backdrop" id="familyModal" style="z-index:1100">
+  <div class="modal" style="width:min(480px,92vw)">
+    <h2 id="familyTitle">Distance to family & friends</h2>
+    <div id="familyBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="primary" onclick="closeFamilyDistances()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Decision Score Modal -->
+<div class="modal-backdrop" id="scoreModal" style="z-index:1100">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2 id="scoreTitle">Decision matrix score</h2>
+    <div id="scoreBody"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="openWeights(); closeScore()" style="margin-right:auto">Edit weights</button>
+      <button type="button" class="primary" onclick="closeScore()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline Modal -->
+<div class="modal-backdrop" id="timelineModal">
+  <div class="modal" style="width:min(900px,96vw)">
+    <h2>Timeline</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Applied dates · interview dates · status. Sorted chronologically.</p>
+    <div id="timelineBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="primary" onclick="closeTimeline()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Destinations Modal -->
+<div class="modal-backdrop" id="destinationsModal">
+  <div class="modal">
+    <h2>Plane-Distance Destinations</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Every pin's popup shows straight-line distance + estimated flight time to these places. Defaults are NYC, Southport NC, Grand Rapids MI.</p>
+    <div id="destinationsList"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="closeDestinations()">Cancel</button>
+      <button type="button" class="primary" onclick="saveDestinationsFromForm()">Save</button>
+    </div>
+    <div id="destStatus" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div>
+
+<!-- Compare Modal -->
+<div class="modal-backdrop" id="compareModal">
+  <div class="modal" style="width:min(960px,96vw)">
+    <h2>Compare Jobs</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Pick 2–4 jobs to see side-by-side.</p>
+    <div id="compareChooser"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="closeCompare()">Close</button>
+      <button type="button" class="primary" onclick="renderComparison()">View Comparison</button>
+    </div>
+    <div id="compareTable" style="margin-top:18px;overflow-x:auto"></div>
+  </div>
+</div>
+
+<!-- Settings / Sync Modal -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h2>Google Sheet Sync</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">
+      Connect this map to a Google Sheet so every job you add saves to the sheet automatically and syncs across devices.
+    </p>
+
+    <label>Google Apps Script Web App URL</label>
+    <input id="sheetUrlInput" placeholder="https://script.google.com/macros/s/.../exec" />
+    <div class="help">Paste the URL you got after deploying the Apps Script (step 5 below).</div>
+
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" onclick="testSync()">Test Connection</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" onclick="disconnectSheet()" class="danger">Disconnect</button>
+        <button type="button" onclick="closeSettings()">Cancel</button>
+        <button type="button" class="primary" onclick="saveSheetUrl()">Save & Sync</button>
+      </div>
+    </div>
+
+    <div id="settingsStatus" style="margin-top:10px;font-size:12px"></div>
+
+    <details style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+      <summary>One-time setup (5 minutes)</summary>
+      <ol class="steps">
+        <li>Open <a href="https://sheets.new" target="_blank">sheets.new</a> to make a fresh Google Sheet. Name it whatever you like (e.g. "Job Map").</li>
+        <li>In the sheet, click <code>Extensions → Apps Script</code>. A code editor opens in a new tab.</li>
+        <li>Delete whatever code is there. Click <b>Copy script</b> below, then paste it into the editor.
+          <button type="button" onclick="copyScript()" style="margin:8px 0;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:white;cursor:pointer">Copy script</button>
+          <div class="code-block" id="scriptBlock"></div>
+        </li>
+        <li>Click the 💾 save icon (or Ctrl/Cmd+S). Name the project anything.</li>
+        <li>Click <b>Deploy → New deployment</b> (top right). Click the gear icon ⚙ next to "Select type" → choose <b>Web app</b>. Set:
+          <ul>
+            <li><b>Execute as:</b> Me</li>
+            <li><b>Who has access:</b> Anyone</li>
+          </ul>
+          Click <b>Deploy</b>. Google will ask you to authorize — click through (you may need to click "Advanced → Go to project (unsafe)" — it's safe, it's your own script).</li>
+        <li>Copy the <b>Web app URL</b> Google gives you (ends in <code>/exec</code>) and paste it in the field above. Click <b>Save & Sync</b>.</li>
+      </ol>
+      <p style="font-size:12px;color:var(--muted)">⚠️ Anyone with that URL can read/write your sheet. Don't share it publicly. For a personal job tracker this is fine.</p>
+    </details>
+  </div>
+</div>
+
+<script id="appsScriptTemplate" type="text/plain">const SHEET_NAME = 'Jobs';
+const CONFIG_SHEET = 'Config';
+const FIELDS = ['id','kind','type','company','location','lat','lng','status','salary','excitement',
+  'estimatedProduction','productionPercent','dateApplied','datePhoneInterview','dateInterview','dateInterview2','offerDate','offerDeadline',
+  'contact','link','pros','cons','notes','col','lifestyle',
+  'partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','dsoAffiliation',
+  'partnerFit','partnerNotes','distanceFamily','dualCareer',
+  'hisVibe','herVibe','her5Year','her30Year','parentId',
+  'practiceGroup','carCity','carCityLat','carCityLng','carMiles','carMinutes'];
+
+function getSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, FIELDS.length).setValues([FIELDS]);
+    sheet.setFrozenRows(1);
+  } else {
+    // Auto-migrate: append any FIELDS columns missing from header row
+    const lastCol = sheet.getLastColumn();
+    const existing = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const missing = FIELDS.filter(f => existing.indexOf(f) === -1);
+    if (missing.length > 0) {
+      sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+    }
+  }
+  return sheet;
+}
+
+function getConfigSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG_SHEET);
+  if (!sheet) sheet = ss.insertSheet(CONFIG_SHEET);
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, 2).setValues([['key', 'value']]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function doGet(e) {
+  const sheet = getSheet_();
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const rows = values.slice(1)
+    .filter(r => r[headers.indexOf('id')])
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    });
+  // Read shared config (people, destinations, weights, etc.)
+  const configSheet = getConfigSheet_();
+  const configRows = configSheet.getDataRange().getValues();
+  const config = {};
+  for (let i = 1; i < configRows.length; i++) {
+    const key = configRows[i][0];
+    if (!key) continue;
+    try { config[key] = JSON.parse(configRows[i][1]); }
+    catch (e) { config[key] = configRows[i][1]; }
+  }
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, jobs: rows, config: config }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    if (data.action === 'saveConfig') {
+      const sheet = getConfigSheet_();
+      const values = sheet.getDataRange().getValues();
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === data.key) { rowIdx = i + 1; break; }
+      }
+      const value = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
+      if (rowIdx > 0) {
+        sheet.getRange(rowIdx, 2).setValue(value);
+      } else {
+        sheet.appendRow([data.key, value]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const sheet = getSheet_();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    if (data.action === 'save') {
+      const values = sheet.getDataRange().getValues();
+      const idCol = headers.indexOf('id');
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][idCol] === data.job.id) { rowIdx = i + 1; break; }
+      }
+      const row = headers.map(h => data.job[h] !== undefined ? data.job[h] : '');
+      if (rowIdx > 0) {
+        sheet.getRange(rowIdx, 1, 1, headers.length).setValues([row]);
+      } else {
+        sheet.appendRow(row);
+      }
+    } else if (data.action === 'delete') {
+      const values = sheet.getDataRange().getValues();
+      const idCol = headers.indexOf('id');
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][idCol] === data.id) { sheet.deleteRow(i + 1); break; }
+      }
+    } else if (data.action === 'bulkSave') {
+      const values = sheet.getDataRange().getValues();
+      const idCol = headers.indexOf('id');
+      data.jobs.forEach(job => {
+        let rowIdx = -1;
+        for (let i = 1; i < values.length; i++) {
+          if (values[i][idCol] === job.id) { rowIdx = i + 1; break; }
+        }
+        const row = headers.map(h => job[h] !== undefined ? job[h] : '');
+        if (rowIdx > 0) {
+          sheet.getRange(rowIdx, 1, 1, headers.length).setValues([row]);
+        } else {
+          sheet.appendRow(row);
+        }
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------- Storage ---------- */
+const STORAGE_KEY = 'jobmap.jobs.v1';
+const SHEET_URL_KEY = 'jobmap.sheetUrl';
+const DESTINATIONS_KEY = 'jobmap.destinations.v1';
+const PEOPLE_KEY = 'jobmap.people.v1';
+let people = (() => {
+  try { return JSON.parse(localStorage.getItem(PEOPLE_KEY)) || []; }
+  catch(e) { return []; }
+})();
+function savePeople() {
+  localStorage.setItem(PEOPLE_KEY, JSON.stringify(people));
+  syncConfigToSheet('people', people);
+}
+let showPeople = false, peopleLayer = null;
+
+function travelEstimate(miles) {
+  if (miles < 250) {
+    const h = miles / 55;
+    const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+    return `~${hh}h ${mm}m drive`;
+  }
+  return `~${flightTime(miles)} flight`;
+}
+const DEFAULT_DESTINATIONS = [
+  { name: 'New York City', lat: 40.7128, lng: -74.0060 },
+  { name: 'Southport, NC', lat: 33.9215, lng: -78.0203 },
+  { name: 'Grand Rapids, MI', lat: 42.9634, lng: -85.6681 }
+];
+let destinations = (() => {
+  try { return JSON.parse(localStorage.getItem(DESTINATIONS_KEY)) || DEFAULT_DESTINATIONS; }
+  catch(e) { return DEFAULT_DESTINATIONS; }
+})();
+function saveDestinations() {
+  localStorage.setItem(DESTINATIONS_KEY, JSON.stringify(destinations));
+  syncConfigToSheet('destinations', destinations);
+}
+
+function flightTime(miles) {
+  // ~450 mph cruise + 0.75h overhead (taxi/climb/descent)
+  const hours = miles / 450 + 0.75;
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+let jobs = [];
+let editingId = null;
+let currentRating = 0;
+let currentPartnerRating = 0;
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwhe4PBLvhg0qmKRly16BTs3qpOSdVXrXYJjiS5Qc3nlnmc8kGHHRgY9AXs6cRNMqGSOg/exec';
+let sheetUrl = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+let filterState = { search: '', statuses: new Set(['potential','applied','interviewing','offer','rejected','current']), minExcite: 0, minPartner: 0, minScore: 0 };
+let showCityDistance = false;
+let cityDistanceLayer = null;
+let showAirports = false;
+let airportsLayer = null;
+const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId'];
+
+const MAJOR_CITIES = [
+  {name:'New York', lat:40.7128, lng:-74.0060, col:187},
+  {name:'San Francisco', lat:37.7749, lng:-122.4194, col:244},
+  {name:'Los Angeles', lat:34.0522, lng:-118.2437, col:173},
+  {name:'Chicago', lat:41.8781, lng:-87.6298, col:107},
+  {name:'Boston', lat:42.3601, lng:-71.0589, col:162},
+  {name:'Seattle', lat:47.6062, lng:-122.3321, col:172},
+  {name:'Washington DC', lat:38.9072, lng:-77.0369, col:152},
+  {name:'Miami', lat:25.7617, lng:-80.1918, col:123},
+  {name:'Atlanta', lat:33.7490, lng:-84.3880, col:107},
+  {name:'Dallas', lat:32.7767, lng:-96.7970, col:102},
+  {name:'Houston', lat:29.7604, lng:-95.3698, col:96},
+  {name:'Phoenix', lat:33.4484, lng:-112.0740, col:103},
+  {name:'Denver', lat:39.7392, lng:-104.9903, col:128},
+  {name:'Austin', lat:30.2672, lng:-97.7431, col:119},
+  {name:'Minneapolis', lat:44.9778, lng:-93.2650, col:107},
+  {name:'Philadelphia', lat:39.9526, lng:-75.1652, col:101},
+  {name:'Portland OR', lat:45.5152, lng:-122.6784, col:130},
+  {name:'San Diego', lat:32.7157, lng:-117.1611, col:161},
+  {name:'Charlotte', lat:35.2271, lng:-80.8431, col:103},
+  {name:'Nashville', lat:36.1627, lng:-86.7816, col:100},
+  {name:'Raleigh', lat:35.7796, lng:-78.6382, col:105},
+  {name:'Tampa', lat:27.9506, lng:-82.4572, col:102},
+  {name:'Pittsburgh', lat:40.4406, lng:-79.9959, col:94},
+  {name:'St Louis', lat:38.6270, lng:-90.1994, col:87},
+  {name:'Kansas City', lat:39.0997, lng:-94.5786, col:91},
+  {name:'Salt Lake City', lat:40.7608, lng:-111.8910, col:117},
+  {name:'Las Vegas', lat:36.1699, lng:-115.1398, col:110},
+  {name:'Orlando', lat:28.5384, lng:-81.3789, col:104},
+  {name:'Indianapolis', lat:39.7684, lng:-86.1581, col:91},
+  {name:'Cleveland', lat:41.4993, lng:-81.6944, col:86},
+  {name:'Grand Rapids', lat:42.9634, lng:-85.6681, col:90},
+  {name:'Cincinnati', lat:39.1031, lng:-84.5120, col:92},
+  {name:'Columbus', lat:39.9612, lng:-82.9988, col:91},
+  {name:'Milwaukee', lat:43.0389, lng:-87.9065, col:92},
+  {name:'Detroit', lat:42.3314, lng:-83.0458, col:88},
+  {name:'Buffalo', lat:42.8864, lng:-78.8784, col:90},
+  {name:'Hartford', lat:41.7658, lng:-72.6734, col:118},
+  {name:'Albuquerque', lat:35.0844, lng:-106.6504, col:97},
+  {name:'Oklahoma City', lat:35.4676, lng:-97.5164, col:89},
+  {name:'Memphis', lat:35.1495, lng:-90.0490, col:84},
+  {name:'Louisville', lat:38.2527, lng:-85.7585, col:91},
+  {name:'Birmingham', lat:33.5186, lng:-86.8104, col:88},
+  {name:'New Orleans', lat:29.9511, lng:-90.0715, col:98},
+  {name:'Sacramento', lat:38.5816, lng:-121.4944, col:122},
+  {name:'San Antonio', lat:29.4241, lng:-98.4936, col:96},
+  {name:'Jacksonville', lat:30.3322, lng:-81.6557, col:95},
+  {name:'Boise', lat:43.6150, lng:-116.2023, col:113},
+  {name:'Spokane', lat:47.6588, lng:-117.4260, col:100},
+  {name:'Reno', lat:39.5296, lng:-119.8138, col:111},
+  {name:'Tucson', lat:32.2226, lng:-110.9747, col:100},
+  {name:'Charleston SC', lat:32.7765, lng:-79.9311, col:112},
+  {name:'Greenville SC', lat:34.8526, lng:-82.3940, col:96},
+  {name:'Winston-Salem', lat:36.0999, lng:-80.2442, col:91},
+  {name:'Greensboro', lat:36.0726, lng:-79.7920, col:91},
+  {name:'Knoxville', lat:35.9606, lng:-83.9207, col:91},
+  {name:'Chattanooga', lat:35.0456, lng:-85.3097, col:90},
+  {name:'Madison WI', lat:43.0731, lng:-89.4012, col:105},
+  {name:'Des Moines', lat:41.5868, lng:-93.6250, col:91},
+  {name:'Omaha', lat:41.2565, lng:-95.9345, col:92},
+  {name:'Wichita', lat:37.6872, lng:-97.3301, col:84},
+  {name:'Tulsa', lat:36.1540, lng:-95.9928, col:88},
+  {name:'Anchorage', lat:61.2181, lng:-149.9003, col:124},
+  {name:'Honolulu', lat:21.3099, lng:-157.8581, col:179}
+];
+
+const AIRPORTS = [
+  {code:'ATL',name:'Atlanta',lat:33.6407,lng:-84.4277},
+  {code:'LAX',name:'Los Angeles',lat:33.9416,lng:-118.4085},
+  {code:'ORD',name:"Chicago O'Hare",lat:41.9742,lng:-87.9073},
+  {code:'DFW',name:'Dallas/Fort Worth',lat:32.8998,lng:-97.0403},
+  {code:'DEN',name:'Denver',lat:39.8561,lng:-104.6737},
+  {code:'JFK',name:'New York JFK',lat:40.6413,lng:-73.7781},
+  {code:'SFO',name:'San Francisco',lat:37.6213,lng:-122.3790},
+  {code:'SEA',name:'Seattle',lat:47.4502,lng:-122.3088},
+  {code:'LAS',name:'Las Vegas',lat:36.0840,lng:-115.1537},
+  {code:'MCO',name:'Orlando',lat:28.4312,lng:-81.3081},
+  {code:'EWR',name:'Newark',lat:40.6895,lng:-74.1745},
+  {code:'CLT',name:'Charlotte',lat:35.2140,lng:-80.9431},
+  {code:'PHX',name:'Phoenix Sky Harbor',lat:33.4373,lng:-112.0078},
+  {code:'IAH',name:'Houston Intercontinental',lat:29.9902,lng:-95.3368},
+  {code:'MIA',name:'Miami',lat:25.7959,lng:-80.2870},
+  {code:'BOS',name:'Boston Logan',lat:42.3656,lng:-71.0096},
+  {code:'MSP',name:'Minneapolis',lat:44.8848,lng:-93.2223},
+  {code:'FLL',name:'Fort Lauderdale',lat:26.0742,lng:-80.1506},
+  {code:'LGA',name:'New York LaGuardia',lat:40.7769,lng:-73.8740},
+  {code:'DTW',name:'Detroit',lat:42.2162,lng:-83.3554},
+  {code:'PHL',name:'Philadelphia',lat:39.8744,lng:-75.2424},
+  {code:'SLC',name:'Salt Lake City',lat:40.7899,lng:-111.9791},
+  {code:'BWI',name:'Baltimore/Washington',lat:39.1774,lng:-76.6684},
+  {code:'DCA',name:'Reagan National',lat:38.8512,lng:-77.0402},
+  {code:'IAD',name:'Dulles',lat:38.9445,lng:-77.4558},
+  {code:'MDW',name:'Chicago Midway',lat:41.7868,lng:-87.7522},
+  {code:'SAN',name:'San Diego',lat:32.7338,lng:-117.1933},
+  {code:'TPA',name:'Tampa',lat:27.9755,lng:-82.5332},
+  {code:'BNA',name:'Nashville',lat:36.1245,lng:-86.6782},
+  {code:'AUS',name:'Austin-Bergstrom',lat:30.1975,lng:-97.6664},
+  {code:'RDU',name:'Raleigh-Durham',lat:35.8776,lng:-78.7875},
+  {code:'HOU',name:'Houston Hobby',lat:29.6454,lng:-95.2789},
+  {code:'STL',name:'St Louis',lat:38.7487,lng:-90.3700},
+  {code:'PIT',name:'Pittsburgh',lat:40.4915,lng:-80.2329},
+  {code:'MCI',name:'Kansas City',lat:39.2976,lng:-94.7139},
+  {code:'CVG',name:'Cincinnati',lat:39.0533,lng:-84.6630},
+  {code:'OAK',name:'Oakland',lat:37.7213,lng:-122.2207},
+  {code:'MSY',name:'New Orleans',lat:29.9934,lng:-90.2580},
+  {code:'CLE',name:'Cleveland',lat:41.4117,lng:-81.8498},
+  {code:'RSW',name:'Fort Myers',lat:26.5362,lng:-81.7552},
+  {code:'JAX',name:'Jacksonville',lat:30.4941,lng:-81.6879},
+  {code:'SJC',name:'San Jose',lat:37.3639,lng:-121.9289},
+  {code:'IND',name:'Indianapolis',lat:39.7173,lng:-86.2944},
+  {code:'CMH',name:'Columbus',lat:39.9980,lng:-82.8919},
+  {code:'ABQ',name:'Albuquerque',lat:35.0402,lng:-106.6090},
+  {code:'SAT',name:'San Antonio',lat:29.5337,lng:-98.4698},
+  {code:'MKE',name:'Milwaukee',lat:42.9472,lng:-87.8966},
+  {code:'PDX',name:'Portland OR',lat:45.5887,lng:-122.5975},
+  {code:'OMA',name:'Omaha',lat:41.3032,lng:-95.8941},
+  {code:'BUF',name:'Buffalo',lat:42.9405,lng:-78.7322},
+  {code:'GRR',name:'Grand Rapids',lat:42.8808,lng:-85.5228},
+  {code:'ILM',name:'Wilmington NC',lat:34.2706,lng:-77.9026},
+  {code:'PWM',name:'Portland ME',lat:43.6462,lng:-70.3093},
+  {code:'BHM',name:'Birmingham AL',lat:33.5629,lng:-86.7535},
+  {code:'CHS',name:'Charleston SC',lat:32.8986,lng:-80.0405},
+  {code:'SAV',name:'Savannah',lat:32.1276,lng:-81.2021},
+  {code:'BOI',name:'Boise',lat:43.5644,lng:-116.2228},
+  {code:'TUS',name:'Tucson',lat:32.1161,lng:-110.9410},
+  {code:'OKC',name:'Oklahoma City',lat:35.3931,lng:-97.6007},
+  {code:'TUL',name:'Tulsa',lat:36.1984,lng:-95.8881},
+  {code:'GSO',name:'Greensboro',lat:36.0978,lng:-79.9373},
+  {code:'GSP',name:'Greenville-Spartanburg',lat:34.8957,lng:-82.2189},
+  {code:'ROC',name:'Rochester NY',lat:43.1189,lng:-77.6724},
+  {code:'SYR',name:'Syracuse',lat:43.1112,lng:-76.1063},
+  {code:'ALB',name:'Albany NY',lat:42.7483,lng:-73.8017},
+  {code:'PVD',name:'Providence',lat:41.7240,lng:-71.4283},
+  {code:'BTV',name:'Burlington VT',lat:44.4719,lng:-73.1533},
+  {code:'MHT',name:'Manchester NH',lat:42.9326,lng:-71.4357},
+  {code:'BDL',name:'Hartford',lat:41.9389,lng:-72.6832},
+  {code:'RIC',name:'Richmond VA',lat:37.5052,lng:-77.3197},
+  {code:'ORF',name:'Norfolk VA',lat:36.8946,lng:-76.2012},
+  {code:'PNS',name:'Pensacola',lat:30.4733,lng:-87.1866},
+  {code:'LIT',name:'Little Rock',lat:34.7294,lng:-92.2243},
+  {code:'MEM',name:'Memphis',lat:35.0424,lng:-89.9767},
+  {code:'DSM',name:'Des Moines',lat:41.5340,lng:-93.6631},
+  {code:'ICT',name:'Wichita',lat:37.6499,lng:-97.4331},
+  {code:'ELP',name:'El Paso',lat:31.8072,lng:-106.3776},
+];
+
+const STATE_TAX = {
+  AL:{name:'Alabama',income:'2-5%',property:'0.41%',sales:'4-11%'},
+  AK:{name:'Alaska',income:'None',property:'1.15%',sales:'0-7.5% local only'},
+  AZ:{name:'Arizona',income:'2.5% flat',property:'0.71%',sales:'5.6-11.2%'},
+  AR:{name:'Arkansas',income:'0-4.4%',property:'0.69%',sales:'6.5-12.5%'},
+  CA:{name:'California',income:'1-13.3%',property:'0.81%',sales:'7.25-10.75%'},
+  CO:{name:'Colorado',income:'4.4% flat',property:'0.55%',sales:'2.9-11.2%'},
+  CT:{name:'Connecticut',income:'2-6.99%',property:'2.15%',sales:'6.35%'},
+  DE:{name:'Delaware',income:'0-6.6%',property:'0.61%',sales:'None'},
+  FL:{name:'Florida',income:'None',property:'0.86%',sales:'6-8%'},
+  GA:{name:'Georgia',income:'5.39% flat',property:'0.98%',sales:'4-9%'},
+  HI:{name:'Hawaii',income:'1.4-11%',property:'0.32%',sales:'4-4.7% (GET)'},
+  ID:{name:'Idaho',income:'5.8% flat',property:'0.85%',sales:'6-9%'},
+  IL:{name:'Illinois',income:'4.95% flat',property:'2.27%',sales:'6.25-11.5%'},
+  IN:{name:'Indiana',income:'3.15% flat',property:'0.99%',sales:'7%'},
+  IA:{name:'Iowa',income:'0-5.7%',property:'1.59%',sales:'6-7%'},
+  KS:{name:'Kansas',income:'3.1-5.7%',property:'1.43%',sales:'6.5-11.5%'},
+  KY:{name:'Kentucky',income:'4% flat',property:'0.93%',sales:'6%'},
+  LA:{name:'Louisiana',income:'1.85-4.25%',property:'0.56%',sales:'4.45-12%'},
+  ME:{name:'Maine',income:'5.8-7.15%',property:'1.45%',sales:'5.5%'},
+  MD:{name:'Maryland',income:'2-5.75%',property:'1.10%',sales:'6%'},
+  MA:{name:'Massachusetts',income:'5-9% (millionaires)',property:'1.23%',sales:'6.25%'},
+  MI:{name:'Michigan',income:'4.25% flat',property:'1.62%',sales:'6%'},
+  MN:{name:'Minnesota',income:'5.35-9.85%',property:'1.16%',sales:'6.875-8.875%'},
+  MS:{name:'Mississippi',income:'0-5%',property:'0.79%',sales:'7-8%'},
+  MO:{name:'Missouri',income:'2-4.95%',property:'1.16%',sales:'4.225-10.85%'},
+  MT:{name:'Montana',income:'1-5.9%',property:'0.87%',sales:'None'},
+  NE:{name:'Nebraska',income:'2.46-5.84%',property:'1.76%',sales:'5.5-8%'},
+  NV:{name:'Nevada',income:'None',property:'0.65%',sales:'6.85-8.375%'},
+  NH:{name:'New Hampshire',income:'None (3% on interest/div)',property:'2.18%',sales:'None'},
+  NJ:{name:'New Jersey',income:'1.4-10.75%',property:'2.49%',sales:'6.625%'},
+  NM:{name:'New Mexico',income:'1.5-5.9%',property:'0.94%',sales:'5.125-9.4%'},
+  NY:{name:'New York',income:'4-10.9%',property:'1.73%',sales:'4-8.875%'},
+  NC:{name:'North Carolina',income:'4.5% flat',property:'0.97%',sales:'4.75-7.5%'},
+  ND:{name:'North Dakota',income:'1.1-2.5%',property:'1.00%',sales:'5-8.5%'},
+  OH:{name:'Ohio',income:'0-3.5%',property:'1.62%',sales:'5.75-8%'},
+  OK:{name:'Oklahoma',income:'0.25-4.75%',property:'1.04%',sales:'4.5-11.5%'},
+  OR:{name:'Oregon',income:'4.75-9.9%',property:'1.04%',sales:'None'},
+  PA:{name:'Pennsylvania',income:'3.07% flat',property:'1.58%',sales:'6-8%'},
+  RI:{name:'Rhode Island',income:'3.75-5.99%',property:'1.59%',sales:'7%'},
+  SC:{name:'South Carolina',income:'0-6.4%',property:'0.57%',sales:'6-9%'},
+  SD:{name:'South Dakota',income:'None',property:'1.21%',sales:'4.5-6.5%'},
+  TN:{name:'Tennessee',income:'None',property:'0.85%',sales:'7-9.75%'},
+  TX:{name:'Texas',income:'None',property:'1.90%',sales:'6.25-8.25%'},
+  UT:{name:'Utah',income:'4.65% flat',property:'0.63%',sales:'4.85-9.05%'},
+  VT:{name:'Vermont',income:'3.35-8.75%',property:'1.90%',sales:'6-7%'},
+  VA:{name:'Virginia',income:'2-5.75%',property:'0.95%',sales:'4.3-7%'},
+  WA:{name:'Washington',income:'None (7% on cap gains)',property:'1.02%',sales:'6.5-10.6%'},
+  WV:{name:'West Virginia',income:'2.36-5.12%',property:'0.66%',sales:'6-7%'},
+  WI:{name:'Wisconsin',income:'3.5-7.65%',property:'1.85%',sales:'5-5.6%'},
+  WY:{name:'Wyoming',income:'None',property:'0.66%',sales:'4-6%'},
+  DC:{name:'District of Columbia',income:'4-10.75%',property:'0.57%',sales:'6%'}
+};
+
+function extractState(location) {
+  if (!location) return null;
+  const m = String(location).match(/,\s*([A-Z]{2})\b/);
+  return m ? m[1] : null;
+}
+
+const UNIVERSITIES = [
+  {name:'Notre Dame', lat:41.7001, lng:-86.2379, note:'PhD home base'},
+  {name:'MIT', lat:42.3601, lng:-71.0942, note:'Top comp chem'},
+  {name:'Harvard', lat:42.3770, lng:-71.1167},
+  {name:'Stanford', lat:37.4275, lng:-122.1697, note:'Top comp chem'},
+  {name:'UC Berkeley', lat:37.8719, lng:-122.2585, note:'Top comp chem'},
+  {name:'Caltech', lat:34.1377, lng:-118.1253},
+  {name:'Princeton', lat:40.3431, lng:-74.6551},
+  {name:'Yale', lat:41.3163, lng:-72.9223},
+  {name:'Columbia', lat:40.8075, lng:-73.9626},
+  {name:'Cornell', lat:42.4534, lng:-76.4735},
+  {name:'UPenn', lat:39.9522, lng:-75.1932},
+  {name:'U Chicago', lat:41.7886, lng:-87.5987},
+  {name:'Northwestern', lat:42.0565, lng:-87.6753},
+  {name:'U Michigan', lat:42.2780, lng:-83.7382, note:'Strong comp chem'},
+  {name:'UIUC', lat:40.1020, lng:-88.2272, note:'Strong comp chem'},
+  {name:'UCLA', lat:34.0689, lng:-118.4452},
+  {name:'UC San Diego', lat:32.8801, lng:-117.2340, note:'Top comp chem'},
+  {name:'USC', lat:34.0224, lng:-118.2851},
+  {name:'UW Seattle', lat:47.6553, lng:-122.3035, note:'Baker lab'},
+  {name:'UT Austin', lat:30.2849, lng:-97.7341},
+  {name:'U Wisconsin-Madison', lat:43.0766, lng:-89.4125},
+  {name:'Georgia Tech', lat:33.7756, lng:-84.3963},
+  {name:'Duke', lat:36.0014, lng:-78.9382},
+  {name:'UNC Chapel Hill', lat:35.9049, lng:-79.0469},
+  {name:'Vanderbilt', lat:36.1447, lng:-86.8027},
+  {name:'Rice', lat:29.7174, lng:-95.4018},
+  {name:'Carnegie Mellon', lat:40.4433, lng:-79.9436, note:'Strong ML/sim'},
+  {name:'Johns Hopkins', lat:39.3299, lng:-76.6205},
+  {name:'U Minnesota', lat:44.9740, lng:-93.2277, note:'Truhlar legacy'},
+  {name:'NYU', lat:40.7295, lng:-73.9965},
+  {name:'Boston University', lat:42.3505, lng:-71.1054},
+  {name:'Brown', lat:41.8268, lng:-71.4025},
+  {name:'Rutgers', lat:40.5008, lng:-74.4474},
+  {name:'Ohio State', lat:40.0067, lng:-83.0305},
+  {name:'Penn State', lat:40.7982, lng:-77.8599},
+  {name:'Indiana U', lat:39.1684, lng:-86.5224},
+  {name:'Purdue', lat:40.4237, lng:-86.9212},
+  {name:'Texas A&M', lat:30.6147, lng:-96.3402},
+  {name:'Arizona State', lat:33.4242, lng:-111.9281},
+  {name:'U Florida', lat:29.6436, lng:-82.3549},
+  {name:'Pitt', lat:40.4443, lng:-79.9608},
+  {name:'Emory', lat:33.7925, lng:-84.3245},
+  {name:'Iowa State', lat:42.0266, lng:-93.6465},
+  {name:'U Rochester', lat:43.1283, lng:-77.6286},
+  {name:'Case Western', lat:41.5043, lng:-81.6082},
+  {name:'NC State', lat:35.7847, lng:-78.6821},
+  {name:'U Maryland', lat:38.9869, lng:-76.9426},
+  {name:'UC Irvine', lat:33.6405, lng:-117.8443},
+  {name:'WashU St. Louis', lat:38.6488, lng:-90.3108},
+  {name:'Tufts', lat:42.4075, lng:-71.1190},
+  {name:'Brandeis', lat:42.3654, lng:-71.2599},
+  {name:'Scripps Research La Jolla', lat:32.8869, lng:-117.2400, note:'Top structural bio'},
+  {name:'Scripps Research Florida', lat:26.8868, lng:-80.1175}
+];
+
+const PHARMA = [
+  // Big pharma
+  {name:'Pfizer HQ', lat:40.7508, lng:-73.9777, city:'New York NY'},
+  {name:'Pfizer Groton', lat:41.3556, lng:-72.0689, city:'Groton CT', note:'Major discovery site'},
+  {name:'Pfizer Cambridge', lat:42.3667, lng:-71.0833, city:'Cambridge MA'},
+  {name:'Pfizer La Jolla', lat:32.8694, lng:-117.2114, city:'La Jolla CA'},
+  {name:'Merck Rahway', lat:40.6082, lng:-74.2776, city:'Rahway NJ'},
+  {name:'Merck Boston', lat:42.3637, lng:-71.0884, city:'Boston MA'},
+  {name:'Merck West Point', lat:40.2087, lng:-75.3496, city:'West Point PA'},
+  {name:'Merck South SF', lat:37.6688, lng:-122.4011, city:'South SF CA'},
+  {name:'J&J New Brunswick', lat:40.4862, lng:-74.4518, city:'New Brunswick NJ'},
+  {name:'J&J Spring House', lat:40.1715, lng:-75.2152, city:'Spring House PA'},
+  {name:'J&J San Diego', lat:32.8801, lng:-117.2340, city:'San Diego CA'},
+  {name:'AbbVie HQ', lat:42.3128, lng:-87.8665, city:'North Chicago IL'},
+  {name:'AbbVie Cambridge', lat:42.3651, lng:-71.0931, city:'Cambridge MA'},
+  {name:'Eli Lilly HQ', lat:39.7752, lng:-86.1751, city:'Indianapolis IN'},
+  {name:'Eli Lilly San Diego', lat:32.8800, lng:-117.2400, city:'San Diego CA'},
+  {name:'Bristol Myers Squibb', lat:40.3573, lng:-74.6672, city:'Princeton NJ'},
+  {name:'BMS Cambridge', lat:42.3651, lng:-71.0855, city:'Cambridge MA'},
+  {name:'BMS San Diego', lat:32.8930, lng:-117.2370, city:'San Diego CA'},
+  {name:'BMS Seattle', lat:47.6280, lng:-122.3422, city:'Seattle WA'},
+  {name:'Amgen HQ', lat:34.2225, lng:-118.8742, city:'Thousand Oaks CA'},
+  {name:'Amgen Cambridge', lat:42.3651, lng:-71.0931, city:'Cambridge MA'},
+  {name:'Amgen S. San Francisco', lat:37.6688, lng:-122.4500, city:'South SF CA'},
+  {name:'Gilead Sciences', lat:37.5503, lng:-122.2667, city:'Foster City CA'},
+  {name:'Biogen', lat:42.3651, lng:-71.0837, city:'Cambridge MA'},
+  {name:'Biogen RTP', lat:35.9046, lng:-78.8542, city:'RTP NC'},
+  {name:'Regeneron', lat:41.0867, lng:-73.8595, city:'Tarrytown NY'},
+  {name:'Vertex Pharmaceuticals', lat:42.3528, lng:-71.0556, city:'Boston MA'},
+  {name:'Moderna', lat:42.3623, lng:-71.0855, city:'Cambridge MA'},
+  {name:'Genentech / Roche', lat:37.6688, lng:-122.4011, city:'South SF CA', note:'Massive R&D'},
+  {name:'Novartis Cambridge', lat:42.3641, lng:-71.0967, city:'Cambridge MA'},
+  {name:'AstraZeneca Gaithersburg', lat:39.1393, lng:-77.2027, city:'Gaithersburg MD'},
+  {name:'AstraZeneca Boston', lat:42.3651, lng:-71.0931, city:'Boston MA'},
+  {name:'GSK Philadelphia', lat:39.9498, lng:-75.1361, city:'Philadelphia PA'},
+  {name:'GSK RTP', lat:35.9046, lng:-78.8542, city:'RTP NC'},
+  {name:'Sanofi Cambridge', lat:42.3650, lng:-71.0850, city:'Cambridge MA'},
+  {name:'Takeda Cambridge', lat:42.3622, lng:-71.0900, city:'Cambridge MA'},
+  {name:'Bayer Whippany', lat:40.8244, lng:-74.4156, city:'Whippany NJ'},
+  // Comp chem / AI drug discovery
+  {name:'Schrödinger NYC', lat:40.7472, lng:-74.0014, city:'New York NY', kind:'compchem'},
+  {name:'Schrödinger Cambridge', lat:42.3651, lng:-71.0931, city:'Cambridge MA', kind:'compchem'},
+  {name:'Schrödinger Portland', lat:45.5231, lng:-122.6765, city:'Portland OR', kind:'compchem'},
+  {name:'Schrödinger San Diego', lat:32.8801, lng:-117.2340, city:'San Diego CA', kind:'compchem'},
+  {name:'D.E. Shaw Research', lat:40.7484, lng:-74.0040, city:'New York NY', kind:'compchem'},
+  {name:'Relay Therapeutics', lat:42.3651, lng:-71.0931, city:'Cambridge MA', kind:'compchem'},
+  {name:'Atomwise', lat:37.7749, lng:-122.4194, city:'San Francisco CA', kind:'compchem'},
+  {name:'Insitro', lat:37.6588, lng:-122.4011, city:'South SF CA', kind:'compchem'},
+  {name:'Recursion Pharmaceuticals', lat:40.7608, lng:-111.8910, city:'Salt Lake City UT', kind:'compchem'},
+  {name:'Generate Biomedicines', lat:42.3954, lng:-71.1238, city:'Somerville MA', kind:'compchem'},
+  {name:'Isomorphic Labs', lat:51.5292, lng:-0.1192, city:'London UK', kind:'compchem'},
+  {name:'OpenEye (Cadence)', lat:35.6839, lng:-105.9377, city:'Santa Fe NM', kind:'compchem'},
+  {name:'Iambic Therapeutics', lat:32.8930, lng:-117.2370, city:'San Diego CA', kind:'compchem'},
+  {name:'Treeline Biosciences', lat:42.3603, lng:-71.1810, city:'Watertown MA', kind:'compchem'},
+  {name:'Verge Genomics', lat:37.7749, lng:-122.4194, city:'San Francisco CA', kind:'compchem'},
+  {name:'Insilico Medicine Boston', lat:42.3651, lng:-71.0931, city:'Boston MA', kind:'compchem'}
+];
+
+const NATIONAL_LABS = [
+  // DOE National Labs (most have supercomputers / strong comp chem)
+  {name:'Argonne National Lab', lat:41.7140, lng:-87.9817, city:'Lemont IL', note:'Aurora supercomputer, ALCF'},
+  {name:'Oak Ridge National Lab', lat:35.9293, lng:-84.3107, city:'Oak Ridge TN', note:'Frontier, OLCF'},
+  {name:'Lawrence Berkeley National Lab (LBNL)', lat:37.8754, lng:-122.2496, city:'Berkeley CA', note:'NERSC, Molecular Foundry'},
+  {name:'Lawrence Livermore National Lab', lat:37.6907, lng:-121.7062, city:'Livermore CA', note:'El Capitan supercomputer'},
+  {name:'Los Alamos National Lab', lat:35.8431, lng:-106.2880, city:'Los Alamos NM'},
+  {name:'Pacific Northwest National Lab (PNNL)', lat:46.3411, lng:-119.2768, city:'Richland WA', note:'EMSL, NWChem'},
+  {name:'Brookhaven National Lab', lat:40.8696, lng:-72.8783, city:'Upton NY', note:'NSLS-II synchrotron'},
+  {name:'Sandia NM', lat:35.0497, lng:-106.5440, city:'Albuquerque NM'},
+  {name:'Sandia CA', lat:37.6789, lng:-121.7113, city:'Livermore CA'},
+  {name:'SLAC National Accelerator Lab', lat:37.4209, lng:-122.2055, city:'Menlo Park CA', note:'LCLS X-ray laser'},
+  {name:'Fermilab', lat:41.8323, lng:-88.2569, city:'Batavia IL'},
+  {name:'NREL', lat:39.7437, lng:-105.1722, city:'Golden CO', note:'Renewable energy'},
+  {name:'Idaho National Lab', lat:43.5208, lng:-112.0492, city:'Idaho Falls ID'},
+  {name:'Ames National Lab', lat:42.0307, lng:-93.6499, city:'Ames IA'},
+  {name:'Jefferson Lab', lat:37.0985, lng:-76.4845, city:'Newport News VA'},
+  {name:'Princeton Plasma Physics Lab', lat:40.3525, lng:-74.6037, city:'Princeton NJ'},
+  {name:'Savannah River National Lab', lat:33.3433, lng:-81.7383, city:'Aiken SC'},
+  // NIH / NIST
+  {name:'NIH Bethesda', lat:39.0008, lng:-77.1031, city:'Bethesda MD', note:'Intramural research, NCBI'},
+  {name:'NIH NCI Frederick', lat:39.4313, lng:-77.4288, city:'Frederick MD'},
+  {name:'NIST Gaithersburg', lat:39.1357, lng:-77.2138, city:'Gaithersburg MD'},
+  {name:'NIST Boulder', lat:39.9956, lng:-105.2616, city:'Boulder CO'},
+  // Major private/non-profit research institutes (comp chem / bio relevant)
+  {name:'Broad Institute', lat:42.3631, lng:-71.0860, city:'Cambridge MA', note:'Genomics powerhouse'},
+  {name:'Whitehead Institute', lat:42.3636, lng:-71.0890, city:'Cambridge MA'},
+  {name:'HHMI Janelia Research Campus', lat:39.0317, lng:-77.4626, city:'Ashburn VA', note:'Computational neuroscience + bio'},
+  {name:'Flatiron Institute (Simons)', lat:40.7341, lng:-73.9912, city:'New York NY', note:'CCQ — computational quantum'},
+  {name:'Cold Spring Harbor Lab', lat:40.8654, lng:-73.4691, city:'Cold Spring Harbor NY'},
+  {name:'Salk Institute', lat:32.8870, lng:-117.2461, city:'La Jolla CA'},
+  {name:'Allen Institute', lat:47.6263, lng:-122.3367, city:'Seattle WA', note:'Brain + cell sciences'},
+  {name:'NCAR', lat:39.9774, lng:-105.2710, city:'Boulder CO', note:'Atmospheric sci + HPC'},
+  {name:'Marine Biological Lab', lat:41.5252, lng:-70.6731, city:'Woods Hole MA'},
+  {name:'Memorial Sloan Kettering', lat:40.7644, lng:-73.9569, city:'New York NY', note:'Cancer + comp bio'},
+  {name:'Dana-Farber', lat:42.3372, lng:-71.1062, city:'Boston MA'},
+  {name:'Fred Hutch', lat:47.6262, lng:-122.3416, city:'Seattle WA'},
+  {name:'St. Jude', lat:35.1538, lng:-90.0444, city:'Memphis TN'},
+  {name:'Carnegie Institution (Stanford)', lat:37.4334, lng:-122.1719, city:'Stanford CA'}
+];
+
+const ML_LABS = [
+  // Google DeepMind / Google Research (AlphaFold = direct comp bio relevance)
+  {name:'Google DeepMind / Research', lat:37.4220, lng:-122.0841, city:'Mountain View CA', note:'AlphaFold team, AI4Science'},
+  {name:'Google DeepMind NYC', lat:40.7414, lng:-74.0024, city:'New York NY'},
+  {name:'Google Research Cambridge', lat:42.3623, lng:-71.0855, city:'Cambridge MA'},
+  {name:'Google Research Seattle', lat:47.6498, lng:-122.3500, city:'Seattle WA'},
+  // Meta FAIR
+  {name:'Meta FAIR', lat:37.4848, lng:-122.1484, city:'Menlo Park CA', note:'Fundamental AI Research'},
+  {name:'Meta FAIR NYC', lat:40.7484, lng:-73.9857, city:'New York NY'},
+  {name:'Meta FAIR Seattle', lat:47.6149, lng:-122.3380, city:'Seattle WA'},
+  {name:'Meta FAIR Pittsburgh', lat:40.4433, lng:-79.9436, city:'Pittsburgh PA'},
+  // Anthropic
+  {name:'Anthropic', lat:37.7793, lng:-122.4193, city:'San Francisco CA', note:'Frontier LLM research'},
+  {name:'Anthropic NYC', lat:40.7549, lng:-73.9840, city:'New York NY'},
+  // OpenAI
+  {name:'OpenAI', lat:37.7691, lng:-122.4111, city:'San Francisco CA'},
+  // Microsoft Research / MS AI4Science
+  {name:'Microsoft Research Redmond', lat:47.6420, lng:-122.1366, city:'Redmond WA', note:'AI4Science group'},
+  {name:'Microsoft Research NYC', lat:40.7589, lng:-73.9851, city:'New York NY'},
+  {name:'Microsoft Research New England', lat:42.3637, lng:-71.0884, city:'Cambridge MA'},
+  // NVIDIA Research (BioNeMo = direct drug-discovery relevance)
+  {name:'NVIDIA Research', lat:37.3700, lng:-121.9645, city:'Santa Clara CA', note:'BioNeMo, molecular AI'},
+  {name:'NVIDIA Research Westford', lat:42.5793, lng:-71.4395, city:'Westford MA'},
+  // Apple ML
+  {name:'Apple AI/ML', lat:37.3349, lng:-122.0090, city:'Cupertino CA'},
+  {name:'Apple AI Seattle', lat:47.6149, lng:-122.3380, city:'Seattle WA'},
+  // Amazon Science / AWS AI
+  {name:'Amazon Science HQ', lat:47.6149, lng:-122.3380, city:'Seattle WA'},
+  {name:'AWS AI Palo Alto', lat:37.4419, lng:-122.1430, city:'Palo Alto CA'},
+  // Allen Institute for AI (independent, ML-focused)
+  {name:'Allen Institute for AI (AI2)', lat:47.6491, lng:-122.3527, city:'Seattle WA', note:'Open ML research'},
+  // xAI
+  {name:'xAI', lat:37.4275, lng:-122.1697, city:'Palo Alto CA'},
+  // Adobe Research
+  {name:'Adobe Research', lat:37.3309, lng:-121.8930, city:'San Jose CA'},
+  // Salesforce AI Research
+  {name:'Salesforce AI Research', lat:37.7898, lng:-122.3942, city:'San Francisco CA'},
+  // Bosch + Toyota Research (auto ML, but hire scientific ML)
+  {name:'Toyota Research Institute', lat:42.3651, lng:-71.0931, city:'Cambridge MA', note:'Scientific ML + materials'},
+  {name:'Toyota Research Los Altos', lat:37.3852, lng:-122.1141, city:'Los Altos CA'},
+  {name:'Bosch AI Pittsburgh', lat:40.4433, lng:-79.9436, city:'Pittsburgh PA'},
+  {name:'Bosch AI Sunnyvale', lat:37.3688, lng:-122.0363, city:'Sunnyvale CA'},
+  // IBM Research
+  {name:'IBM Research Yorktown', lat:41.2095, lng:-73.7989, city:'Yorktown Heights NY', note:'Materials/molecular ML'},
+  {name:'IBM Research Almaden', lat:37.2056, lng:-121.7507, city:'San Jose CA'},
+  {name:'IBM Research Cambridge', lat:42.3637, lng:-71.0884, city:'Cambridge MA'}
+];
+
+const TRAUMA_CENTERS = [
+  // Northeast
+  {name:'Mass General', lat:42.3631, lng:-71.0686, city:'Boston MA'},
+  {name:'Brigham & Womens', lat:42.3357, lng:-71.1067, city:'Boston MA'},
+  {name:'Boston Medical Center', lat:42.3354, lng:-71.0738, city:'Boston MA'},
+  {name:'Yale-New Haven', lat:41.3037, lng:-72.9362, city:'New Haven CT'},
+  {name:'Hartford Hospital', lat:41.7491, lng:-72.6859, city:'Hartford CT'},
+  {name:'Bellevue', lat:40.7397, lng:-73.9760, city:'New York NY'},
+  {name:'NewYork-Presbyterian', lat:40.8407, lng:-73.9436, city:'New York NY'},
+  {name:'Mount Sinai', lat:40.7903, lng:-73.9527, city:'New York NY'},
+  {name:'Jacobi Med Center', lat:40.8580, lng:-73.8458, city:'Bronx NY'},
+  {name:'Stony Brook', lat:40.9101, lng:-73.1167, city:'Stony Brook NY'},
+  {name:'Erie County Med', lat:42.9069, lng:-78.8347, city:'Buffalo NY'},
+  {name:'Strong Memorial', lat:43.1219, lng:-77.6260, city:'Rochester NY'},
+  {name:'Upstate Med', lat:43.0438, lng:-76.1431, city:'Syracuse NY'},
+  {name:'Cooper University', lat:39.9433, lng:-75.1187, city:'Camden NJ'},
+  {name:'Robert Wood Johnson', lat:40.4949, lng:-74.4515, city:'New Brunswick NJ'},
+  {name:'Hospital of UPenn', lat:39.9495, lng:-75.1932, city:'Philadelphia PA'},
+  {name:'Temple University Hospital', lat:39.9817, lng:-75.1530, city:'Philadelphia PA'},
+  {name:'Penn State Hershey', lat:40.2598, lng:-76.6792, city:'Hershey PA'},
+  {name:'UPMC Presbyterian', lat:40.4422, lng:-79.9606, city:'Pittsburgh PA'},
+  {name:'Allegheny General', lat:40.4664, lng:-80.0098, city:'Pittsburgh PA'},
+  {name:'Christiana Hospital', lat:39.6878, lng:-75.6766, city:'Newark DE'},
+  // Mid-Atlantic / South
+  {name:'Johns Hopkins', lat:39.2966, lng:-76.5929, city:'Baltimore MD'},
+  {name:'Univ of Maryland Shock Trauma', lat:39.2876, lng:-76.6248, city:'Baltimore MD', note:'Founding shock trauma center'},
+  {name:'MedStar Washington', lat:38.9298, lng:-77.0145, city:'Washington DC'},
+  {name:'Inova Fairfax', lat:38.8526, lng:-77.2299, city:'Fairfax VA'},
+  {name:'VCU Medical Center', lat:37.5407, lng:-77.4296, city:'Richmond VA'},
+  {name:'Sentara Norfolk General', lat:36.8629, lng:-76.3035, city:'Norfolk VA'},
+  {name:'UNC Hospitals', lat:35.9032, lng:-79.0539, city:'Chapel Hill NC'},
+  {name:'Duke University Hospital', lat:36.0072, lng:-78.9376, city:'Durham NC'},
+  {name:'Atrium Health Carolinas', lat:35.2059, lng:-80.8341, city:'Charlotte NC'},
+  {name:'WakeMed', lat:35.7716, lng:-78.6063, city:'Raleigh NC'},
+  {name:'ECU Health Medical', lat:35.6004, lng:-77.3724, city:'Greenville NC'},
+  {name:'MUSC', lat:32.7842, lng:-79.9474, city:'Charleston SC'},
+  {name:'Prisma Health Richland', lat:34.0136, lng:-80.9941, city:'Columbia SC'},
+  {name:'Memorial Health Savannah', lat:32.0182, lng:-81.0790, city:'Savannah GA'},
+  {name:'Grady Memorial', lat:33.7541, lng:-84.3825, city:'Atlanta GA'},
+  {name:'Augusta University Medical', lat:33.4727, lng:-81.9899, city:'Augusta GA'},
+  {name:'UAB Hospital', lat:33.5074, lng:-86.8044, city:'Birmingham AL'},
+  {name:'Univ of South Alabama', lat:30.6957, lng:-88.1671, city:'Mobile AL'},
+  {name:'Vanderbilt University Med', lat:36.1410, lng:-86.8016, city:'Nashville TN'},
+  {name:'Erlanger', lat:35.0457, lng:-85.2925, city:'Chattanooga TN'},
+  {name:'Regional One Health', lat:35.1356, lng:-90.0398, city:'Memphis TN'},
+  {name:'UT Medical Knoxville', lat:35.9402, lng:-83.9407, city:'Knoxville TN'},
+  {name:'Univ of Louisville', lat:38.2477, lng:-85.7470, city:'Louisville KY'},
+  {name:'Univ of Kentucky', lat:38.0319, lng:-84.5095, city:'Lexington KY'},
+  {name:'Jackson Memorial', lat:25.7886, lng:-80.2099, city:'Miami FL'},
+  {name:'Memorial Regional', lat:26.0095, lng:-80.1554, city:'Hollywood FL'},
+  {name:'Orlando Health', lat:28.5263, lng:-81.3779, city:'Orlando FL'},
+  {name:'Tampa General', lat:27.9389, lng:-82.4593, city:'Tampa FL'},
+  {name:'UF Health Jacksonville', lat:30.3327, lng:-81.6651, city:'Jacksonville FL'},
+  {name:'UF Health Gainesville', lat:29.6395, lng:-82.3439, city:'Gainesville FL'},
+  // Midwest
+  {name:'Ohio State Wexner', lat:39.9991, lng:-83.0181, city:'Columbus OH'},
+  {name:'MetroHealth', lat:41.4690, lng:-81.7059, city:'Cleveland OH'},
+  {name:'UH Cleveland Medical', lat:41.5044, lng:-81.6080, city:'Cleveland OH'},
+  {name:'UC Medical Center', lat:39.1376, lng:-84.5037, city:'Cincinnati OH'},
+  {name:'Miami Valley', lat:39.7456, lng:-84.1916, city:'Dayton OH'},
+  {name:'IU Health Methodist', lat:39.7896, lng:-86.1683, city:'Indianapolis IN'},
+  {name:'Univ of Michigan', lat:42.2825, lng:-83.7268, city:'Ann Arbor MI'},
+  {name:'Detroit Receiving', lat:42.3528, lng:-83.0556, city:'Detroit MI'},
+  {name:'Henry Ford Hospital', lat:42.3653, lng:-83.0760, city:'Detroit MI'},
+  {name:'Corewell Health Butterworth', lat:42.9707, lng:-85.6710, city:'Grand Rapids MI', note:'Closest L1 to Notre Dame'},
+  {name:'Northwestern Memorial', lat:41.8951, lng:-87.6207, city:'Chicago IL'},
+  {name:'Stroger Cook County', lat:41.8728, lng:-87.6764, city:'Chicago IL'},
+  {name:'Univ of Chicago Medical', lat:41.7886, lng:-87.6045, city:'Chicago IL'},
+  {name:'Rush University', lat:41.8745, lng:-87.6692, city:'Chicago IL'},
+  {name:'Advocate Christ', lat:41.7115, lng:-87.7400, city:'Oak Lawn IL'},
+  {name:'Loyola Univ Medical', lat:41.8675, lng:-87.8389, city:'Maywood IL'},
+  {name:'OSF Saint Francis', lat:40.7027, lng:-89.5862, city:'Peoria IL'},
+  {name:'Barnes-Jewish', lat:38.6356, lng:-90.2624, city:'St. Louis MO'},
+  {name:'Saint Louis Univ', lat:38.6273, lng:-90.2419, city:'St. Louis MO'},
+  {name:'Univ of Missouri', lat:38.9395, lng:-92.3306, city:'Columbia MO'},
+  {name:'Univ of Kansas Medical', lat:39.0556, lng:-94.6080, city:'Kansas City KS'},
+  {name:'Nebraska Medicine', lat:41.2566, lng:-96.0014, city:'Omaha NE'},
+  {name:'Univ of Iowa Hospitals', lat:41.6584, lng:-91.5478, city:'Iowa City IA'},
+  {name:'Hennepin Healthcare', lat:44.9722, lng:-93.2618, city:'Minneapolis MN'},
+  {name:'Regions Hospital', lat:44.9576, lng:-93.0908, city:'St. Paul MN'},
+  {name:'Mayo Clinic', lat:44.0226, lng:-92.4670, city:'Rochester MN'},
+  {name:'Froedtert', lat:43.0463, lng:-88.0231, city:'Milwaukee WI'},
+  {name:'Univ of Wisconsin', lat:43.0760, lng:-89.4338, city:'Madison WI'},
+  // West / Mountain
+  {name:'Denver Health', lat:39.7280, lng:-104.9923, city:'Denver CO'},
+  {name:'Univ of Colorado Anschutz', lat:39.7437, lng:-104.8388, city:'Aurora CO'},
+  {name:'Intermountain Med', lat:40.6585, lng:-111.8898, city:'Murray UT'},
+  {name:'Univ of Utah Hospital', lat:40.7702, lng:-111.8338, city:'Salt Lake City UT'},
+  {name:'Univ of New Mexico', lat:35.0888, lng:-106.6196, city:'Albuquerque NM'},
+  {name:'UMC New Orleans', lat:29.9583, lng:-90.0810, city:'New Orleans LA'},
+  {name:'Memorial Hermann TMC', lat:29.7104, lng:-95.3997, city:'Houston TX'},
+  {name:'Ben Taub General', lat:29.7110, lng:-95.3911, city:'Houston TX'},
+  {name:'Parkland', lat:32.8121, lng:-96.8385, city:'Dallas TX'},
+  {name:'Methodist Dallas', lat:32.7472, lng:-96.8270, city:'Dallas TX'},
+  {name:'Baylor Scott & White Temple', lat:31.1027, lng:-97.3578, city:'Temple TX'},
+  {name:'JPS Health', lat:32.7224, lng:-97.3160, city:'Fort Worth TX'},
+  {name:'University Hospital SA', lat:29.5096, lng:-98.5750, city:'San Antonio TX'},
+  {name:'Brooke Army Medical', lat:29.4502, lng:-98.4329, city:'San Antonio TX'},
+  {name:'UMC El Paso', lat:31.7745, lng:-106.4938, city:'El Paso TX'},
+  {name:'Banner Univ Phoenix', lat:33.4737, lng:-112.0858, city:'Phoenix AZ'},
+  {name:'Banner Univ Tucson', lat:32.2400, lng:-110.9456, city:'Tucson AZ'},
+  {name:'UMC Southern Nevada', lat:36.1581, lng:-115.1602, city:'Las Vegas NV'},
+  {name:'Sunrise Hospital', lat:36.1422, lng:-115.1093, city:'Las Vegas NV'},
+  {name:'Renown Regional', lat:39.5111, lng:-119.7912, city:'Reno NV'},
+  // West Coast
+  {name:'ZSFG (San Francisco General)', lat:37.7559, lng:-122.4053, city:'San Francisco CA'},
+  {name:'Stanford Hospital', lat:37.4329, lng:-122.1755, city:'Stanford CA'},
+  {name:'Santa Clara Valley Med', lat:37.3122, lng:-121.9379, city:'San Jose CA'},
+  {name:'UC Davis Medical', lat:38.5552, lng:-121.4546, city:'Sacramento CA'},
+  {name:'Highland Hospital', lat:37.7889, lng:-122.2280, city:'Oakland CA'},
+  {name:'LAC+USC Medical', lat:34.0586, lng:-118.2056, city:'Los Angeles CA'},
+  {name:'Ronald Reagan UCLA', lat:34.0664, lng:-118.4456, city:'Los Angeles CA'},
+  {name:'Harbor-UCLA', lat:33.8276, lng:-118.2916, city:'Torrance CA'},
+  {name:'Long Beach Memorial', lat:33.8067, lng:-118.1700, city:'Long Beach CA'},
+  {name:'Loma Linda Univ', lat:34.0501, lng:-117.2659, city:'Loma Linda CA'},
+  {name:'Scripps Mercy', lat:32.7505, lng:-117.1450, city:'San Diego CA'},
+  {name:'UC San Diego Hillcrest', lat:32.7547, lng:-117.1635, city:'San Diego CA'},
+  {name:'Sharp Memorial', lat:32.7965, lng:-117.1486, city:'San Diego CA'},
+  {name:'Community Regional Fresno', lat:36.7488, lng:-119.7770, city:'Fresno CA'},
+  {name:'Arrowhead Regional', lat:34.0807, lng:-117.2807, city:'Colton CA'},
+  {name:'Harborview Med Center', lat:47.6037, lng:-122.3201, city:'Seattle WA', note:'Largest L1 in PNW'},
+  {name:'Sacred Heart Med', lat:47.6471, lng:-117.4189, city:'Spokane WA'},
+  {name:'OHSU', lat:45.4988, lng:-122.6862, city:'Portland OR'},
+  {name:'Legacy Emanuel', lat:45.5448, lng:-122.6750, city:'Portland OR'},
+  {name:'Queens Medical Center', lat:21.3098, lng:-157.8503, city:'Honolulu HI'},
+  {name:'Providence Anchorage', lat:61.1875, lng:-149.8333, city:'Anchorage AK'}
+];
+
+let showUniversities = false, universitiesLayer = null;
+let showPharma = false, pharmaLayer = null;
+let showLabs = false, labsLayer = null;
+let showMLLabs = false, mlLabsLayer = null;
+let showTrauma = false, traumaLayer = null;
+
+function nearestAirport(point) {
+  if (!point || point.lat == null) return null;
+  let best = null;
+  for (const a of AIRPORTS) {
+    const d = haversine(point, a);
+    if (!best || d < best.dist) best = { airport: a, dist: d };
+  }
+  return best;
+}
+
+function haversine(a, b) {
+  const R = 3958.8; // miles
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const x = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(x)));
+}
+
+function nearestMajorCity(job) {
+  if (job.lat == null) return null;
+  let best = null;
+  for (const c of MAJOR_CITIES) {
+    const d = haversine({lat:job.lat,lng:job.lng}, c);
+    if (!best || d < best.dist) best = { city: c, dist: d };
+  }
+  return best;
+}
+
+async function fetchWikiSections(title) {
+  const result = {};
+  try {
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=text&format=json&origin=*`);
+    const data = await res.json();
+    const html = data.parse && data.parse.text && data.parse.text['*'];
+    if (!html) return result;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // Map section anchor IDs -> display label
+    const wanted = {
+      'Education': 'Education',
+      'Arts_and_culture': 'Arts & culture',
+      'Culture': 'Arts & culture',
+      'Culture_and_contemporary_life': 'Arts & culture',
+      'Sports': 'Sports & recreation',
+      'Recreation': 'Sports & recreation',
+      'Parks_and_recreation': 'Sports & recreation',
+      'Demographics': 'Demographics',
+      'Economy': 'Economy'
+    };
+    const seen = new Set();
+    doc.querySelectorAll('h2, h3').forEach(h => {
+      const span = h.querySelector('.mw-headline');
+      const id = (span && span.id) || h.id;
+      if (!id || !(id in wanted)) return;
+      const label = wanted[id];
+      if (seen.has(label)) return;
+      let sib = h.nextElementSibling;
+      let text = '';
+      while (sib && !/^H[2-3]$/.test(sib.tagName)) {
+        if (sib.tagName === 'P') {
+          sib.querySelectorAll('sup.reference').forEach(s => s.remove());
+          const t = sib.textContent.trim();
+          if (t.length > 30) { text = t; break; }
+        }
+        sib = sib.nextElementSibling;
+      }
+      if (text) {
+        seen.add(label);
+        result[label] = text.length > 500 ? text.slice(0, 500) + '…' : text;
+      }
+    });
+    // Try to find median income anywhere in the page text
+    const fullText = doc.body.textContent;
+    const incMatch = fullText.match(/median\s+(?:household\s+)?income[^$]{0,80}\$([\d,]+)/i);
+    if (incMatch) result.medianIncome = '$' + incMatch[1];
+    const pcMatch = fullText.match(/per[\s-]capita\s+income[^$]{0,80}\$([\d,]+)/i);
+    if (pcMatch) result.perCapitaIncome = '$' + pcMatch[1];
+  } catch (e) { console.warn('Wiki sections failed', e); }
+  return result;
+}
+
+// 2024 federal single-filer brackets — approximate for net-pay estimates
+function fedIncomeTax(income) {
+  const brackets = [
+    [11600, 0.10], [47150, 0.12], [100525, 0.22], [191950, 0.24],
+    [243725, 0.32], [609350, 0.35], [Infinity, 0.37]
+  ];
+  let tax = 0, last = 0;
+  for (const [cap, rate] of brackets) {
+    if (income <= cap) { tax += (income - last) * rate; break; }
+    tax += (cap - last) * rate; last = cap;
+  }
+  return tax;
+}
+function ficaTax(income) {
+  const ss = Math.min(income, 168600) * 0.062;
+  const medicare = income * 0.0145 + Math.max(0, income - 200000) * 0.009;
+  return ss + medicare;
+}
+function stateTopRate(stateCode) {
+  const t = STATE_TAX[stateCode];
+  if (!t) return 0;
+  const inc = t.income;
+  if (/none/i.test(inc)) return 0;
+  const m = inc.match(/(\d+(?:\.\d+)?)%\s*flat/) || inc.match(/-\s*(\d+(?:\.\d+)?)%/) || inc.match(/(\d+(?:\.\d+)?)%/);
+  return m ? parseFloat(m[1]) / 100 : 0;
+}
+function parseSalary(s) {
+  if (!s) return 0;
+  const m = String(s).match(/\$?([\d,.]+)\s*(k|K|m|M)?/);
+  if (!m) return 0;
+  let v = parseFloat(m[1].replace(/,/g, ''));
+  if (!v) return 0;
+  if (m[2] && m[2].toLowerCase() === 'k') v *= 1000;
+  if (m[2] && m[2].toLowerCase() === 'm') v *= 1000000;
+  return v;
+}
+function parsePercent(s) {
+  if (!s) return 0;
+  const m = String(s).match(/([\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+function totalGrossComp(job) {
+  const base = parseSalary(job.salary);
+  const production = parseSalary(job.estimatedProduction);
+  const pct = parsePercent(job.productionPercent);
+  return base + production * pct / 100;
+}
+function computeNetPay(gross, stateCode) {
+  const fed = fedIncomeTax(gross);
+  const fica = ficaTax(gross);
+  // For OMFS at $300k+ top marginal ≈ effective state rate; reduce slightly for lower brackets
+  const stateRate = stateTopRate(stateCode);
+  const state = gross * stateRate * (gross > 250000 ? 0.95 : 0.85);
+  const total = fed + fica + state;
+  return { gross, fed, fica, state, total, net: gross - total };
+}
+function fmtMoney(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+async function fetchCityStats(job, force) {
+  if (job.lat == null) return;
+  if (job.cityStats && !force) return;
+  const stats = {};
+
+  // Wikipedia: geosearch for nearest city article
+  try {
+    const gsRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${job.lat}|${job.lng}&gsradius=10000&gslimit=10&format=json&origin=*`);
+    const gs = await gsRes.json();
+    const hits = (gs.query && gs.query.geosearch) || [];
+    // pick the article whose title best matches the location string (often a city)
+    const locName = (job.location || '').split(',')[0].trim().toLowerCase();
+    let pick = hits.find(h => h.title.toLowerCase().includes(locName)) || hits[0];
+    if (pick) {
+      const sumRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pick.title)}`);
+      const sd = await sumRes.json();
+      stats.wiki = {
+        title: sd.title,
+        extract: sd.extract,
+        thumb: sd.thumbnail && sd.thumbnail.source,
+        url: sd.content_urls && sd.content_urls.desktop && sd.content_urls.desktop.page
+      };
+      // Pull more sections (Education, Arts & culture, Demographics, Economy, etc.)
+      const sections = await fetchWikiSections(pick.title);
+      stats.wiki.sections = sections;
+      if (sections.medianIncome) stats.medianIncome = sections.medianIncome;
+      if (sections.perCapitaIncome) stats.perCapitaIncome = sections.perCapitaIncome;
+    }
+  } catch (e) { console.warn('Wikipedia lookup failed', e); }
+
+  // US Census Bureau: accurate median income, home value, rent (free, no key, CORS-enabled)
+  try {
+    const geo = await fetch(`https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x=${job.lng}&y=${job.lat}&benchmark=Public_AR_Current&vintage=Current_Current&format=json&layers=Incorporated+Places`);
+    const gd = await geo.json();
+    const places = gd.result && gd.result.geographies && gd.result.geographies['Incorporated Places'];
+    if (places && places.length > 0) {
+      const place = places[0];
+      const stateFips = place.STATE;
+      const placeFips = place.PLACE;
+      // ACS 5-year profile: median household income, per-capita, median home value, median gross rent, median age
+      const acsRes = await fetch(`https://api.census.gov/data/2022/acs/acs5/profile?get=NAME,DP03_0062E,DP03_0088E,DP04_0089E,DP04_0134E,DP05_0018E,DP02_0067PE&for=place:${placeFips}&in=state:${stateFips}`);
+      const acsData = await acsRes.json();
+      if (acsData && acsData.length > 1) {
+        const row = acsData[1];
+        const n = v => { const x = Number(v); return (x && x > 0) ? x : null; };
+        stats.census = {
+          placeName: row[0],
+          medianIncome: n(row[1]),
+          perCapitaIncome: n(row[2]),
+          medianHomeValue: n(row[3]),
+          medianRent: n(row[4]),
+          medianAge: n(row[5]),
+          bachelorsOrHigher: n(row[6])
+        };
+      }
+    }
+  } catch (e) { console.warn('Census lookup failed', e); }
+
+  // Weather by season via Open-Meteo (free, no key)
+  try {
+    const yr = new Date().getFullYear() - 1;
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${job.lat}&longitude=${job.lng}&start_date=${yr}-01-01&end_date=${yr}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto`;
+    const wRes = await fetch(url);
+    const wd = await wRes.json();
+    if (wd.daily) {
+      const seasons = { Spring: [2,3,4], Summer: [5,6,7], Fall: [8,9,10], Winter: [11,0,1] };
+      const out = {};
+      const dates = wd.daily.time || [];
+      for (const [name, months] of Object.entries(seasons)) {
+        const highs = [], lows = []; let precip = 0; let snowCm = 0;
+        dates.forEach((d, i) => {
+          const mo = new Date(d).getMonth();
+          if (months.includes(mo)) {
+            if (wd.daily.temperature_2m_max[i] != null) highs.push(wd.daily.temperature_2m_max[i]);
+            if (wd.daily.temperature_2m_min[i] != null) lows.push(wd.daily.temperature_2m_min[i]);
+            precip += wd.daily.precipitation_sum[i] || 0;
+            if (wd.daily.snowfall_sum) snowCm += wd.daily.snowfall_sum[i] || 0;
+          }
+        });
+        if (highs.length) {
+          out[name] = {
+            high: Math.round(highs.reduce((a,b)=>a+b,0)/highs.length),
+            low: Math.round(lows.reduce((a,b)=>a+b,0)/lows.length),
+            precip: Math.round(precip * 10) / 10,
+            snow: Math.round(snowCm * 0.3937 * 10) / 10 // cm → inches
+          };
+        }
+      }
+      stats.weather = out;
+      stats.weatherYear = yr;
+    }
+  } catch (e) { console.warn('Weather lookup failed', e); }
+
+  // State tax (US only)
+  const st = extractState(job.location);
+  if (st && STATE_TAX[st]) stats.tax = { ...STATE_TAX[st], code: st };
+
+  stats.fetchedAt = new Date().toISOString().slice(0,10);
+  job.cityStats = stats;
+  saveJobs();
+}
+
+window._jobmapOpenDetails = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  document.getElementById('detailsTitle').textContent = job.company || 'Job details';
+  document.getElementById('detailsSubtitle').textContent = job.location || '';
+  document.getElementById('detailsBody').innerHTML = renderJobDetails(job);
+  document.getElementById('detailsEditBtn').onclick = () => { closeDetails(); openJobForm(jobId); };
+  document.getElementById('detailsModal').classList.add('open');
+};
+function closeDetails() { document.getElementById('detailsModal').classList.remove('open'); }
+
+window._jobmapShowCityStats = function(jobId, view) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  openCityStatsModal(job, view || 'col');
+};
+window._jobmapRefreshCityStats = function(jobId, view) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  const modalBody = document.getElementById('citystatsBody');
+  modalBody.innerHTML = '<p style="color:var(--muted)">Refreshing…</p>';
+  fetchCityStats(job, true).then(() => openCityStatsModal(job, view || 'col'));
+};
+
+async function fetchDrivingRoute(fromLat, fromLng, toLat, toLng) {
+  // OSRM public demo — free, no key, light use only
+  const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.code !== 'Ok' || !data.routes || !data.routes.length) throw new Error('No route found');
+  const r = data.routes[0];
+  return {
+    miles: Math.round(r.distance / 1609.34),
+    minutes: Math.round(r.duration / 60)
+  };
+}
+
+async function refreshDrivingInfo(job) {
+  if (job.lat == null) return;
+  // Test the 5 closest cities by straight-line, then route to each; pick shortest drive
+  const candidates = MAJOR_CITIES
+    .map(c => ({ city: c, sl: haversine({lat:job.lat,lng:job.lng}, c) }))
+    .sort((a,b) => a.sl - b.sl)
+    .slice(0, 5);
+  try {
+    const results = await Promise.allSettled(
+      candidates.map(c => fetchDrivingRoute(job.lat, job.lng, c.city.lat, c.city.lng))
+    );
+    let best = null;
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value && (!best || r.value.miles < best.miles)) {
+        best = { miles: r.value.miles, minutes: r.value.minutes, city: candidates[i].city };
+      }
+    });
+    if (best) {
+      job.carCity = best.city.name;
+      job.carCityLat = best.city.lat;
+      job.carCityLng = best.city.lng;
+      job.carMiles = best.miles;
+      job.carMinutes = best.minutes;
+      saveJobs();
+      if (markers[job.id]) markers[job.id].setPopupContent(popupHtml(job));
+    }
+  } catch (e) {
+    console.warn('Driving lookup failed for', job.company, e);
+  }
+}
+
+function formatDriveTime(minutes) {
+  if (!minutes) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/* ---------- Sync ---------- */
+function setSyncStatus(msg, kind) {
+  const el = document.getElementById('syncStatus');
+  if (!msg) { el.classList.remove('visible'); return; }
+  el.textContent = msg;
+  el.className = 'visible' + (kind ? ' ' + kind : '');
+}
+
+async function sheetGet() {
+  if (!sheetUrl) return null;
+  const res = await fetch(sheetUrl, { method: 'GET' });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Sheet returned an error');
+  return data; // { ok, jobs, config }
+}
+
+async function syncConfigToSheet(key, value) {
+  if (!sheetUrl) return;
+  try { await sheetPost({ action: 'saveConfig', key: key, value: value }); }
+  catch (e) { console.warn('Config sync failed for ' + key, e); }
+}
+
+async function sheetPost(payload) {
+  if (!sheetUrl) return;
+  // text/plain content-type avoids CORS preflight that Apps Script can't handle
+  const res = await fetch(sheetUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Sheet returned an error');
+}
+
+async function syncJobToSheet(job) {
+  if (!sheetUrl) return;
+  setSyncStatus('Saving to Google Sheet…');
+  try {
+    await sheetPost({ action: 'save', job });
+    setSyncStatus('✓ Synced to Google Sheet', 'success');
+    setTimeout(() => setSyncStatus(''), 2500);
+  } catch (e) {
+    setSyncStatus('⚠ Sync failed: ' + e.message + ' (saved locally)', 'error');
+  }
+}
+
+async function deleteJobFromSheet(id) {
+  if (!sheetUrl) return;
+  try { await sheetPost({ action: 'delete', id }); } catch(e) { /* local delete still happened */ }
+}
+
+async function pullFromSheet() {
+  if (!sheetUrl) return;
+  setSyncStatus('Loading from Google Sheet…');
+  try {
+    const remote = await sheetGet();
+    const remoteJobs = Array.isArray(remote) ? remote : (remote && Array.isArray(remote.jobs) ? remote.jobs : null);
+    if (remoteJobs) {
+      const dateOnly = v => (typeof v === 'string') ? (v.match(/^(\d{4}-\d{2}-\d{2})/) || [, v])[1] : v;
+      jobs = remoteJobs.map(j => ({
+        ...j,
+        lat: j.lat === '' ? null : Number(j.lat),
+        lng: j.lng === '' ? null : Number(j.lng),
+        excitement: j.excitement === '' ? 0 : Number(j.excitement),
+        dateApplied: dateOnly(j.dateApplied),
+        dateInterview: dateOnly(j.dateInterview),
+      }));
+      saveJobs();
+    }
+    // Pull shared config (people, destinations, weights) if the script supports it
+    const cfg = (remote && remote.config) || null;
+    if (cfg) {
+      if (Array.isArray(cfg.people)) {
+        people = cfg.people;
+        localStorage.setItem(PEOPLE_KEY, JSON.stringify(people));
+        if (showPeople) drawPeople();
+      }
+      if (Array.isArray(cfg.destinations)) {
+        destinations = cfg.destinations;
+        localStorage.setItem(DESTINATIONS_KEY, JSON.stringify(destinations));
+      }
+      if (cfg.weights && typeof cfg.weights === 'object') {
+        weights = { ...DEFAULT_WEIGHTS, ...cfg.weights };
+        localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
+      }
+    }
+    renderMarkers();
+    renderList();
+    setSyncStatus(`✓ Loaded ${jobs.length} jobs from sheet`, 'success');
+    setTimeout(() => setSyncStatus(''), 2500);
+  } catch (e) {
+    setSyncStatus('⚠ Couldn\'t load from sheet: ' + e.message, 'error');
+  }
+}
+
+/* ---------- Settings modal ---------- */
+function openSettings() {
+  document.getElementById('sheetUrlInput').value = sheetUrl;
+  document.getElementById('settingsStatus').textContent = '';
+  // populate script block on first open
+  const block = document.getElementById('scriptBlock');
+  if (!block.textContent) {
+    block.textContent = document.getElementById('appsScriptTemplate').textContent;
+  }
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+
+function copyScript() {
+  const text = document.getElementById('appsScriptTemplate').textContent;
+  navigator.clipboard.writeText(text).then(
+    () => { document.getElementById('settingsStatus').textContent = '✓ Script copied to clipboard'; document.getElementById('settingsStatus').style.color = '#047857'; },
+    () => { document.getElementById('settingsStatus').textContent = 'Could not copy — select the text and copy manually'; }
+  );
+}
+
+async function testSync() {
+  const url = document.getElementById('sheetUrlInput').value.trim();
+  const status = document.getElementById('settingsStatus');
+  if (!url) { status.textContent = 'Paste a URL first'; status.style.color = '#b91c1c'; return; }
+  status.textContent = 'Testing…'; status.style.color = '';
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if (data.ok) {
+      status.textContent = `✓ Connection works! Found ${(data.jobs || []).length} jobs in sheet.`;
+      status.style.color = '#047857';
+    } else {
+      status.textContent = '⚠ Connected but got error: ' + (data.error || 'unknown');
+      status.style.color = '#b91c1c';
+    }
+  } catch (e) {
+    status.textContent = '⚠ Couldn\'t reach URL: ' + e.message;
+    status.style.color = '#b91c1c';
+  }
+}
+
+async function saveSheetUrl() {
+  const url = document.getElementById('sheetUrlInput').value.trim();
+  const status = document.getElementById('settingsStatus');
+  if (!url) { status.textContent = 'Paste a URL first'; status.style.color = '#b91c1c'; return; }
+  sheetUrl = url;
+  localStorage.setItem(SHEET_URL_KEY, url);
+  status.textContent = 'Saving current jobs to sheet…'; status.style.color = '';
+  try {
+    // push existing local jobs up to the sheet first
+    if (jobs.length > 0) await sheetPost({ action: 'bulkSave', jobs });
+    // then pull authoritative state back
+    await pullFromSheet();
+    status.textContent = '✓ Connected and synced!';
+    status.style.color = '#047857';
+    setTimeout(() => closeSettings(), 1000);
+  } catch (e) {
+    status.textContent = '⚠ ' + e.message;
+    status.style.color = '#b91c1c';
+  }
+}
+
+function disconnectSheet() {
+  if (!confirm('Disconnect from Google Sheet? Your jobs stay in this browser; the sheet is untouched.')) return;
+  sheetUrl = '';
+  localStorage.removeItem(SHEET_URL_KEY);
+  closeSettings();
+  setSyncStatus('Disconnected from Google Sheet');
+  setTimeout(() => setSyncStatus(''), 2500);
+}
+
+document.getElementById('settingsModal').addEventListener('click', e => {
+  if (e.target.id === 'settingsModal') closeSettings();
+});
+
+/* ---------- Layers / Manage ---------- */
+function openLayers() {
+  document.getElementById('cityDistanceToggle').checked = showCityDistance;
+  document.getElementById('airportsToggle').checked = showAirports;
+  document.getElementById('universitiesToggle').checked = showUniversities;
+  document.getElementById('labsToggle').checked = showLabs;
+  document.getElementById('mlLabsToggle').checked = showMLLabs;
+  document.getElementById('peopleToggle').checked = showPeople;
+  document.getElementById('traumaToggle').checked = showTrauma;
+  document.getElementById('pharmaToggle').checked = showPharma;
+  document.getElementById('layersModal').classList.add('open');
+}
+function closeLayers() { document.getElementById('layersModal').classList.remove('open'); }
+document.getElementById('layersModal').addEventListener('click', e => {
+  if (e.target.id === 'layersModal') closeLayers();
+});
+
+function openCityStatsModal(job, view) {
+  view = view || 'col';
+  document.getElementById('citystatsTitle').textContent = `${job.location || 'City'} — ${view === 'col' ? 'Cost of Living' : 'Lifestyle'}`;
+  const body = document.getElementById('citystatsBody');
+  const s = job.cityStats;
+  if (!s) {
+    body.innerHTML = `<p style="color:var(--muted)">No snapshot compiled yet.</p>
+      <button class="primary" onclick="window._jobmapRefreshCityStats('${job.id}','${view}')" style="padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:white;cursor:pointer">Compile snapshot</button>`;
+    document.getElementById('cityStatsModal').classList.add('open');
+    return;
+  }
+  body.innerHTML = `
+    <div style="display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:14px">
+      <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:${view==='col'?'600':'400'};border-bottom:2px solid ${view==='col'?'var(--accent)':'transparent'};margin-bottom:-1px">Cost of Living</button>
+      <button onclick="window._jobmapShowCityStats('${job.id}','lifestyle')" style="padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:${view==='lifestyle'?'600':'400'};border-bottom:2px solid ${view==='lifestyle'?'var(--accent)':'transparent'};margin-bottom:-1px">Lifestyle</button>
+    </div>
+    ${view === 'col' ? renderCOLView(job, s) : renderLifestyleView(job, s)}
+    <div style="margin-top:14px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px">
+      <span>Compiled ${escape(s.fetchedAt || 'recently')}</span>
+      <button onclick="window._jobmapRefreshCityStats('${job.id}','${view}')" style="padding:4px 10px;font-size:11px;border:1px solid var(--line);background:white;border-radius:6px;cursor:pointer">Refresh</button>
+    </div>
+  `;
+  document.getElementById('cityStatsModal').classList.add('open');
+}
+
+function renderCOLView(job, s) {
+  const near = nearestMajorCity(job);
+  const myCol = near ? near.city.col : null;
+  const base = parseSalary(job.salary);
+  const production = parseSalary(job.estimatedProduction);
+  const pct = parsePercent(job.productionPercent);
+  const productionAdd = production * pct / 100;
+  const gross = base + productionAdd;
+  const stateCode = s.tax && s.tax.code;
+  const pay = gross ? computeNetPay(gross, stateCode) : null;
+
+  // Purchasing-power comparison
+  const refCities = ['New York','San Francisco','Los Angeles','Boston','Austin','Denver','Charlotte','Raleigh','Nashville','Grand Rapids','Chicago','Detroit'];
+  const refs = MAJOR_CITIES.filter(c => refCities.includes(c.name));
+  let powerHtml = '';
+  if (myCol && gross) {
+    // gross in this city has equivalent purchasing power of gross * (refCol/myCol) in ref city
+    powerHtml = `
+      <h3 style="font-size:14px;margin:14px 0 8px">Purchasing power of ${fmtMoney(gross)} ${escape(near.city.name)}-equivalent salary</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">What you'd need to earn in another city to live the same lifestyle:</div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        ${refs.map(r => {
+          const eq = Math.round(gross * r.col / myCol);
+          const diff = eq - gross;
+          return `<tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:6px 0">${escape(r.name)} <span style="color:var(--muted);font-size:11px">(COL ${r.col})</span></td>
+            <td style="text-align:right"><b>${fmtMoney(eq)}</b> <span style="color:${diff>0?'#b91c1c':'#047857'};font-size:11px">(${diff>0?'+':''}${fmtMoney(diff)})</span></td>
+          </tr>`;
+        }).join('')}
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Based on COL indices (national avg = 100). ${escape(near.city.name)} = ${myCol}.</div>
+    `;
+  }
+
+  // Tax breakdown for the job salary
+  let taxHtml = '';
+  if (pay) {
+    const compBreakdown = productionAdd > 0
+      ? `<tr><td style="padding:4px 0;color:var(--muted)">&nbsp;&nbsp;Base salary</td><td style="text-align:right;color:var(--muted)">${fmtMoney(base)}</td></tr>
+         <tr><td style="padding:4px 0;color:var(--muted)">&nbsp;&nbsp;Production share (${pct}% of ${fmtMoney(production)})</td><td style="text-align:right;color:var(--muted)">+${fmtMoney(productionAdd)}</td></tr>`
+      : '';
+    taxHtml = `
+      <h3 style="font-size:14px;margin:14px 0 8px">Estimated take-home on ${fmtMoney(pay.gross)} gross</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Single filer, 2024 federal brackets. State uses top marginal rate (most OMFS comp sits there).</div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <tr style="font-weight:600"><td style="padding:6px 0">Gross total comp</td><td style="text-align:right">${fmtMoney(pay.gross)}</td></tr>
+        ${compBreakdown}
+        <tr><td style="padding:4px 0;color:var(--muted)">Federal income tax</td><td style="text-align:right">−${fmtMoney(pay.fed)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--muted)">FICA (SS + Medicare)</td><td style="text-align:right">−${fmtMoney(pay.fica)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--muted)">State income tax ${s.tax ? `(${escape(s.tax.code)})` : ''}</td><td style="text-align:right">−${fmtMoney(pay.state)}</td></tr>
+        <tr style="border-top:2px solid var(--ink);font-weight:600"><td style="padding:6px 0">Take-home</td><td style="text-align:right;color:#047857">${fmtMoney(pay.net)}</td></tr>
+        <tr><td style="padding:2px 0;color:var(--muted);font-size:11px">Effective tax rate</td><td style="text-align:right;color:var(--muted);font-size:11px">${(pay.total/pay.gross*100).toFixed(1)}%</td></tr>
+      </table>
+    `;
+  } else if (job.salary || job.estimatedProduction) {
+    taxHtml = `<p style="font-size:12px;color:var(--muted)">Couldn't parse base salary or production into a dollar amount. Try formats like "$400k" or "$1,200,000".</p>`;
+  }
+
+  // Local figures: prefer accurate US Census data when available, fall back to Wikipedia regex
+  let incomeHtml = '';
+  if (s.census) {
+    const c = s.census;
+    incomeHtml = `
+      <h3 style="font-size:14px;margin:14px 0 8px">Local figures (US Census, ACS 2022)</h3>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        ${c.medianIncome ? `<tr><td style="padding:6px 0;color:var(--muted)">Median household income</td><td style="text-align:right"><b>${fmtMoney(c.medianIncome)}</b></td></tr>` : ''}
+        ${c.perCapitaIncome ? `<tr><td style="padding:6px 0;color:var(--muted)">Per-capita income</td><td style="text-align:right"><b>${fmtMoney(c.perCapitaIncome)}</b></td></tr>` : ''}
+        ${c.medianHomeValue ? `<tr><td style="padding:6px 0;color:var(--muted)">Median home value</td><td style="text-align:right"><b>${fmtMoney(c.medianHomeValue)}</b></td></tr>` : ''}
+        ${c.medianRent ? `<tr><td style="padding:6px 0;color:var(--muted)">Median gross rent (monthly)</td><td style="text-align:right"><b>${fmtMoney(c.medianRent)}</b></td></tr>` : ''}
+        ${c.medianAge ? `<tr><td style="padding:6px 0;color:var(--muted)">Median age</td><td style="text-align:right"><b>${c.medianAge}</b></td></tr>` : ''}
+        ${c.bachelorsOrHigher ? `<tr><td style="padding:6px 0;color:var(--muted)">% with bachelor's+</td><td style="text-align:right"><b>${c.bachelorsOrHigher}%</b></td></tr>` : ''}
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">From census.gov · ${escape(c.placeName || '')}</div>
+    `;
+  } else if (s.medianIncome || s.perCapitaIncome) {
+    incomeHtml = `
+      <h3 style="font-size:14px;margin:14px 0 8px">Local income (from Wikipedia)</h3>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        ${s.medianIncome ? `<tr><td style="padding:4px 0;color:var(--muted)">Median household income</td><td style="text-align:right"><b>${escape(s.medianIncome)}</b></td></tr>` : ''}
+        ${s.perCapitaIncome ? `<tr><td style="padding:4px 0;color:var(--muted)">Per-capita income</td><td style="text-align:right"><b>${escape(s.perCapitaIncome)}</b></td></tr>` : ''}
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Census figures from Wikipedia — may be a few years old.</div>
+    `;
+  }
+
+  return `
+    ${job.col ? `<div style="background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 12px;border-radius:4px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Your COL notes</div>
+      <div style="font-size:13px;line-height:1.5">${escape(job.col)}</div>
+    </div>` : ''}
+    ${s.tax ? `
+      <h3 style="font-size:14px;margin:0 0 8px">${escape(s.tax.name)} taxes</h3>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <tr><td style="padding:6px 0;color:var(--muted);width:45%">State income tax</td><td><b>${escape(s.tax.income)}</b></td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">Property tax (effective rate)</td><td><b>${escape(s.tax.property)}</b></td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">Sales tax (state + local)</td><td><b>${escape(s.tax.sales)}</b></td></tr>
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Approximate 2024 rates.</div>
+    ` : '<p style="color:var(--muted);font-size:13px">Tax data shown for US states only.</p>'}
+
+    ${taxHtml}
+    ${powerHtml}
+    ${incomeHtml}
+    ${s.wiki && s.wiki.sections && s.wiki.sections['Economy'] ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Local economy</h3>
+      <p style="font-size:13px;line-height:1.5">${escape(s.wiki.sections['Economy'])}</p>
+    ` : ''}
+
+    <h3 style="font-size:14px;margin:14px 0 8px">Dive deeper</h3>
+    <div class="city-links" style="font-size:13px">
+      <a href="https://www.zillow.com/homes/${encodeURIComponent(job.location)}_rb/" target="_blank" title="Home prices for sale right now">Zillow home prices</a>
+      <a href="https://www.rentcafe.com/average-rent-market-trends/us/${encodeURIComponent(job.location)}/" target="_blank" title="Average rent by bedroom + trend">RentCafe avg rent</a>
+      <a href="https://www.apartments.com/${encodeURIComponent(job.location)}/" target="_blank" title="Live rental listings">Apartments.com</a>
+      <a href="https://smartasset.com/taxes/${encodeURIComponent(job.location.split(',')[0])}-tax-calculator" target="_blank" title="More detailed take-home pay calculator">SmartAsset paycheck</a>
+      <a href="https://www.nerdwallet.com/cost-of-living-calculator/compare/${encodeURIComponent(job.location)}-vs-new-york-ny" target="_blank" title="Compare two cities head-to-head">NerdWallet comparison</a>
+      <a href="https://www.numbeo.com/cost-of-living/in/${encodeURIComponent(job.location.split(',')[0])}" target="_blank" title="Crowdsourced rent, groceries, utilities">Numbeo</a>
+      <a href="https://www.bestplaces.net/cost_of_living/city/${encodeURIComponent(job.location)}" target="_blank" title="COL breakdown by category">BestPlaces COL</a>
+      <a href="https://taxfoundation.org/state/" target="_blank" title="Detailed state tax data">Tax Foundation</a>
+      <a href="https://www.census.gov/quickfacts/fact/table/${encodeURIComponent(job.location.split(',')[0])}" target="_blank" title="Population, income, education from US Census">Census QuickFacts</a>
+    </div>
+  `;
+}
+
+function renderLifestyleView(job, s) {
+  const sec = (s.wiki && s.wiki.sections) || {};
+  const seasonOrder = ['Spring','Summer','Fall','Winter'];
+  return `
+    ${job.lifestyle ? `<div style="background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 12px;border-radius:4px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Your vibe notes</div>
+      <div style="font-size:13px;line-height:1.5">${escape(job.lifestyle)}</div>
+    </div>` : ''}
+    ${s.wiki ? `
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
+        ${s.wiki.thumb ? `<img src="${escape(s.wiki.thumb)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" />` : ''}
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px;margin-bottom:4px">${escape(s.wiki.title)}</div>
+          <div style="font-size:13px;line-height:1.5">${escape((s.wiki.extract || '').slice(0, 500))}${(s.wiki.extract||'').length > 500 ? '…' : ''}</div>
+          ${s.wiki.url ? `<a href="${escape(s.wiki.url)}" target="_blank" style="font-size:12px">Wikipedia ↗</a>` : ''}
+        </div>
+      </div>
+    ` : ''}
+
+    ${s.weather ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Weather by season (${s.weatherYear} averages)</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${seasonOrder.filter(n => s.weather[n]).map(n => `
+          <div style="border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:12px;font-weight:600">${n}</div>
+            <div style="font-size:13px;margin-top:4px"><b>${s.weather[n].high}°</b> / ${s.weather[n].low}°F</div>
+            <div style="font-size:11px;color:var(--muted)">${s.weather[n].precip}″ rain${s.weather[n].snow > 0.1 ? ` · ${s.weather[n].snow}″ snow ❄` : ''}</div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    ${sec['Education'] ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Education & schools</h3>
+      <p style="font-size:13px;line-height:1.5">${escape(sec['Education'])}</p>
+    ` : ''}
+
+    ${sec['Arts & culture'] ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Arts & culture</h3>
+      <p style="font-size:13px;line-height:1.5">${escape(sec['Arts & culture'])}</p>
+    ` : ''}
+
+    ${sec['Sports & recreation'] ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Sports & recreation</h3>
+      <p style="font-size:13px;line-height:1.5">${escape(sec['Sports & recreation'])}</p>
+    ` : ''}
+
+    ${sec['Demographics'] ? `
+      <h3 style="font-size:14px;margin:14px 0 8px">Demographics</h3>
+      <p style="font-size:13px;line-height:1.5">${escape(sec['Demographics'])}</p>
+    ` : ''}
+
+    <h3 style="font-size:14px;margin:14px 0 8px">Dive deeper</h3>
+    <div class="city-links" style="font-size:13px">
+      <a href="https://www.greatschools.org/search/search.page?q=${encodeURIComponent(job.location)}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
+      <a href="https://www.niche.com/places-to-live/search/best-places-to-live/?q=${encodeURIComponent(job.location)}" target="_blank" title="Niche rankings: best for families, young pros, retirees">Niche rankings</a>
+      <a href="https://www.walkscore.com/score/${encodeURIComponent(job.location)}" target="_blank" title="Walkability, bikeability, transit (0-100)">Walk Score</a>
+      <a href="https://www.areavibes.com/${encodeURIComponent(job.location)}/livability/" target="_blank" title="Crime, safety, amenities">AreaVibes (safety)</a>
+      <a href="https://www.bestplaces.net/city/${encodeURIComponent(job.location)}" target="_blank" title="Climate, crime, education, economy summary">BestPlaces overview</a>
+      <a href="https://www.tripadvisor.com/Search?q=${encodeURIComponent(job.location)}" target="_blank" title="Top-rated attractions, restaurants, neighborhoods">TripAdvisor</a>
+      <a href="https://www.google.com/search?q=things+to+do+in+${encodeURIComponent(job.location)}" target="_blank" title="Activities, restaurants, parks, nightlife">Things to Do</a>
+    </div>
+  `;
+}
+function closeCityStatsModal() { document.getElementById('cityStatsModal').classList.remove('open'); }
+document.getElementById('cityStatsModal').addEventListener('click', e => {
+  if (e.target.id === 'cityStatsModal') closeCityStatsModal();
+});
+document.getElementById('detailsModal').addEventListener('click', e => {
+  if (e.target.id === 'detailsModal') closeDetails();
+});
+
+function toggleManageMenu(e) {
+  e && e.stopPropagation();
+  document.getElementById('manageMenu').classList.toggle('open');
+}
+function closeManageMenu() { document.getElementById('manageMenu').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('#manageBar')) closeManageMenu();
+});
+
+/* ---------- Compare ---------- */
+let compareSelected = new Set();
+function openCompare() {
+  compareSelected = new Set();
+  document.getElementById('compareTable').innerHTML = '';
+  const chooser = document.getElementById('compareChooser');
+  if (jobs.length === 0) { chooser.innerHTML = '<p style="color:var(--muted)">No jobs yet.</p>'; }
+  else {
+    chooser.innerHTML = jobs.filter(j => j.kind !== 'sister').map(j =>
+      `<label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--line)">
+        <input type="checkbox" onchange="toggleCompare('${j.id}', this.checked)" />
+        <span style="margin-left:6px"><b>${escape(j.company)}</b> · ${escape(j.location)}</span>
+        <span class="status-pill status-${j.status}" style="margin-left:6px">${j.status}</span>
+      </label>`
+    ).join('');
+  }
+  document.getElementById('compareModal').classList.add('open');
+}
+function closeCompare() { document.getElementById('compareModal').classList.remove('open'); }
+function toggleCompare(id, on) {
+  if (on) compareSelected.add(id); else compareSelected.delete(id);
+}
+
+function renderComparison() {
+  const picked = jobs.filter(j => compareSelected.has(j.id));
+  if (picked.length < 2) { alert('Pick at least 2 jobs to compare.'); return; }
+
+  const sectionHeader = title => [`__HEADER__${title}`, () => ''];
+
+  const rows = [
+    // ── HEADER ROW (always first) ──
+    ['Practice', j => `<b>${escape(j.company)}</b>`],
+    ['Location', j => escape(j.location)],
+    ['Status', j => `<span class="status-pill status-${j.status}">${j.status}</span>`],
+
+    // ── 1. JOB & OMFS DETAILS (for him, central focus) ──
+    sectionHeader('Job & OMFS details'),
+    ['His excitement', j => '★'.repeat(j.excitement||0) + '<span style="color:#d1d5db">' + '★'.repeat(5-(j.excitement||0)) + '</span>'],
+    ['Base salary', j => escape(j.salary || '—') + (colAdjustedSalary(j) ? `<br><span style="color:var(--muted);font-size:11px">${colAdjustedSalary(j)}</span>` : '')],
+    ['Est. yearly production', j => escape(j.estimatedProduction || '—')],
+    ['% production to income', j => j.productionPercent ? escape(j.productionPercent) + '%' : '—'],
+    ['Total gross (est.)', j => { const t = totalGrossComp(j); return t > 0 ? `<b>${fmtMoney(t)}</b>` : '—'; }],
+    ['Signing bonus', j => escape(j.signingBonus || '—')],
+    ['Partnership track', j => escape(j.partnershipTrack || '—')],
+    ['Call schedule', j => escape(j.callSchedule || '—')],
+    ['Hospitals', j => escape(j.hospitals || '—')],
+    ['Case mix', j => escape(j.caseMix || '—')],
+    ['DSO affiliation', j => escape(j.dsoAffiliation || '—')],
+    ['Practice group', j => escape(j.practiceGroup || '—')],
+    ['Sister locations', j => {
+      const g = (j.practiceGroup || '').trim().toLowerCase();
+      if (!g) return '—';
+      const sibs = jobs.filter(x => x.id !== j.id && (x.practiceGroup || '').trim().toLowerCase() === g);
+      return sibs.length > 0 ? sibs.map(s => escape(s.location)).join(', ') : '<span style="color:var(--muted)">none</span>';
+    }],
+    ['Loan repayment', j => escape(j.loanAssist || '—')],
+    ['Malpractice', j => escape(j.malpractice || '—')],
+    ['Contact', j => escape(j.contact || '—')],
+
+    // ── 2. KEY DATES ──
+    sectionHeader('Key dates'),
+    ['Applied', j => j.dateApplied || '—'],
+    ['Phone interview', j => j.datePhoneInterview || '—'],
+    ['In-person interview', j => j.dateInterview || '—'],
+    ['In-person interview #2', j => j.dateInterview2 || '—'],
+    ['Offer date', j => j.offerDate || '—'],
+    ['Offer deadline', j => j.offerDeadline ? `<span style="color:#b91c1c"><b>${j.offerDeadline}</b></span>` : '—'],
+
+    // ── 3. HIS NOTES & TAKEAWAYS ──
+    sectionHeader('His notes'),
+    ['Pros', j => `<span style="white-space:pre-wrap">${escape(j.pros || '—')}</span>`],
+    ['Cons', j => `<span style="white-space:pre-wrap">${escape(j.cons || '—')}</span>`],
+    ['Vibe (his)', j => j.hisVibe ? renderVibeChips(j.hisVibe) : '—'],
+    ['Notes', j => `<span style="white-space:pre-wrap">${escape(j.notes || '—')}</span>`],
+
+    // ── 4. DECISION SCORE ──
+    sectionHeader('Decision score'),
+    ['Score (weighted)', j => { const s = decisionScore(j); if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c};font-size:16px">${s}</b>/100`; }],
+
+    // ── 5. CITY / LIFESTYLE ──
+    sectionHeader('City & lifestyle'),
+    ['Cost of living notes', j => escape(j.col || '—')],
+    ['Lifestyle / vibe', j => escape(j.lifestyle || '—')],
+
+    // ── 6. HER OPPORTUNITIES & SENTIMENT ──
+    sectionHeader('Her career & sentiment'),
+    ['Her career fit', j => j.partnerFit ? '★'.repeat(j.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-j.partnerFit) + '</span>' : '—'],
+    ['Her vibe', j => j.herVibe ? renderVibeChips(j.herVibe, '#ec4899') : '—'],
+    ['5-year feeling', j => `<span style="white-space:pre-wrap">${escape(j.her5Year || '—')}</span>`],
+    ['30-year feeling', j => `<span style="white-space:pre-wrap">${escape(j.her30Year || '—')}</span>`],
+    ['Her notes', j => `<span style="white-space:pre-wrap">${escape(j.partnerNotes || '—')}</span>`],
+    ['Career overlap (50mi)', j => `<b>${overlapCount(j)}</b> place${overlapCount(j)===1?'':'s'}`],
+    ['Dual-career notes', j => escape(j.dualCareer || '—')],
+
+    // ── 7. FAMILY & TRAVEL (bottom) ──
+    sectionHeader('Family & travel'),
+    ['Distance-from-family note', j => escape(j.distanceFamily || '—')],
+    ['Drive to nearest hub', j => j.carMiles ? `${j.carMiles} mi · ${formatDriveTime(j.carMinutes)} to ${escape(j.carCity)}` : '<span style="color:var(--muted)">not loaded</span>'],
+    ['Nearest major city', j => { const n = nearestMajorCity(j); return n ? `${escape(n.city.name)} (${n.dist} mi straight-line)` : '—'; }],
+    ['Nearest airport', j => { const a = nearestAirport({lat:j.lat,lng:j.lng}); return a ? `${a.airport.code} <span style="color:var(--muted);font-size:11px">(${escape(a.airport.name)}, ${a.dist}mi)</span>` : '—'; }],
+    ...destinations.map(d => [`Flight to ${d.name}`, j => {
+      const fromAp = nearestAirport({lat:j.lat,lng:j.lng});
+      const toAp = nearestAirport(d);
+      if (!fromAp || !toAp) return '—';
+      const miles = haversine(fromAp.airport, toAp.airport);
+      return `<b>~${flightTime(miles)}</b> <span style="color:var(--muted);font-size:11px">${fromAp.airport.code}→${toAp.airport.code} (${miles.toLocaleString()} mi)</span>`;
+    }]),
+  ];
+  const html = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="text-align:left;padding:8px;border-bottom:2px solid var(--ink);width:140px"></th>
+        ${picked.map(j => `<th style="text-align:left;padding:8px;border-bottom:2px solid var(--ink)">${escape(j.company)}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => {
+          if (typeof r[0] === 'string' && r[0].startsWith('__HEADER__')) {
+            const title = r[0].slice(10);
+            return `<tr><td colspan="${picked.length + 1}" style="padding:14px 8px 6px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:11px;color:var(--accent);border-bottom:1px solid var(--line)">${escape(title)}</td></tr>`;
+          }
+          return `<tr>
+            <td style="padding:8px;font-weight:600;color:var(--muted);vertical-align:top">${r[0]}</td>
+            ${picked.map(j => `<td style="padding:8px;vertical-align:top">${r[1](j)}</td>`).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  document.getElementById('compareTable').innerHTML = html;
+}
+
+document.getElementById('compareModal').addEventListener('click', e => {
+  if (e.target.id === 'compareModal') closeCompare();
+});
+
+/* ---------- Destinations ---------- */
+function openDestinations() {
+  const list = document.getElementById('destinationsList');
+  list.innerHTML = destinations.map((d, i) => `
+    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+      <input id="dest_${i}" value="${escape(d.name)}" placeholder="City, State" style="flex:1" />
+      <button type="button" onclick="removeDestination(${i})" class="danger" style="padding:6px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+    </div>
+  `).join('') + `
+    <button type="button" onclick="addDestinationRow()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:white;cursor:pointer;font-size:12px">+ Add destination</button>
+  `;
+  document.getElementById('destStatus').textContent = '';
+  document.getElementById('destinationsModal').classList.add('open');
+}
+function closeDestinations() { document.getElementById('destinationsModal').classList.remove('open'); }
+function addDestinationRow() {
+  destinations.push({ name: '', lat: null, lng: null });
+  openDestinations();
+}
+function removeDestination(i) {
+  destinations.splice(i, 1);
+  openDestinations();
+}
+
+async function saveDestinationsFromForm() {
+  const status = document.getElementById('destStatus');
+  const inputs = document.querySelectorAll('[id^="dest_"]');
+  const newDests = [];
+  status.textContent = 'Looking up coordinates…'; status.style.color = '';
+  for (let i = 0; i < inputs.length; i++) {
+    const name = inputs[i].value.trim();
+    if (!name) continue;
+    const existing = destinations[i];
+    if (existing && existing.name === name && existing.lat != null) {
+      newDests.push(existing); continue;
+    }
+    try {
+      const coords = await geocode(name);
+      if (!coords) { status.textContent = `Couldn't find "${name}"`; status.style.color = '#b91c1c'; return; }
+      newDests.push({ name, lat: coords.lat, lng: coords.lng });
+    } catch (e) {
+      status.textContent = `Lookup failed for "${name}"`; status.style.color = '#b91c1c'; return;
+    }
+  }
+  destinations = newDests;
+  saveDestinations();
+  renderMarkers();
+  closeDestinations();
+}
+
+document.getElementById('destinationsModal').addEventListener('click', e => {
+  if (e.target.id === 'destinationsModal') closeDestinations();
+});
+
+/* ---------- People (family & friends) ---------- */
+function openPeople() {
+  const list = document.getElementById('peopleList');
+  list.innerHTML = people.map((p, i) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px;margin-bottom:8px">
+      <input id="p_name_${i}" value="${escape(p.name || '')}" placeholder="Name (e.g. My mom)" />
+      <input id="p_loc_${i}" value="${escape(p.location || '')}" placeholder="City, State" />
+      <button type="button" onclick="removePerson(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+    </div>
+  `).join('') + `
+    <button type="button" onclick="addPersonRow()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:white;cursor:pointer;font-size:12px;margin-top:4px">+ Add person</button>
+  `;
+  document.getElementById('peopleStatus').textContent = '';
+  document.getElementById('peopleModal').classList.add('open');
+}
+function closePeople() { document.getElementById('peopleModal').classList.remove('open'); }
+function addPersonRow() { people.push({ name: '', location: '', lat: null, lng: null }); openPeople(); }
+function removePerson(i) { people.splice(i, 1); openPeople(); }
+async function savePeopleFromForm() {
+  const status = document.getElementById('peopleStatus');
+  const newPeople = [];
+  status.textContent = 'Looking up coordinates…'; status.style.color = '';
+  for (let i = 0; i < people.length; i++) {
+    const name = document.getElementById('p_name_' + i).value.trim();
+    const loc = document.getElementById('p_loc_' + i).value.trim();
+    if (!name || !loc) continue;
+    const existing = people[i];
+    if (existing && existing.location === loc && existing.lat != null) {
+      newPeople.push({ ...existing, name, location: loc });
+      continue;
+    }
+    try {
+      const coords = await geocode(loc);
+      if (!coords) { status.textContent = `Couldn't find "${loc}"`; status.style.color = '#b91c1c'; return; }
+      newPeople.push({ name, location: loc, lat: coords.lat, lng: coords.lng });
+    } catch (e) {
+      status.textContent = `Lookup failed for "${loc}"`; status.style.color = '#b91c1c'; return;
+    }
+  }
+  people = newPeople;
+  savePeople();
+  if (showPeople) drawPeople();
+  renderMarkers();
+  closePeople();
+}
+document.getElementById('peopleModal').addEventListener('click', e => {
+  if (e.target.id === 'peopleModal') closePeople();
+});
+
+function togglePeople(on) { showPeople = on; if (on) drawPeople(); else clearPeople(); }
+function clearPeople() { if (peopleLayer) { map.removeLayer(peopleLayer); peopleLayer = null; } }
+function drawPeople() {
+  clearPeople();
+  peopleLayer = L.layerGroup().addTo(map);
+  people.forEach(p => {
+    if (p.lat == null) return;
+    L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="person-marker">♥</div>`,
+        iconSize: null,
+        iconAnchor: [10, 10]
+      })
+    }).addTo(peopleLayer).bindTooltip(`${p.name} (${p.location})`, { direction: 'top' });
+  });
+}
+
+/* ---------- Decision Matrix Weights ---------- */
+const WEIGHTS_KEY = 'jobmap.weights.v1';
+const DEFAULT_WEIGHTS = {
+  hisExcite: 8, herFit: 8, salaryNet: 7, familyClose: 5, careerOverlap: 6, comp: 4, weatherFit: 2
+};
+let weights = (() => {
+  try { return { ...DEFAULT_WEIGHTS, ...(JSON.parse(localStorage.getItem(WEIGHTS_KEY)) || {}) }; }
+  catch(e) { return { ...DEFAULT_WEIGHTS }; }
+})();
+const WEIGHT_LABELS = {
+  hisExcite:'His excitement', herFit:'Her career fit', salaryNet:'Take-home pay',
+  familyClose:'Closeness to family/friends', careerOverlap:'Comp chem / ML jobs nearby (50mi)',
+  comp:'Total comp (gross)', weatherFit:'Weather (subjective — use his/her notes)'
+};
+function openWeights() {
+  const list = document.getElementById('weightsList');
+  list.innerHTML = Object.entries(weights).map(([k, v]) => `
+    <div style="margin-bottom:10px">
+      <label style="display:flex;justify-content:space-between;font-size:13px"><span>${escape(WEIGHT_LABELS[k] || k)}</span><span><b id="w_val_${k}">${v}</b></span></label>
+      <input type="range" min="0" max="10" step="1" value="${v}" id="w_${k}" oninput="document.getElementById('w_val_${k}').textContent = this.value" style="width:100%" />
+    </div>
+  `).join('');
+  document.getElementById('weightsModal').classList.add('open');
+}
+function closeWeights() { document.getElementById('weightsModal').classList.remove('open'); }
+function saveWeightsFromForm() {
+  Object.keys(weights).forEach(k => { weights[k] = parseInt(document.getElementById('w_' + k).value, 10); });
+  localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
+  syncConfigToSheet('weights', weights);
+  closeWeights();
+  renderList();
+}
+function resetWeights() { weights = { ...DEFAULT_WEIGHTS }; localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights)); openWeights(); }
+document.getElementById('weightsModal').addEventListener('click', e => {
+  if (e.target.id === 'weightsModal') closeWeights();
+});
+
+function decisionScore(job) {
+  if (job.kind === 'me') return null;
+  const factors = {};
+  factors.hisExcite = (job.excitement || 0) / 5;
+  factors.herFit = (job.partnerFit || 0) / 5;
+  const gross = parseSalary(job.salary);
+  factors.comp = gross ? Math.min(gross / 600000, 1) : 0; // scale: $0-600k
+  if (gross && job.cityStats && job.cityStats.tax) {
+    const net = computeNetPay(gross, job.cityStats.tax.code).net;
+    factors.salaryNet = Math.min(net / 400000, 1);
+  } else if (gross) {
+    factors.salaryNet = Math.min(gross * 0.62 / 400000, 1); // rough 38% tax assumption
+  } else factors.salaryNet = 0;
+  // Family closeness: avg miles to all family pins, scale 0-2000mi
+  if (people.length > 0 && job.lat != null) {
+    const dists = people.filter(p => p.lat != null).map(p => haversine({lat:job.lat,lng:job.lng}, p));
+    const avg = dists.length ? dists.reduce((a,b)=>a+b,0)/dists.length : 2000;
+    factors.familyClose = Math.max(0, 1 - avg / 2000);
+  } else factors.familyClose = 0.5; // neutral if no family pins
+  factors.careerOverlap = Math.min(overlapCount(job) / 8, 1); // 8+ overlap = max score
+  factors.weatherFit = 0.5; // neutral baseline (subjective)
+
+  let total = 0, weightSum = 0;
+  for (const k in weights) {
+    total += (factors[k] || 0) * weights[k];
+    weightSum += weights[k];
+  }
+  return weightSum > 0 ? Math.round(total / weightSum * 100) : 0;
+}
+
+/* ---------- Timeline ---------- */
+function openTimeline() {
+  const events = [];
+  const eventTypes = [
+    { key: 'dateApplied', label: 'applied', color: '#3b82f6' },
+    { key: 'datePhoneInterview', label: 'phone interview', color: '#8b5cf6' },
+    { key: 'dateInterview', label: 'in-person interview', color: '#f59e0b' },
+    { key: 'dateInterview2', label: 'in-person interview #2', color: '#f59e0b' },
+    { key: 'offerDate', label: 'offer received', color: '#10b981' },
+    { key: 'offerDeadline', label: 'offer deadline', color: '#dc2626' },
+  ];
+  jobs.filter(j => j.kind !== 'sister').forEach(j => {
+    eventTypes.forEach(et => {
+      if (j[et.key]) events.push({ date: j[et.key], type: et.label, color: et.color, job: j });
+    });
+  });
+  events.sort((a, b) => a.date.localeCompare(b.date));
+  const body = document.getElementById('timelineBody');
+  if (events.length === 0) {
+    body.innerHTML = '<p style="color:var(--muted)">No dates entered yet. Add application/interview/offer dates in any job to see them here.</p>';
+  } else {
+    body.innerHTML = `
+      <div style="border-left:3px solid var(--line);padding-left:14px;margin-top:10px">
+        ${events.map(e => `
+          <div style="margin-bottom:14px;position:relative">
+            <div style="position:absolute;left:-21px;top:4px;width:11px;height:11px;border-radius:50%;background:${e.color};border:2px solid white;box-shadow:0 0 0 2px ${e.color}"></div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${e.date} · <span style="color:${e.color};font-weight:600">${e.type}</span></div>
+            <div style="font-weight:600;margin-top:2px"><a href="#" onclick="closeTimeline();focusJob('${e.job.id}');return false" style="color:var(--ink);text-decoration:none">${escape(e.job.company)}</a></div>
+            <div style="font-size:12px;color:var(--muted)">${escape(e.job.location)} · <span class="status-pill status-${e.job.status}">${e.job.status}</span></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  document.getElementById('timelineModal').classList.add('open');
+}
+function closeTimeline() { document.getElementById('timelineModal').classList.remove('open'); }
+document.getElementById('timelineModal').addEventListener('click', e => {
+  if (e.target.id === 'timelineModal') closeTimeline();
+});
+
+/* ---------- My situation modal ---------- */
+const HER_HOME_BASE = { name: 'Notre Dame', lat: 41.7001, lng: -86.2379, note: 'Your current PhD location' };
+
+window._jobmapShowMySituation = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  document.getElementById('situationTitle').textContent = `${job.company} — her situation`;
+  const body = document.getElementById('situationBody');
+  if (job.lat == null) {
+    body.innerHTML = '<p style="color:var(--muted)">No coordinates for this job yet.</p>';
+    document.getElementById('situationModal').classList.add('open');
+    return;
+  }
+
+  // Distance from Notre Dame
+  const fromHome = haversine({lat:job.lat,lng:job.lng}, HER_HOME_BASE);
+  const homeBlock = `<div class="popup-section"><strong>From ${HER_HOME_BASE.name}</strong><br>
+    <div style="font-size:13px"><b>${fromHome.toLocaleString()} mi</b> · ${travelEstimate(fromHome)}</div>
+    <div style="color:var(--muted);font-size:11px">${escape(HER_HOME_BASE.note)}</div>
+  </div>`;
+
+  // Career nearby breakdown with miles to each
+  const point = { lat: job.lat, lng: job.lng };
+  const RADIUS = 50;
+  const cats = [
+    { label: 'Universities', source: UNIVERSITIES, color: '#16a34a' },
+    { label: 'Pharma (incl. comp-chem shops)', source: PHARMA, color: '#ea580c' },
+    { label: 'National labs / institutes', source: NATIONAL_LABS, color: '#dc2626' },
+    { label: 'AI / ML research labs', source: ML_LABS, color: '#06b6d4' }
+  ];
+  let totalCount = 0;
+  const catBlocks = cats.map(c => {
+    const hits = c.source
+      .map(p => ({ ...p, dist: haversine(point, p) }))
+      .filter(p => p.dist <= RADIUS)
+      .sort((a,b) => a.dist - b.dist);
+    totalCount += hits.length;
+    if (hits.length === 0) return '';
+    return `<div style="margin-top:10px">
+      <div style="font-size:12px;font-weight:600;color:${c.color};margin-bottom:4px">${escape(c.label)} (${hits.length})</div>
+      ${hits.map(h => `<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0">
+        <span>${escape(h.name)}${h.note ? ` <span style="color:var(--muted);font-size:11px">— ${escape(h.note)}</span>` : ''}</span>
+        <span style="color:var(--muted);font-size:11px;white-space:nowrap">${h.dist} mi</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Remote work assessment
+  let assessment = '';
+  if (totalCount === 0) {
+    assessment = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#991b1b">
+      <b>Tight fit.</b> No matching universities, pharma, labs, or ML companies within 50mi. You'd likely need fully remote work — AI/ML companies (Anthropic, DeepMind, Microsoft Research, NVIDIA) are most remote-friendly post-2020.
+    </div>`;
+  } else if (totalCount <= 2) {
+    assessment = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#92400e">
+      <b>Limited but doable.</b> ${totalCount} match${totalCount===1?'':'es'} within 50mi. Plan B: remote work as primary, in-person as secondary.
+    </div>`;
+  } else if (totalCount <= 6) {
+    assessment = `<div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#854d0e">
+      <b>Reasonable.</b> ${totalCount} matches within 50mi. You'd have real options, though not many.
+    </div>`;
+  } else {
+    assessment = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#166534">
+      <b>Strong fit.</b> ${totalCount} matches within 50mi. Plenty of in-person options for you.
+    </div>`;
+  }
+
+  // Her thoughts: vibe, 5/30 year, notes, couple context
+  const fitStars = job.partnerFit ? '★'.repeat(job.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-job.partnerFit) + '</span>' : '';
+  const herThoughtsBlock = (job.partnerFit || job.herVibe || job.her5Year || job.her30Year || job.partnerNotes) ? `<div class="popup-section"><strong>Her thoughts</strong>
+    ${fitStars ? `<div style="margin-top:4px;font-size:13px"><b>Career fit:</b> <span style="color:#ec4899">${fitStars}</span></div>` : ''}
+    ${job.herVibe ? `<div style="margin-top:6px"><div style="font-size:12px;color:var(--muted);margin-bottom:2px">Vibe</div>${renderVibeChips(job.herVibe, '#ec4899')}</div>` : ''}
+    ${job.her5Year ? `<div style="margin-top:8px;font-size:13px"><b>5-year feeling:</b><br><span style="white-space:pre-wrap">${escape(job.her5Year)}</span></div>` : ''}
+    ${job.her30Year ? `<div style="margin-top:8px;font-size:13px"><b>30-year feeling:</b><br><span style="white-space:pre-wrap">${escape(job.her30Year)}</span></div>` : ''}
+    ${job.partnerNotes ? `<div style="margin-top:8px;font-size:13px"><b>Notes:</b><br><span style="white-space:pre-wrap">${escape(job.partnerNotes)}</span></div>` : ''}
+  </div>` : '';
+  const coupleBlock = (job.distanceFamily || job.dualCareer) ? `<div class="popup-section"><strong>Couple context</strong>
+    ${job.distanceFamily ? `<div style="font-size:13px;margin-top:4px"><b>Family distance:</b> ${escape(job.distanceFamily)}</div>` : ''}
+    ${job.dualCareer ? `<div style="font-size:13px;margin-top:4px"><b>Dual-career:</b> ${escape(job.dualCareer)}</div>` : ''}
+  </div>` : '';
+
+  // Family & friends distances
+  const peopleWithCoords = people.filter(p => p.lat != null);
+  const familyBlock = peopleWithCoords.length === 0 ? '' : `
+    <div class="popup-section"><strong>Family & friends</strong>
+      ${peopleWithCoords.map(p => {
+        const miles = haversine({lat:job.lat,lng:job.lng}, p);
+        return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+          <span><b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})</span></span>
+          <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  body.innerHTML = `
+    ${homeBlock}
+    <div class="popup-section">
+      <strong>Comp chem / ML opportunities within 50mi</strong>
+      ${totalCount === 0 ? '<div style="color:var(--muted);font-size:13px;margin-top:6px">No matches within 50 miles.</div>' : catBlocks}
+    </div>
+    ${assessment}
+    ${herThoughtsBlock}
+    ${coupleBlock}
+    ${familyBlock}
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+      Edit your home base by changing <code>HER_HOME_BASE</code> in the file (currently Notre Dame). Manage family in Manage → Family & friends.
+    </div>
+  `;
+  document.getElementById('situationModal').classList.add('open');
+};
+function closeSituation() { document.getElementById('situationModal').classList.remove('open'); }
+document.getElementById('situationModal').addEventListener('click', e => {
+  if (e.target.id === 'situationModal') closeSituation();
+});
+
+/* ---------- Notes & info modal ---------- */
+window._jobmapShowNotes = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  document.getElementById('notesTitle').textContent = `${job.company} — Notes & info`;
+  const body = document.getElementById('notesBody');
+  const city = encodeURIComponent(job.location || '');
+  const cityShort = encodeURIComponent((job.location || '').split(',')[0]);
+
+  // User-entered prose sections (everything they filled in the form)
+  const omfsBlock = (job.practiceGroup || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice) ? `<div class="popup-section"><strong>OMFS specifics</strong>
+    ${job.practiceGroup ? `<div>Practice group: ${escape(job.practiceGroup)}</div>` : ''}
+    ${job.partnershipTrack ? `<div>Partnership: ${escape(job.partnershipTrack)}</div>` : ''}
+    ${job.signingBonus ? `<div>Signing: ${escape(job.signingBonus)}</div>` : ''}
+    ${job.callSchedule ? `<div>Call: ${escape(job.callSchedule)}</div>` : ''}
+    ${job.loanAssist ? `<div>Loans: ${escape(job.loanAssist)}</div>` : ''}
+    ${job.hospitals ? `<div>Hospitals: ${escape(job.hospitals)}</div>` : ''}
+    ${job.malpractice ? `<div>Malpractice: ${escape(job.malpractice)}</div>` : ''}
+    ${job.caseMix ? `<div style="margin-top:4px">Cases: ${escape(job.caseMix)}</div>` : ''}
+  </div>` : '';
+  const datesBlock = (job.dateApplied || job.dateInterview || job.contact) ? `<div class="popup-section">
+    ${job.dateApplied ? `<div><strong>Applied</strong> ${job.dateApplied}</div>` : ''}
+    ${job.dateInterview ? `<div><strong>Interview</strong> ${job.dateInterview}</div>` : ''}
+    ${job.contact ? `<div><strong>Contact</strong> ${escape(job.contact)}</div>` : ''}
+  </div>` : '';
+  const proseBlock = (job.pros || job.cons || job.notes) ? `
+    ${job.pros ? `<div class="popup-section"><strong>Pros</strong><br>${escape(job.pros)}</div>` : ''}
+    ${job.cons ? `<div class="popup-section"><strong>Cons</strong><br>${escape(job.cons)}</div>` : ''}
+    ${job.notes ? `<div class="popup-section"><strong>Notes</strong><br>${escape(job.notes)}</div>` : ''}
+  ` : '';
+  const coupleBlock = (job.partnerNotes || job.distanceFamily || job.dualCareer) ? `<div class="popup-section"><strong>Couple context</strong>
+    ${job.partnerNotes ? `<div>${escape(job.partnerNotes)}</div>` : ''}
+    ${job.distanceFamily ? `<div>Family distance: ${escape(job.distanceFamily)}</div>` : ''}
+    ${job.dualCareer ? `<div>Dual-career: ${escape(job.dualCareer)}</div>` : ''}
+  </div>` : '';
+  const cityNotesBlock = (job.col || job.lifestyle) ? `<div class="popup-section">
+    ${job.col ? `<div><strong>COL notes</strong> ${escape(job.col)}</div>` : ''}
+    ${job.lifestyle ? `<div><strong>Vibe</strong> ${escape(job.lifestyle)}</div>` : ''}
+  </div>` : '';
+
+  // Career-nearby breakdown
+  let careerHtml = '';
+  if (job.kind !== 'me') {
+    const b = overlapBreakdown(job);
+    if (b) {
+      const total = b.universities.length + b.pharma.length + b.labs.length + b.ml.length;
+      if (total === 0) {
+        careerHtml = `<div class="popup-section"><strong>Her career nearby (50mi)</strong><br><span style="color:var(--muted);font-size:12px">No matching universities, pharma, labs, or ML companies within 50mi. Would likely need remote work.</span></div>`;
+      } else {
+        const list = (label, arr) => arr.length ? `<div><b>${arr.length}</b> ${label}: <span style="color:var(--muted);font-size:11px">${arr.slice(0,4).map(p => escape(p.name)).join(', ')}${arr.length > 4 ? ` +${arr.length-4} more` : ''}</span></div>` : '';
+        careerHtml = `<div class="popup-section"><strong>Her career nearby (50mi)</strong>
+          ${list('universities', b.universities)}
+          ${list('pharma sites', b.pharma)}
+          ${list('national labs / institutes', b.labs)}
+          ${list('AI/ML labs', b.ml)}
+        </div>`;
+      }
+    }
+  }
+
+  const anyProse = omfsBlock || datesBlock || proseBlock || coupleBlock || cityNotesBlock;
+  body.innerHTML = `
+    ${anyProse}
+    ${!anyProse ? '<p style="color:var(--muted);font-size:13px;margin:8px 0">No notes entered yet for this job. Edit to add OMFS specifics, pros/cons, couple notes, etc.</p>' : ''}
+    ${careerHtml}
+
+    <div class="popup-section city-links">
+      <strong>Cost of Living — searches that actually load</strong><br>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' cost of living')}" target="_blank" title="Google search — top results: Numbeo, BestPlaces, etc.">Cost of living search</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' median rent')}" target="_blank" title="Google search for average rent">Rent search</a>
+      <a href="https://www.zillow.com/homes/${city}_rb/" target="_blank" title="Home prices for sale">Zillow homes</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' apartments for rent')}" target="_blank" title="Apartment listings">Apartments search</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' paycheck calculator')}" target="_blank" title="Take-home pay calculator">Paycheck calculator</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('cost of living ' + (job.location||'') + ' vs Grand Rapids MI')}" target="_blank" title="COL comparison vs Grand Rapids">Compare to Grand Rapids</a>
+      <a href="https://taxfoundation.org/data/all/state/state-individual-income-tax-rates/" target="_blank" title="State income tax rankings">State tax rankings</a>
+    </div>
+
+    <div class="popup-section city-links">
+      <strong>Lifestyle & Location — searches that actually load</strong><br>
+      <a href="https://en.wikipedia.org/wiki/${city}" target="_blank" title="General overview, history, demographics">Wikipedia</a>
+      <a href="https://www.greatschools.org/search/search.page?q=${city}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' walk score bike score')}" target="_blank" title="Walkability, bikeability scores">Walkability search</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' crime rate safety')}" target="_blank" title="Crime stats and safety info">Safety search</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('best neighborhoods ' + (job.location||''))}" target="_blank" title="Top neighborhoods to live">Best neighborhoods</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent((job.location||'') + ' weather climate')}" target="_blank" title="Climate, average temps, sunny days">Weather & climate</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('things to do in ' + (job.location||''))}" target="_blank" title="Activities, restaurants, parks, nightlife">Things to do</a>
+      <a href="https://www.tripadvisor.com/Search?q=${city}" target="_blank" title="Top-rated attractions, restaurants">TripAdvisor</a>
+    </div>
+
+  `;
+  document.getElementById('notesEditBtn').onclick = () => { closeNotes(); closeDetails(); openJobForm(jobId); };
+  document.getElementById('notesModal').classList.add('open');
+};
+function closeNotes() { document.getElementById('notesModal').classList.remove('open'); }
+document.getElementById('notesModal').addEventListener('click', e => {
+  if (e.target.id === 'notesModal') closeNotes();
+});
+
+/* ---------- Family distance modal ---------- */
+window._jobmapShowFamilyDistances = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  const peopleWithCoords = people.filter(p => p.lat != null);
+  const body = document.getElementById('familyBody');
+  document.getElementById('familyTitle').textContent = `${job.company} — distance to family & friends`;
+  if (peopleWithCoords.length === 0) {
+    body.innerHTML = '<p style="color:var(--muted);font-size:13px">No family or friends added yet. Add them in Manage → Family & friends.</p>';
+  } else {
+    body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      ${peopleWithCoords.map(p => {
+        const miles = haversine({lat:job.lat,lng:job.lng}, p);
+        return `<tr style="border-bottom:1px solid var(--line)">
+          <td style="padding:10px 6px 10px 0;vertical-align:top">
+            <div style="font-weight:600">${escape(p.name)}</div>
+            <div style="color:var(--muted);font-size:11px">${escape(p.location)}</div>
+          </td>
+          <td style="padding:10px 0 10px 6px;text-align:right;vertical-align:top">
+            <div><b>${miles.toLocaleString()} mi</b></div>
+            <div style="color:var(--muted);font-size:11px">${travelEstimate(miles)}</div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+  }
+  document.getElementById('familyModal').classList.add('open');
+};
+function closeFamilyDistances() { document.getElementById('familyModal').classList.remove('open'); }
+document.getElementById('familyModal').addEventListener('click', e => {
+  if (e.target.id === 'familyModal') closeFamilyDistances();
+});
+
+/* ---------- Decision score detail modal ---------- */
+window._jobmapShowScore = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  openScoreModal(job);
+};
+function closeScore() { document.getElementById('scoreModal').classList.remove('open'); }
+document.getElementById('scoreModal').addEventListener('click', e => {
+  if (e.target.id === 'scoreModal') closeScore();
+});
+
+function openScoreModal(job) {
+  const score = decisionScore(job);
+  document.getElementById('scoreTitle').textContent = `${job.company} — Decision score`;
+  const body = document.getElementById('scoreBody');
+  if (score == null) {
+    body.innerHTML = '<p style="color:var(--muted)">No score available for this pin.</p>';
+    document.getElementById('scoreModal').classList.add('open');
+    return;
+  }
+  // Recompute factors here for display
+  const factors = {};
+  factors.hisExcite = { val: (job.excitement || 0) / 5, label: `${job.excitement || 0}/5 stars` };
+  factors.herFit = { val: (job.partnerFit || 0) / 5, label: `${job.partnerFit || 0}/5 stars` };
+  const gross = parseSalary(job.salary);
+  factors.comp = { val: gross ? Math.min(gross / 600000, 1) : 0, label: gross ? fmtMoney(gross) : 'unknown' };
+  if (gross && job.cityStats && job.cityStats.tax) {
+    const net = computeNetPay(gross, job.cityStats.tax.code).net;
+    factors.salaryNet = { val: Math.min(net / 400000, 1), label: fmtMoney(net) + ' net' };
+  } else if (gross) {
+    factors.salaryNet = { val: Math.min(gross * 0.62 / 400000, 1), label: '~' + fmtMoney(gross * 0.62) + ' net (est.)' };
+  } else factors.salaryNet = { val: 0, label: 'unknown' };
+  if (people.length > 0 && job.lat != null) {
+    const dists = people.filter(p => p.lat != null).map(p => haversine({lat:job.lat,lng:job.lng}, p));
+    const avg = dists.length ? Math.round(dists.reduce((a,b)=>a+b,0)/dists.length) : 2000;
+    factors.familyClose = { val: Math.max(0, 1 - avg / 2000), label: `avg ${avg} mi from family` };
+  } else factors.familyClose = { val: 0.5, label: 'no family added (neutral)' };
+  const oc = overlapCount(job);
+  factors.careerOverlap = { val: Math.min(oc / 8, 1), label: `${oc} place${oc===1?'':'s'} within 50mi` };
+  factors.weatherFit = { val: 0.5, label: 'neutral (subjective)' };
+
+  const color = score >= 70 ? '#047857' : score >= 50 ? '#b45309' : '#b91c1c';
+  const rows = Object.entries(weights).map(([k, w]) => {
+    const f = factors[k] || { val: 0, label: '—' };
+    const contribution = Math.round(f.val * w * 10);
+    const barWidth = w > 0 ? (f.val * 100) : 0;
+    return `<tr>
+      <td style="padding:8px 6px 8px 0;font-size:13px;width:160px;vertical-align:top">${escape(WEIGHT_LABELS[k] || k)}</td>
+      <td style="padding:8px 6px 8px 0;font-size:12px;color:var(--muted);width:140px;vertical-align:top">${escape(f.label)}</td>
+      <td style="padding:8px 6px 8px 0;vertical-align:middle">
+        <div style="background:#e5e7eb;border-radius:3px;height:8px;overflow:hidden">
+          <div style="background:${color};width:${barWidth}%;height:100%"></div>
+        </div>
+      </td>
+      <td style="padding:8px 0 8px 6px;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;vertical-align:top">weight ${w}</td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div style="text-align:center;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:14px">
+      <div style="font-size:48px;font-weight:700;color:${color};line-height:1">${score}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:4px">out of 100</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="font-size:11px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:0.5px">
+        <th style="padding:0 6px 6px 0">Factor</th><th style="padding:0 6px 6px 0">Value</th><th style="padding:0 6px 6px 0">Strength</th><th style="padding:0 0 6px 6px;text-align:right">Weight</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px">Score = Σ (factor × weight) / Σ weights, × 100. Edit weights to change how each factor is counted.</p>
+  `;
+  document.getElementById('scoreModal').classList.add('open');
+}
+
+function loadJobs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    jobs = raw ? JSON.parse(raw) : [];
+  } catch(e) { jobs = []; }
+  if (jobs.length === 0) jobs = seedJobs();
+  // migrate old 'wishlist' status to 'potential'
+  jobs.forEach(j => { if (j.status === 'wishlist') j.status = 'potential'; });
+  saveJobs();
+}
+function saveJobs() { localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs)); }
+
+function seedJobs() {
+  return [
+    {
+      id: id(), company: "Austin OMFS Group",
+      location: "Austin, TX", lat: 30.2672, lng: -97.7431,
+      status: "applied", salary: "$400k base + production bonus",
+      excitement: 4, dateApplied: "2026-04-12", dateInterview: "",
+      contact: "Dr. Smith (managing partner)", link: "",
+      pros: "Established practice, good case mix, partnership track.",
+      cons: "Long commute from north Austin.",
+      notes: "Heard back within 3 days.",
+      col: "No state income tax, housing ~$1.8k 1BR",
+      lifestyle: "Warm, music scene, lots of food trucks",
+      partnershipTrack: "3 yrs to partner", signingBonus: "$30k",
+      callSchedule: "1:4, light trauma", loanAssist: "",
+      caseMix: "Wisdom 40%, implants 25%, ortho 20%, trauma 10%, path 5%",
+      hospitals: "St. David's, Dell Seton (Level 1)",
+      malpractice: "Occurrence, tail not covered",
+      partnerFit: 4, partnerNotes: "Strong tech scene, lots of options",
+      distanceFamily: "3 hr flight to parents",
+      dualCareer: "Both careers thrive here"
+    },
+    {
+      id: id(), company: "Rocky Mountain Oral Surgery",
+      location: "Denver, CO", lat: 39.7392, lng: -104.9903,
+      status: "interviewing", salary: "$450k + equity buy-in",
+      excitement: 5, dateApplied: "2026-04-01", dateInterview: "2026-05-20",
+      contact: "", link: "",
+      pros: "Mountains! Strong referral base, partnership in 2 yrs.",
+      cons: "Altitude adjustment, higher housing costs.",
+      notes: "Final visit scheduled.",
+      col: "Rent ~$2k, housing competitive",
+      lifestyle: "Hiking, skiing, 300 sunny days/yr",
+      partnershipTrack: "2 yrs to buy-in", signingBonus: "$50k",
+      callSchedule: "1:5, no trauma after yr 1", loanAssist: "$25k/yr for 4 yrs",
+      caseMix: "Implants 35%, ortho 25%, wisdom 25%, path 10%, trauma 5%",
+      hospitals: "Denver Health (Level 1), Swedish",
+      malpractice: "Occurrence + tail covered",
+      partnerFit: 5, partnerNotes: "My ideal city",
+      distanceFamily: "2 hr flight",
+      dualCareer: "Outdoor lifestyle for both"
+    },
+    {
+      id: id(), company: "Triangle OMS Associates",
+      location: "Raleigh, NC", lat: 35.7796, lng: -78.6382,
+      status: "potential", salary: "TBD",
+      excitement: 3, dateApplied: "", dateInterview: "",
+      contact: "", link: "",
+      pros: "Lower cost of living, family nearby.",
+      cons: "Smaller case volume than urban practices.",
+      notes: "Need to reach out.",
+      col: "Rent ~$1.4k, very affordable",
+      lifestyle: "Research Triangle, quieter pace",
+      partnershipTrack: "Unknown", signingBonus: "",
+      callSchedule: "", loanAssist: "",
+      caseMix: "", hospitals: "WakeMed, Duke Raleigh",
+      malpractice: "",
+      partnerFit: 3, partnerNotes: "Decent tech jobs at Research Triangle",
+      distanceFamily: "30 min to my parents",
+      dualCareer: "Family support nearby"
+    }
+  ];
+}
+
+function id() { return Math.random().toString(36).slice(2, 10); }
+
+/* ---------- Map ---------- */
+const map = L.map('map').setView([39.5, -98.35], 4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 20
+}).addTo(map);
+L.control.scale({ position: 'bottomright', imperial: true, metric: false, maxWidth: 150 }).addTo(map);
+
+const markers = {}; // id -> marker
+
+const STATUS_COLORS = {
+  potential: '#9ca3af', applied: '#3b82f6',
+  interviewing: '#f59e0b', offer: '#10b981', rejected: '#ef4444',
+  current: '#059669'
+};
+
+function makeIcon(status, excitement, kind, parentJob) {
+  let color;
+  let label;
+  if (kind === 'sister' && parentJob) {
+    color = parentJob.kind === 'me' ? '#8b5cf6'
+          : parentJob.kind === 'current' ? '#059669'
+          : (STATUS_COLORS[parentJob.status] || '#6b7280');
+    label = '';
+  } else {
+    color = kind === 'me' ? '#8b5cf6'
+          : kind === 'current' ? '#059669'
+          : (STATUS_COLORS[status] || '#6b7280');
+    label = kind === 'current' ? '★' : (excitement || '');
+  }
+  const extraStyle = kind === 'sister' ? 'opacity:0.45;border:2px dashed white;box-shadow:none' : '';
+  return L.divIcon({
+    className: '',
+    html: `<div class="pin-marker" style="background:${color};${extraStyle}"><div class="inner">${label}</div></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -24]
+  });
+}
+
+function overlapCount(job) {
+  if (job.lat == null || job.kind === 'me') return 0;
+  const point = { lat: job.lat, lng: job.lng };
+  const RADIUS = 50;
+  let n = 0;
+  [...UNIVERSITIES, ...PHARMA, ...NATIONAL_LABS, ...ML_LABS].forEach(p => {
+    if (haversine(point, p) <= RADIUS) n++;
+  });
+  return n;
+}
+function overlapBreakdown(job) {
+  if (job.lat == null) return null;
+  const point = { lat: job.lat, lng: job.lng };
+  const RADIUS = 50;
+  const buckets = { universities: [], pharma: [], labs: [], ml: [] };
+  UNIVERSITIES.forEach(p => { if (haversine(point, p) <= RADIUS) buckets.universities.push(p); });
+  PHARMA.forEach(p => { if (haversine(point, p) <= RADIUS) buckets.pharma.push(p); });
+  NATIONAL_LABS.forEach(p => { if (haversine(point, p) <= RADIUS) buckets.labs.push(p); });
+  ML_LABS.forEach(p => { if (haversine(point, p) <= RADIUS) buckets.ml.push(p); });
+  return buckets;
+}
+
+function colAdjustedSalary(job) {
+  if (!job.salary) return '';
+  const m = String(job.salary).match(/\$?([\d,.]+)\s*(k|K|m|M)?/);
+  if (!m) return '';
+  let val = parseFloat(m[1].replace(/,/g, ''));
+  if (!val) return '';
+  if (m[2] && m[2].toLowerCase() === 'k') val *= 1000;
+  if (m[2] && m[2].toLowerCase() === 'm') val *= 1000000;
+  const near = nearestMajorCity(job);
+  if (!near) return '';
+  const adj = Math.round(val * 100 / near.city.col);
+  const fmt = n => n >= 1000 ? '$' + Math.round(n/1000) + 'k' : '$' + n;
+  return `≈ ${fmt(adj)} in avg US city (COL ${near.city.name}: ${near.city.col})`;
+}
+
+function popupHtml(job, sister) {
+  // Compact "headline" card shown on pin click. If `sister` provided, the user clicked the sister pin but we show the parent's info.
+  const stars = '★'.repeat(job.excitement || 0) + '☆'.repeat(5 - (job.excitement || 0));
+  const pStars = job.partnerFit ? '★'.repeat(job.partnerFit) + '☆'.repeat(5 - job.partnerFit) : '';
+  const near = nearestMajorCity(job);
+  const sisterBanner = sister ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:6px 8px;margin-bottom:6px;font-size:11px;color:#92400e">Sister location: <b>${escape(sister.location)}</b><br>Showing info for parent job below.</div>` : '';
+  return `
+    ${sisterBanner}
+    <div class="popup-company">${escape(job.company)}</div>
+    <div class="popup-role">${escape(job.location)}${near ? ` · ${near.dist}mi to ${escape(near.city.name)}` : ''}</div>
+    <div style="margin-top:4px"><span class="status-pill status-${job.status}">${job.status}</span></div>
+    ${job.salary ? `<div style="margin-top:6px;font-size:13px"><b>${escape(job.salary)}</b></div>` : ''}
+    <div style="margin-top:4px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;white-space:nowrap"><span style="color:#f59e0b">His: ${stars}</span>${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}</div>
+    ${job.practiceGroup ? `<div style="margin-top:4px;font-size:11px;color:var(--muted)">${escape(job.practiceGroup)}</div>` : ''}
+    <div class="popup-actions" style="margin-top:10px">
+      <button class="primary" onclick="window._jobmapOpenDetails('${job.id}')">View details</button>
+      <button onclick="openJobForm('${job.id}')">Edit</button>
+    </div>
+  `;
+}
+
+function renderJobDetails(job) {
+  const stars = '★'.repeat(job.excitement || 0) + '☆'.repeat(5 - (job.excitement || 0));
+  const pStars = job.partnerFit ? '★'.repeat(job.partnerFit) + '☆'.repeat(5 - job.partnerFit) : '';
+  const colAdj = colAdjustedSalary(job);
+  const near = nearestMajorCity(job);
+  const hasFamily = job.kind !== 'me' && people.filter(p => p.lat != null).length > 0 && job.lat != null;
+  // Unified neutral button style
+  const btn = 'padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:white;cursor:pointer;font-size:13px;color:var(--ink);text-decoration:none;display:inline-block;font-family:inherit';
+  return `
+    <!-- Top: job basics -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="status-pill status-${job.status}">${job.status}</span>
+      <span style="color:#f59e0b">His: ${stars}</span>
+      ${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}
+    </div>
+    ${job.salary ? `<div style="margin-bottom:10px;font-size:15px"><b>${escape(job.salary)}</b>${colAdj ? `<br><span style="color:var(--muted);font-size:11px">${colAdj}</span>` : ''}</div>` : ''}
+
+    <!-- Action buttons row (all uniform style) -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+      ${job.link ? `<a href="${escape(job.link)}" target="_blank" style="${btn}">Open posting ↗</a>` : ''}
+      <button onclick="window._jobmapShowNotes('${job.id}')" style="${btn}">Notes & info</button>
+      <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="${btn}">City info</button>
+      ${job.kind !== 'me' ? `<button onclick="window._jobmapShowMySituation('${job.id}')" style="${btn}">Her situation</button>` : ''}
+      ${job.kind !== 'me' ? `<button onclick="window._jobmapShowScore('${job.id}')" style="${btn}">Decision matrix</button>` : ''}
+    </div>
+
+    <!-- Production + base breakdown (inline, if entered) -->
+    ${(job.estimatedProduction || job.productionPercent) ? `<div class="popup-section"><strong>Production-based comp</strong>
+      ${job.estimatedProduction ? `<div>Estimated yearly production: ${escape(job.estimatedProduction)}</div>` : ''}
+      ${job.productionPercent ? `<div>% to income: ${escape(job.productionPercent)}%</div>` : ''}
+      ${(() => { const t = totalGrossComp(job); return t > 0 ? `<div style="margin-top:4px;font-weight:600">Estimated total gross: ${fmtMoney(t)}</div>` : ''; })()}
+    </div>` : ''}
+
+    <!-- OMFS specifics (inline — the job-central stuff) -->
+    ${(job.practiceGroup || job.dsoAffiliation || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice) ? `<div class="popup-section"><strong>OMFS specifics</strong>
+      ${job.practiceGroup ? `<div>Practice group: ${escape(job.practiceGroup)}</div>` : ''}
+      ${job.dsoAffiliation ? `<div>DSO affiliation: ${escape(job.dsoAffiliation)}</div>` : ''}
+      ${job.partnershipTrack ? `<div>Partnership: ${escape(job.partnershipTrack)}</div>` : ''}
+      ${job.signingBonus ? `<div>Signing: ${escape(job.signingBonus)}</div>` : ''}
+      ${job.callSchedule ? `<div>Call: ${escape(job.callSchedule)}</div>` : ''}
+      ${job.loanAssist ? `<div>Loans: ${escape(job.loanAssist)}</div>` : ''}
+      ${job.hospitals ? `<div>Hospitals: ${escape(job.hospitals)}</div>` : ''}
+      ${job.malpractice ? `<div>Malpractice: ${escape(job.malpractice)}</div>` : ''}
+      ${job.caseMix ? `<div style="margin-top:4px">Cases: ${escape(job.caseMix)}</div>` : ''}
+    </div>` : ''}
+
+    <!-- Dates + Contact (inline) -->
+    ${(job.dateApplied || job.datePhoneInterview || job.dateInterview || job.dateInterview2 || job.offerDate || job.offerDeadline || job.contact) ? `<div class="popup-section"><strong>Key dates</strong>
+      ${job.dateApplied ? `<div><b>Applied:</b> ${job.dateApplied}</div>` : ''}
+      ${job.datePhoneInterview ? `<div><b>Phone interview:</b> ${job.datePhoneInterview}</div>` : ''}
+      ${job.dateInterview ? `<div><b>In-person interview:</b> ${job.dateInterview}</div>` : ''}
+      ${job.dateInterview2 ? `<div><b>In-person interview #2:</b> ${job.dateInterview2}</div>` : ''}
+      ${job.offerDate ? `<div><b>Offer received:</b> ${job.offerDate}</div>` : ''}
+      ${job.offerDeadline ? `<div style="color:#b91c1c"><b>Offer deadline:</b> ${job.offerDeadline}</div>` : ''}
+      ${job.contact ? `<div style="margin-top:4px"><b>Contact:</b> ${escape(job.contact)}</div>` : ''}
+    </div>` : ''}
+
+    <!-- Pros / Cons / Vibe tags / Notes (inline) -->
+    ${job.pros ? `<div class="popup-section"><strong>Pros</strong><br><span class="preserve-lines">${escape(job.pros)}</span></div>` : ''}
+    ${job.cons ? `<div class="popup-section"><strong>Cons</strong><br><span class="preserve-lines">${escape(job.cons)}</span></div>` : ''}
+    ${job.hisVibe ? `<div class="popup-section"><strong>Vibe</strong><br>${renderVibeChips(job.hisVibe)}</div>` : ''}
+    ${job.notes ? `<div class="popup-section"><strong>Notes</strong><br><span class="preserve-lines">${escape(job.notes)}</span></div>` : ''}
+
+    <!-- COL notes / Vibe (inline) -->
+    ${(job.col || job.lifestyle) ? `<div class="popup-section">
+      ${job.col ? `<div><strong>COL notes</strong> ${escape(job.col)}</div>` : ''}
+      ${job.lifestyle ? `<div><strong>Vibe</strong> ${escape(job.lifestyle)}</div>` : ''}
+    </div>` : ''}
+
+    <!-- Competing OMFS nearby -->
+    <div class="popup-section city-links">
+      <strong>Competing OMFS practices nearby</strong><br>
+      <a href="https://www.google.com/maps/search/oral+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Live Google Maps search of oral surgery practices in this area">Google Maps: oral surgery near here ↗</a>
+      <a href="https://www.google.com/maps/search/oral+and+maxillofacial+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Search OMFS specifically">OMFS specifically ↗</a>
+    </div>
+
+    <!-- Sister practices -->
+    ${(() => {
+      const group = (job.practiceGroup || '').trim();
+      if (!group) return '';
+      const siblings = jobs.filter(j => j.id !== job.id && (j.practiceGroup || '').trim().toLowerCase() === group.toLowerCase());
+      return `<div class="popup-section city-links">
+        <strong>Other locations of ${escape(group)}</strong><br>
+        ${siblings.length > 0
+          ? siblings.map(s => `<div style="margin:2px 0">→ <a href="#" onclick="focusJob('${s.id}');return false">${escape(s.company)}</a> <span style="color:var(--muted);font-size:11px">${escape(s.location)}</span></div>`).join('')
+          : '<span style="color:var(--muted);font-size:11px">No other locations added yet</span>'}
+        <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find more on Google ↗</a>
+        <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps ↗</a>
+      </div>`;
+    })()}
+
+    <!-- Reviews & reputation (links that actually load) -->
+    <div class="popup-section city-links">
+      <strong>Reviews & reputation</strong><br>
+      <a href="https://www.google.com/search?q=${encodeURIComponent(job.company + ' ' + (job.location || '') + ' reviews')}" target="_blank" title="Google search for general reviews">Google reviews</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('site:glassdoor.com ' + job.company)}" target="_blank" title="Glassdoor pages indexed by Google (skips login wall)">Glassdoor via Google</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('site:indeed.com ' + job.company + ' reviews')}" target="_blank" title="Indeed company reviews via Google">Indeed via Google</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent('site:healthgrades.com ' + job.company)}" target="_blank" title="Doctor reviews at this practice">Healthgrades</a>
+      <a href="https://www.google.com/search?q=${encodeURIComponent(job.company + ' ' + (job.location || '') + ' oral surgeon')}" target="_blank" title="Find the doctors at this practice">Find the surgeons</a>
+      <a href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(job.company)}" target="_blank" title="LinkedIn company search">LinkedIn</a>
+    </div>
+
+    <!-- Travel info at the bottom so it doesn't break up the job-specific content -->
+    <div class="popup-section">
+      <strong>Drive to nearest hub</strong><br>
+      ${job.carMiles
+        ? `${job.carMiles} mi · ${formatDriveTime(job.carMinutes)} to <b>${escape(job.carCity)}</b>`
+        : (near ? `<span style="color:var(--muted)">~${near.dist} mi straight-line to ${escape(near.city.name)}</span> <button onclick="window._jobmapLoadDrive('${job.id}')" style="margin-left:6px;padding:2px 8px;font-size:11px;border:1px solid var(--line);background:white;border-radius:4px;cursor:pointer">Get driving</button>` : '')}
+      ${near ? `<br><a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=transit" target="_blank">Transit route ↗</a> · <a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=driving" target="_blank">Directions ↗</a>` : ''}
+    </div>
+    ${(() => {
+      const fromAp = nearestAirport({lat:job.lat,lng:job.lng});
+      if (!fromAp) return '';
+      const driveToAp = haversine({lat:job.lat,lng:job.lng}, fromAp.airport);
+      return `<div class="popup-section">
+        <strong>Fly from ${fromAp.airport.code}</strong> <span style="color:var(--muted);font-size:11px">(${escape(fromAp.airport.name)}, ${driveToAp} mi away)</span>
+        ${destinations.map(d => {
+          const toAp = nearestAirport(d);
+          if (!toAp) return '';
+          const flightMiles = haversine(fromAp.airport, toAp.airport);
+          return `<div>→ ${escape(d.name)} <span style="color:var(--muted);font-size:11px">[${toAp.airport.code}]</span>: <b>~${flightTime(flightMiles)}</b> <span style="color:var(--muted);font-size:11px">(${flightMiles.toLocaleString()} mi)</span></div>`;
+        }).join('')}
+      </div>`;
+    })()}
+  `;
+}
+
+function escape(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderVibeChips(str, color) {
+  if (!str) return '';
+  const c = color || '#3b82f6';
+  return String(str).split(',').map(t => t.trim()).filter(Boolean).map(t =>
+    `<span style="display:inline-block;background:${c}15;color:${c};border:1px solid ${c}40;border-radius:12px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0">${escape(t)}</span>`
+  ).join('');
+}
+
+function passesFilter(job) {
+  if (!filterState.statuses.has(job.status)) return false;
+  if ((job.excitement || 0) < filterState.minExcite) return false;
+  if ((job.partnerFit || 0) < filterState.minPartner) return false;
+  if (filterState.minScore > 0) {
+    const s = (typeof decisionScore === 'function') ? decisionScore(job) : null;
+    if (s == null || s < filterState.minScore) return false;
+  }
+  if (filterState.search) {
+    const q = filterState.search.toLowerCase();
+    const hay = [job.company, job.location, job.notes, job.pros, job.cons, job.caseMix, job.hospitals, job.partnerNotes].join(' ').toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderStatusChips() {
+  const el = document.getElementById('statusChips');
+  const statuses = ['potential','applied','interviewing','offer','rejected','current'];
+  el.innerHTML = statuses.map(s =>
+    `<span class="chip s-${s} ${filterState.statuses.has(s) ? 'on' : ''}" onclick="toggleStatus('${s}')">${s}</span>`
+  ).join('');
+}
+function renderStarFilters() {
+  const his = document.getElementById('hisStarFilter');
+  const her = document.getElementById('herStarFilter');
+  if (his) his.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="${i <= filterState.minExcite ? 'on' : ''}" onclick="setMinExcite(${i})">★</span>`).join('');
+  if (her) her.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="${i <= filterState.minPartner ? 'on' : ''}" onclick="setMinPartner(${i})">★</span>`).join('');
+}
+function setMinExcite(n) {
+  filterState.minExcite = (filterState.minExcite === n) ? 0 : n;
+  renderStarFilters(); renderMarkers(); renderList(); updateFilterIndicator();
+}
+function setMinPartner(n) {
+  filterState.minPartner = (filterState.minPartner === n) ? 0 : n;
+  renderStarFilters(); renderMarkers(); renderList(); updateFilterIndicator();
+}
+function setMinScore(n) {
+  filterState.minScore = n;
+  const sl = document.getElementById('scoreSlider'); if (sl) sl.value = n;
+  const lbl = document.getElementById('scoreSliderVal'); if (lbl) lbl.textContent = n;
+  renderMarkers(); renderList(); updateFilterIndicator();
+}
+function toggleStatus(s) {
+  if (filterState.statuses.has(s)) filterState.statuses.delete(s); else filterState.statuses.add(s);
+  renderStatusChips(); renderMarkers(); renderList();
+  updateFilterIndicator();
+}
+function setSearch(v) {
+  filterState.search = v;
+  renderMarkers(); renderList();
+  updateFilterIndicator();
+}
+
+function toggleFilterPanel() {
+  document.getElementById('filterBar').classList.toggle('collapsed');
+}
+function updateFilterIndicator() {
+  const allStatuses = ['potential','applied','interviewing','offer','rejected'];
+  const filtersActive = filterState.search || filterState.statuses.size !== allStatuses.length || filterState.minExcite > 0 || filterState.minPartner > 0 || filterState.minScore > 0;
+  document.getElementById('filterDot').classList.toggle('active', !!filtersActive);
+  const nonSister = jobs.filter(j => j.kind !== 'sister');
+  const total = nonSister.length;
+  const shown = nonSister.filter(passesFilter).length;
+  const countEl = document.getElementById('jobCount');
+  if (countEl) countEl.textContent = shown === total ? `${total} job${total === 1 ? '' : 's'}` : `${shown} of ${total} shown`;
+}
+
+function renderMarkers() {
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  for (const k in markers) delete markers[k];
+  jobs.forEach(job => {
+    if (job.lat == null || job.lng == null) return;
+    if (job.kind === 'sister') {
+      const parent = jobs.find(p => p.id === job.parentId);
+      if (!parent) return;  // orphan sister — skip
+      if (!passesFilter(parent)) return;  // hide if parent filtered out
+      const m = L.marker([job.lat, job.lng], { icon: makeIcon(job.status, job.excitement, 'sister', parent), zIndexOffset: -100 })
+        .addTo(map).bindPopup(popupHtml(parent, job));
+      // clicking the marker opens the PARENT's details
+      m.on('click', () => { /* popup shows; parent details via popup buttons */ });
+      markers[job.id] = m;
+      return;
+    }
+    if (!passesFilter(job)) return;
+    const m = L.marker([job.lat, job.lng], { icon: makeIcon(job.status, job.excitement, job.kind) })
+      .addTo(map).bindPopup(popupHtml(job));
+    markers[job.id] = m;
+  });
+  if (showCityDistance) drawCityDistance();
+}
+
+function renderList() {
+  if (typeof updateFilterIndicator === 'function') updateFilterIndicator();
+  const list = document.getElementById('jobList');
+  if (jobs.length === 0) {
+    list.innerHTML = '<div style="padding:20px;color:#6b7280;font-size:13px;text-align:center">No jobs yet. Click "+ Add Job" to start.</div>';
+    return;
+  }
+  // sort: interviewing > applied > potential > offer > rejected
+  const order = { interviewing: 0, applied: 1, offer: 2, potential: 3, rejected: 4 };
+  const filtered = jobs.filter(j => j.kind !== 'sister' && passesFilter(j));
+  if (filtered.length === 0) {
+    document.getElementById('jobList').innerHTML = '<div style="padding:20px;color:#6b7280;font-size:13px;text-align:center">No matches. Adjust filters or search above.</div>';
+    return;
+  }
+  const sorted = [...filtered].sort((a,b) => (order[a.status]||9) - (order[b.status]||9));
+  list.innerHTML = sorted.map(job => `
+    <div class="job-card" onclick="focusJob('${job.id}')">
+      <div class="row1">
+        <div class="company">${escape(job.company)}</div>
+        <span class="status-pill status-${job.status}">${job.status}</span>
+      </div>
+      <div class="loc">📍 ${escape(job.location)}</div>
+      ${job.excitement ? `<div class="excitement">${'★'.repeat(job.excitement)}${'☆'.repeat(5-job.excitement)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function toggleCityDistance(on) {
+  showCityDistance = on;
+  if (on) drawCityDistance(); else clearCityDistance();
+}
+function toggleAirports(on) {
+  showAirports = on;
+  if (on) drawAirports(); else clearAirports();
+}
+function clearAirports() {
+  if (airportsLayer) { map.removeLayer(airportsLayer); airportsLayer = null; }
+}
+function drawAirports() {
+  clearAirports();
+  airportsLayer = L.layerGroup().addTo(map);
+  AIRPORTS.forEach(a => {
+    L.marker([a.lat, a.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="airport-marker">✈ ${a.code}</div>`,
+        iconSize: null,
+        iconAnchor: [12, 8]
+      })
+    }).addTo(airportsLayer).bindTooltip(a.name, { direction: 'top' });
+  });
+}
+
+function toggleUniversities(on) {
+  showUniversities = on;
+  if (on) drawUniversities(); else clearUniversities();
+}
+function clearUniversities() { if (universitiesLayer) { map.removeLayer(universitiesLayer); universitiesLayer = null; } }
+function drawUniversities() {
+  clearUniversities();
+  universitiesLayer = L.layerGroup().addTo(map);
+  UNIVERSITIES.forEach(u => {
+    L.marker([u.lat, u.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="uni-marker" title="${escape(u.name)}">U</div>`,
+        iconSize: null,
+        iconAnchor: [9, 9]
+      })
+    }).addTo(universitiesLayer).bindTooltip(`${u.name}${u.note ? ' — ' + u.note : ''}`, { direction: 'top' });
+  });
+}
+
+function toggleTrauma(on) {
+  showTrauma = on;
+  if (on) drawTrauma(); else clearTrauma();
+}
+function clearTrauma() { if (traumaLayer) { map.removeLayer(traumaLayer); traumaLayer = null; } }
+function drawTrauma() {
+  clearTrauma();
+  traumaLayer = L.layerGroup().addTo(map);
+  TRAUMA_CENTERS.forEach(t => {
+    L.marker([t.lat, t.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="trauma-marker">T1</div>`,
+        iconSize: null,
+        iconAnchor: [11, 11]
+      })
+    }).addTo(traumaLayer).bindTooltip(`${t.name} — ${t.city}${t.note ? ' · ' + t.note : ''}`, { direction: 'top' });
+  });
+}
+
+function toggleLabs(on) {
+  showLabs = on;
+  if (on) drawLabs(); else clearLabs();
+}
+function clearLabs() { if (labsLayer) { map.removeLayer(labsLayer); labsLayer = null; } }
+function drawLabs() {
+  clearLabs();
+  labsLayer = L.layerGroup().addTo(map);
+  NATIONAL_LABS.forEach(l => {
+    L.marker([l.lat, l.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="lab-marker">L</div>`,
+        iconSize: null,
+        iconAnchor: [9, 9]
+      })
+    }).addTo(labsLayer).bindTooltip(`${l.name}${l.note ? ' — ' + l.note : ''}`, { direction: 'top' });
+  });
+}
+
+function toggleMLLabs(on) {
+  showMLLabs = on;
+  if (on) drawMLLabs(); else clearMLLabs();
+}
+function clearMLLabs() { if (mlLabsLayer) { map.removeLayer(mlLabsLayer); mlLabsLayer = null; } }
+function drawMLLabs() {
+  clearMLLabs();
+  mlLabsLayer = L.layerGroup().addTo(map);
+  ML_LABS.forEach(l => {
+    L.marker([l.lat, l.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="ml-marker">AI</div>`,
+        iconSize: null,
+        iconAnchor: [10, 9]
+      })
+    }).addTo(mlLabsLayer).bindTooltip(`${l.name}${l.note ? ' — ' + l.note : ''}`, { direction: 'top' });
+  });
+}
+
+function togglePharma(on) {
+  showPharma = on;
+  if (on) drawPharma(); else clearPharma();
+}
+function clearPharma() { if (pharmaLayer) { map.removeLayer(pharmaLayer); pharmaLayer = null; } }
+function drawPharma() {
+  clearPharma();
+  pharmaLayer = L.layerGroup().addTo(map);
+  PHARMA.forEach(p => {
+    const cls = p.kind === 'compchem' ? 'pharma-marker compchem' : 'pharma-marker';
+    L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="${cls}">${p.kind === 'compchem' ? 'C' : 'Rx'}</div>`,
+        iconSize: null,
+        iconAnchor: [9, 9]
+      })
+    }).addTo(pharmaLayer).bindTooltip(`${p.name}${p.note ? ' — ' + p.note : ''}`, { direction: 'top' });
+  });
+}
+function clearCityDistance() {
+  if (cityDistanceLayer) { map.removeLayer(cityDistanceLayer); cityDistanceLayer = null; }
+}
+function drawCityDistance() {
+  clearCityDistance();
+  cityDistanceLayer = L.layerGroup().addTo(map);
+  jobs.forEach(job => {
+    if (job.lat == null || !passesFilter(job)) return;
+    // Prefer cached route-based nearest city; fall back to haversine pick
+    let cityName, cityLat, cityLng, label;
+    if (job.carCity && job.carCityLat != null) {
+      cityName = job.carCity; cityLat = job.carCityLat; cityLng = job.carCityLng;
+      label = `${job.carMiles}mi drive → ${escape(cityName)}`;
+    } else {
+      const n = nearestMajorCity(job);
+      if (!n || n.dist < 5) return;
+      cityName = n.city.name; cityLat = n.city.lat; cityLng = n.city.lng;
+      label = `~${n.dist}mi → ${escape(cityName)}`;
+    }
+    L.polyline([[job.lat, job.lng], [cityLat, cityLng]], {
+      color: '#6366f1', weight: 2, dashArray: '6,6', opacity: 0.7
+    }).addTo(cityDistanceLayer);
+    const mid = [(job.lat + cityLat)/2, (job.lng + cityLng)/2];
+    L.marker(mid, {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="map-label">${label}</div>`,
+        iconSize: null
+      })
+    }).addTo(cityDistanceLayer);
+    L.circleMarker([cityLat, cityLng], {
+      radius: 4, color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.8, weight: 1
+    }).addTo(cityDistanceLayer).bindTooltip(cityName, { permanent: false });
+  });
+}
+
+function focusJob(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job || job.lat == null) return;
+  map.setView([job.lat, job.lng], 8);
+  markers[jobId] && markers[jobId].openPopup();
+}
+
+/* ---------- Form ---------- */
+function openJobForm(jobId) {
+  editingId = jobId || null;
+  // Auto-set status to 'current' when kind is changed to 'current'
+  const kindEl = document.getElementById('f_kind');
+  const statusEl = document.getElementById('f_status');
+  if (kindEl && !kindEl._currentHooked) {
+    kindEl.addEventListener('change', () => {
+      if (kindEl.value === 'current') statusEl.value = 'current';
+    });
+    kindEl._currentHooked = true;
+  }
+  document.getElementById('formTitle').textContent = jobId ? 'Edit Job' : 'Add a Job';
+  document.getElementById('deleteBtn').style.display = jobId ? 'inline-block' : 'none';
+  // Populate parent-job dropdown for sister selection
+  const psel = document.getElementById('f_parentId');
+  if (psel) {
+    const parents = jobs.filter(j => j.kind !== 'sister' && (!jobId || j.id !== jobId));
+    psel.innerHTML = '<option value="">— pick a parent job —</option>' +
+      parents.map(p => `<option value="${p.id}">${escape(p.company)} (${escape(p.location)})</option>`).join('');
+  }
+  const f = id => document.getElementById(id);
+  if (jobId) {
+    const j = jobs.find(x => x.id === jobId);
+    f('f_kind').value = j.kind || 'omfs';
+    f('f_company').value = j.company || '';
+    f('f_location').value = j.location || '';
+    EXTRA_FIELDS.forEach(k => { const el = document.getElementById('f_' + k); if (el) el.value = j[k] || ''; });
+    setPartnerRating(j.partnerFit || 0);
+    f('f_status').value = j.status || 'potential';
+    f('f_salary').value = j.salary || '';
+    f('f_dateApplied').value = j.dateApplied || '';
+    f('f_dateInterview').value = j.dateInterview || '';
+    f('f_contact').value = j.contact || '';
+    f('f_link').value = j.link || '';
+    f('f_pros').value = j.pros || '';
+    f('f_cons').value = j.cons || '';
+    f('f_notes').value = j.notes || '';
+    f('f_col').value = j.col || '';
+    f('f_lifestyle').value = j.lifestyle || '';
+    setRating(j.excitement || 0);
+  } else {
+    document.getElementById('jobForm').reset();
+    setRating(0);
+    setPartnerRating(0);
+  }
+  updateKindUI();
+  document.getElementById('formModal').classList.add('open');
+}
+function updateKindUI() {
+  const kind = document.getElementById('f_kind').value;
+  const row = document.getElementById('sisterParentRow');
+  if (row) row.style.display = kind === 'sister' ? 'block' : 'none';
+}
+function closeJobForm() {
+  document.getElementById('formModal').classList.remove('open');
+  editingId = null;
+}
+
+function setRating(n) {
+  currentRating = n;
+  const stars = document.getElementById('starInput');
+  stars.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="${i <= n ? 'on' : ''}" onclick="setRating(${i})">★</span>`
+  ).join('');
+}
+function setPartnerRating(n) {
+  currentPartnerRating = n;
+  const stars = document.getElementById('partnerStarInput');
+  if (!stars) return;
+  stars.innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="${i <= n ? 'on' : ''}" onclick="setPartnerRating(${i})">★</span>`
+  ).join('');
+}
+
+async function geocode(location) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(location)}`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  const data = await res.json();
+  if (data && data.length > 0) {
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+  return null;
+}
+
+async function saveJob(e) {
+  e.preventDefault();
+  const get = id => document.getElementById(id).value.trim();
+  const data = {
+    kind: get('f_kind') || 'omfs',
+    company: get('f_company'), location: get('f_location'),
+    status: get('f_status'), salary: get('f_salary'),
+    excitement: currentRating,
+    dateApplied: get('f_dateApplied'), dateInterview: get('f_dateInterview'),
+    contact: get('f_contact'), link: get('f_link'),
+    pros: get('f_pros'), cons: get('f_cons'), notes: get('f_notes'),
+    col: get('f_col'), lifestyle: get('f_lifestyle'),
+    partnerFit: currentPartnerRating
+  };
+  EXTRA_FIELDS.forEach(k => { if (k !== 'partnerFit') data[k] = get('f_' + k); });
+  if (data.kind === 'current') data.status = 'current';
+  if (data.kind === 'sister') {
+    if (!data.parentId) { alert('Pick a parent job for this sister location.'); return; }
+    const parent = jobs.find(p => p.id === data.parentId);
+    if (parent && !data.company) data.company = parent.company + ' (sister)';
+    data.status = parent ? parent.status : 'potential';
+  }
+
+  let existing = editingId ? jobs.find(j => j.id === editingId) : null;
+  const locationChanged = !existing || existing.location !== data.location;
+
+  if (locationChanged) {
+    try {
+      const coords = await geocode(data.location);
+      if (coords) { data.lat = coords.lat; data.lng = coords.lng; }
+      else { alert("Couldn't find that location on the map. Try a more specific city name."); return; }
+    } catch (err) {
+      alert("Couldn't reach the geocoding service. Check your internet."); return;
+    }
+  } else {
+    data.lat = existing.lat; data.lng = existing.lng;
+  }
+
+  if (existing) {
+    Object.assign(existing, data);
+  } else {
+    data.id = id();
+    jobs.push(data);
+  }
+  saveJobs();
+  renderMarkers();
+  renderList();
+  closeJobForm();
+  const savedJob = existing || data;
+  setTimeout(() => focusJob(savedJob.id), 100);
+  syncJobToSheet(savedJob);
+  // sister pins skip driving/city-stat fetches (those live on the parent)
+  if (savedJob.kind !== 'sister') {
+    if (locationChanged || !savedJob.carMiles) {
+      refreshDrivingInfo(savedJob).then(() => syncJobToSheet(savedJob));
+    }
+    if (locationChanged || !savedJob.cityStats) {
+      fetchCityStats(savedJob, locationChanged);
+    }
+  }
+}
+
+window._jobmapLoadDrive = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  refreshDrivingInfo(job).then(() => syncJobToSheet(job));
+};
+
+function deleteJob() {
+  if (!editingId) return;
+  if (!confirm('Delete this job?')) return;
+  const removedId = editingId;
+  jobs = jobs.filter(j => j.id !== removedId);
+  saveJobs();
+  renderMarkers();
+  renderList();
+  closeJobForm();
+  deleteJobFromSheet(removedId);
+}
+
+/* ---------- Import / Export ---------- */
+function exportData() {
+  const blob = new Blob([JSON.stringify(jobs, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `jobmap-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('Not a job list');
+      if (!confirm(`Import ${data.length} jobs? This will replace your current list.`)) return;
+      jobs = data;
+      saveJobs();
+      renderMarkers();
+      renderList();
+    } catch (err) {
+      alert('Could not import this file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* close modal on backdrop click */
+document.getElementById('formModal').addEventListener('click', e => {
+  if (e.target.id === 'formModal') closeJobForm();
+});
+
+/* ---------- Init ---------- */
+loadJobs();
+renderStatusChips();
+renderStarFilters();
+renderMarkers();
+renderList();
+updateFilterIndicator();
+if (sheetUrl) pullFromSheet();
+</script>
+</body>
+</html>
