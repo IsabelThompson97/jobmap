@@ -43,6 +43,10 @@
   #filterTrigger { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
   #filterBtn { background: transparent; border: none; cursor: pointer; padding: 4px 0; font-size: 12px; color: var(--muted); font-family: inherit; display: inline-flex; align-items: center; gap: 4px; }
   #filterBtn:hover { color: var(--ink); }
+  /* Sort select styled to match #filterBtn — same minimal text look, sits inline next to Filter */
+  #sortSelect { background: transparent; border: none; cursor: pointer; padding: 4px 16px 4px 0; font-size: 12px; color: var(--muted); font-family: inherit; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0l4 6 4-6z' fill='%236b7280'/></svg>"); background-repeat: no-repeat; background-position: right 2px center; }
+  #sortSelect:hover { color: var(--ink); }
+  #filterTrigger .triggerGroup { display: flex; align-items: center; gap: 14px; }
   #filterDot { display: none; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
   #filterDot.active { display: inline-block; }
   #jobCount { font-size: 11px; }
@@ -199,7 +203,21 @@
     </div>
     <div id="syncStatus"></div>
     <div id="filterTrigger">
-      <button id="filterBtn" onclick="toggleFilterPanel()">Filter <span id="filterDot"></span> <span style="opacity:0.6">▾</span></button>
+      <span class="triggerGroup">
+        <button id="filterBtn" onclick="toggleFilterPanel()">Filter <span id="filterDot"></span> <span style="opacity:0.6">▾</span></button>
+        <select id="sortSelect" onchange="setSortBy(this.value)" title="Sort the job list">
+          <option value="status">Sort: status</option>
+          <option value="score">Sort: decision score</option>
+          <option value="excitement">Sort: his excitement</option>
+          <option value="herFit">Sort: her overall fit</option>
+          <option value="lifestyle">Sort: lifestyle fit</option>
+          <option value="salary">Sort: salary</option>
+          <option value="dateApplied">Sort: date applied</option>
+          <option value="company">Sort: practice A→Z</option>
+          <option value="location">Sort: location A→Z</option>
+          <option value="distance">Sort: distance from home</option>
+        </select>
+      </span>
       <span id="jobCount"></span>
     </div>
     <div id="filterBar" class="collapsed">
@@ -221,21 +239,6 @@
         <span id="scoreSliderVal" style="font-variant-numeric:tabular-nums;font-size:11px;min-width:24px">0</span>
         <button class="clearStars" onclick="setMinScore(0)">clear</button>
       </div>
-    </div>
-    <div style="padding:6px 10px 0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
-      <label for="sortSelect">Sort:</label>
-      <select id="sortSelect" onchange="setSortBy(this.value)" style="flex:1;padding:3px 6px;font-size:11px;border:1px solid var(--line);border-radius:4px;background:white">
-        <option value="status">Status (interview-first)</option>
-        <option value="score">Decision score (high→low)</option>
-        <option value="excitement">His excitement (high→low)</option>
-        <option value="herFit">Her career fit (high→low)</option>
-        <option value="lifestyle">Lifestyle fit (high→low)</option>
-        <option value="salary">Salary (high→low)</option>
-        <option value="dateApplied">Date applied (newest)</option>
-        <option value="company">Practice name (A→Z)</option>
-        <option value="location">Location (A→Z)</option>
-        <option value="distance">Distance from home (near→far)</option>
-      </select>
     </div>
     <div id="jobList"></div>
     <div id="manageBar">
@@ -357,6 +360,9 @@
           <input id="f_link" placeholder="https://..." />
         </div>
       </div>
+      <label>Practice Website</label>
+      <input id="f_website" placeholder="https://..." />
+      <div class="help">Shown alongside the job posting link at the top of the details page.</div>
 
       <label>Pros</label>
       <textarea id="f_pros" placeholder="What's exciting about this one?"></textarea>
@@ -459,7 +465,7 @@
         <summary>Couple's Context (Isabel)</summary>
         <div class="help" style="margin-bottom:6px">All of this shows up in "Her situation" — not on the main job page.</div>
 
-        <label>Her overall career fit (1–5)</label>
+        <label>Her overall fit (1–5)</label>
         <div class="stars" id="partnerStarInput"></div>
 
         <label>Her field / keyword for job search</label>
@@ -841,7 +847,7 @@ const FIELDS = ['id','kind','type','company','location','lat','lng','status','sa
   'partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','dsoAffiliation',
   'partnerFit','partnerNotes','distanceFamily','dualCareer',
   'hisVibe','herVibe','her5Year','her30Year','parentId',
-  'practiceGroup','carCity','carCityLat','carCityLng','carMiles','carMinutes',
+  'practiceGroup','carCity','carCityLat','carCityLng','carMiles','carMinutes','website',
   // His Impressions — relocation readiness textareas + interests
   'his1Yr','his5Yr','his10Yr','hisEscape','hisInterests',
   // Couple's Context — relocation + interests + her career field for LinkedIn link
@@ -1029,7 +1035,7 @@ let showCityDistance = false;
 let cityDistanceLayer = null;
 let showAirports = false;
 let airportsLayer = null;
-const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId',
+const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId','website',
   // His Impressions — new lifestyle/fit fields
   'his1Yr','his5Yr','his10Yr','hisEscape','hisInterests',
   // Couple's Context — new lifestyle/fit fields for her
@@ -1831,7 +1837,10 @@ window._jobmapOpenDetails = function(jobId) {
   const job = jobs.find(j => j.id === jobId);
   if (!job) return;
   document.getElementById('detailsTitle').textContent = job.company || 'Job details';
-  document.getElementById('detailsSubtitle').textContent = job.location || '';
+  const subParts = [job.location ? escape(job.location) : ''];
+  if (job.link) subParts.push(`<a href="${escape(job.link)}" target="_blank" style="color:#2563eb">Job Posting</a>`);
+  if (job.website) subParts.push(`<a href="${escape(job.website)}" target="_blank" style="color:#2563eb">Website</a>`);
+  document.getElementById('detailsSubtitle').innerHTML = subParts.filter(Boolean).join(' &nbsp;·&nbsp; ');
   document.getElementById('detailsBody').innerHTML = renderJobDetails(job);
   document.getElementById('detailsEditBtn').onclick = () => { closeDetails(); openJobForm(jobId); };
   document.getElementById('detailsModal').classList.add('open');
@@ -2295,6 +2304,35 @@ function renderLifestyleView(job, s) {
 
     ${snapshotBlock}
 
+    ${(() => {
+      // Per-person vibe + interests sections, mirroring how they render on His Impressions and Her Situation.
+      const hisInterestsRaw = job.hisInterests || profile.him.interests || '';
+      const herInterestsRaw = job.herInterests || profile.her.interests || '';
+      const hisInts = hisInterestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      const herInts = herInterestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      if (!job.hisVibe && !job.herVibe && hisInts.length === 0 && herInts.length === 0) return '';
+
+      const vibeSection = (name, vibe, color) => vibe
+        ? `<div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${escape(name)}'s vibe tags</div>${renderVibeChips(vibe, color)}</div>`
+        : '';
+      const interestsSection = (name, list, color) => list.length === 0 ? '' : `
+        <div style="margin-bottom:10px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">${escape(name)}'s interests</div>
+          <div style="margin-bottom:6px">${renderVibeChips(list.join(', '), color)}</div>
+          ${job.location ? `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Local communities</div>
+            <div class="city-links" style="font-size:12px">
+              ${list.map(interest => `<a href="https://www.meetup.com/find/?keywords=${encodeURIComponent(interest)}&location=${encodeURIComponent(job.location)}" target="_blank" title="Meetup groups for ${escape(interest)} in ${escape(job.location)}">Meetup: ${escape(interest)}</a>`).join('')}
+            </div>` : ''}
+        </div>`;
+
+      return `
+        ${vibeSection(profile.him.name, job.hisVibe, '#f59e0b')}
+        ${vibeSection(profile.her.name, job.herVibe, '#ec4899')}
+        ${interestsSection(profile.him.name, hisInts, '#0891b2')}
+        ${interestsSection(profile.her.name, herInts, '#9333ea')}
+        <div style="margin-bottom:14px"></div>`;
+    })()}
+
     ${s.wiki ? `
       <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
         ${s.wiki.thumb ? `<img src="${escape(s.wiki.thumb)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" />` : ''}
@@ -2381,31 +2419,17 @@ function renderCommunityView(job) {
     </div>`;
   };
   const familyBlock = family.length === 0 ? '' : `
-    <h3 style="font-size:14px;margin:0 0 8px">💗 Family (${family.length})</h3>
+    <h3 style="font-size:14px;margin:14px 0 8px">Family (${family.length})</h3>
     <div style="margin-bottom:14px">${family.map(p => personRow(p, '♥', '#ec4899')).join('')}</div>
   `;
   const friendsBlock = friends.length === 0 ? '' : `
-    <h3 style="font-size:14px;margin:0 0 8px">🔺 Friends (${friends.length})</h3>
+    <h3 style="font-size:14px;margin:0 0 8px">Friends (${friends.length})</h3>
     <div style="margin-bottom:14px">${friends.map(p => personRow(p, '▲', '#2563eb')).join('')}</div>
-  `;
-
-  // College ties — group by college among all people (any friend/family with the same college)
-  const colleges = {};
-  people.forEach(p => {
-    if (p.college && p.lat != null) {
-      const k = p.college.trim();
-      if (!colleges[k]) colleges[k] = [];
-      colleges[k].push(p);
-    }
-  });
-  const collegeBlock = Object.keys(colleges).length === 0 ? '' : `
-    <h3 style="font-size:14px;margin:14px 0 8px">🎓 College ties</h3>
-    ${Object.entries(colleges).map(([col, ppl]) => `<div style="font-size:13px;padding:4px 0"><b>${escape(col)}:</b> ${ppl.map(p => escape(p.name)).join(', ')}</div>`).join('')}
   `;
 
   // Family distance summary (job.distanceFamily) + dual-career notes
   const dfBlock = (job.distanceFamily || job.dualCareer) ? `
-    <h3 style="font-size:14px;margin:14px 0 8px">Your notes</h3>
+    <h3 style="font-size:14px;margin:0 0 8px">Your notes</h3>
     ${job.distanceFamily ? `<div style="font-size:13px;margin-bottom:4px"><b>Family distance:</b> ${escape(job.distanceFamily)}</div>` : ''}
     ${job.dualCareer ? `<div style="font-size:13px;margin-bottom:4px"><b>Dual-career:</b> ${escape(job.dualCareer)}</div>` : ''}
   ` : '';
@@ -2438,7 +2462,8 @@ function renderCommunityView(job) {
   if (empty) {
     return `<p style="color:var(--muted);font-size:13px">No community info yet. Add family/friends in Manage → Family & friends, set her interests in this job's "Couple's Context", or add a distance-from-family note.</p>${pulseBlock}`;
   }
-  return familyBlock + friendsBlock + collegeBlock + dfBlock + hobbyBlock + pulseBlock;
+  // Order: notes, interests, pulse, then family/friends at the bottom
+  return dfBlock + hobbyBlock + pulseBlock + familyBlock + friendsBlock;
 }
 function closeCityStatsModal() { document.getElementById('cityStatsModal').classList.remove('open'); }
 document.getElementById('cityStatsModal').addEventListener('click', e => {
@@ -2562,7 +2587,7 @@ function renderComparison() {
 
     // ── 7. HER OPPORTUNITIES & SENTIMENT ──
     sectionHeader('Her career & sentiment'),
-    ['Her career fit (overall)', j => j.partnerFit ? '★'.repeat(j.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-j.partnerFit) + '</span>' : '—'],
+    ['Her overall fit', j => j.partnerFit ? '★'.repeat(j.partnerFit) + '<span style="color:#d1d5db">' + '★'.repeat(5-j.partnerFit) + '</span>' : '—'],
     ['Her field / keyword', j => j.herCareerField ? `${escape(j.herCareerField)}${j.location ? ` <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(j.herCareerField)}&location=${encodeURIComponent(j.location)}" target="_blank" style="font-size:11px">LinkedIn ↗</a>` : ''}` : '—'],
     ['Her vibe', j => j.herVibe ? renderVibeChips(j.herVibe, '#ec4899') : '—'],
     ['Her interests', j => j.herInterests ? renderVibeChips(j.herInterests, '#9333ea') : '—'],
@@ -2683,8 +2708,8 @@ function openPeople() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
         <select id="p_type_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px">
-          <option value="family" ${type==='family'?'selected':''}>💗 Family</option>
-          <option value="friend" ${type==='friend'?'selected':''}>🔺 Friend</option>
+          <option value="family" ${type==='family'?'selected':''}>Family</option>
+          <option value="friend" ${type==='friend'?'selected':''}>Friend</option>
         </select>
         <select id="p_owner_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px" title="Whose person is this? Affects which modal shows them.">
           <option value="him" ${owner==='him'?'selected':''}>${escape(profile.him.name)}'s</option>
@@ -2779,7 +2804,7 @@ let weights = (() => {
   catch(e) { return { ...DEFAULT_WEIGHTS }; }
 })();
 const WEIGHT_LABELS = {
-  hisExcite:'His excitement', herFit:'Her career fit', salaryNet:'Take-home pay',
+  hisExcite:'His excitement', herFit:'Her overall fit', salaryNet:'Take-home pay',
   familyClose:'Closeness to family/friends', careerOverlap:'Comp chem / ML jobs nearby (50mi)',
   comp:'Total comp (gross)', weatherFit:'Weather (subjective — use his/her notes)',
   lifeCommunity:'Lifestyle — Community / social', lifeEducation:'Lifestyle — Education / growth',
@@ -3110,17 +3135,15 @@ window._jobmapShowMySituation = function(jobId) {
   ];
   const anyHerRatings = herRatings.some(([_, v]) => Number(v) > 0);
   const herRatingsBlock = anyHerRatings
-    ? `<div style="margin-top:8px;padding:8px;background:#fdf2f8;border-radius:6px">${herRatings.map(([l,v]) => herRatingRow(l, v)).join('')}</div>`
+    ? `<div style="margin-top:8px">${herRatings.map(([l,v]) => herRatingRow(l, v)).join('')}</div>`
     : '';
 
-  // LinkedIn jobs auto-link if her career field is set (per-job override or profile default)
+  // LinkedIn jobs auto-link (rendered inline on the career-fit row, see herThoughtsBlock below)
   const liLinks = generateLifestyleLinks(job);
   const herField = (job.herCareerField || profile.her.field || '').trim();
-  const linkedinBlock = (herField && job.location) ? `
-    <div style="margin-top:10px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px">
-      🔎 <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(herField)}&location=${encodeURIComponent(job.location)}" target="_blank" style="color:#1d4ed8;font-weight:600">LinkedIn jobs in ${escape(herField)} near ${escape(job.location)} ↗</a>
-    </div>
-  ` : '';
+  const linkedinInline = (herField && job.location)
+    ? `<a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(herField)}&location=${encodeURIComponent(job.location)}" target="_blank" style="color:#2563eb;font-size:13px">LinkedIn jobs (${escape(herField)})</a>`
+    : '';
 
   // Meetup + Reddit links from her interests (per-job, falls back to profile.her.interests)
   const herInterestsRaw = job.herInterests || profile.her.interests || '';
@@ -3144,11 +3167,15 @@ window._jobmapShowMySituation = function(jobId) {
 
   const interestsBlock = herInterestsRaw ? `<div style="margin-top:8px"><div style="font-size:12px;color:var(--muted);margin-bottom:2px">Interests / hobbies</div>${renderVibeChips(herInterestsRaw, '#9333ea')}</div>` : '';
 
+  // Career-fit row: left = stars, right = LinkedIn link (only one or the other may exist)
+  const careerFitRow = (fitStars || linkedinInline) ? `<div style="margin-top:4px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <span>${fitStars ? `<b>Overall fit:</b> <span style="color:#ec4899">${fitStars}</span>` : ''}</span>
+    <span style="text-align:right">${linkedinInline}</span>
+  </div>` : '';
   const herThoughtsBlock = (job.partnerFit || job.herVibe || hasHerRelo || job.partnerNotes || anyHerRatings || herInterestsRaw || herField) ? `<div class="popup-section"><strong>${escape(profile.her.name)}'s thoughts</strong>
-    ${fitStars ? `<div style="margin-top:4px;font-size:13px"><b>Overall career fit:</b> <span style="color:#ec4899">${fitStars}</span></div>` : ''}
+    ${careerFitRow}
     ${job.herVibe ? `<div style="margin-top:6px"><div style="font-size:12px;color:var(--muted);margin-bottom:2px">Vibe</div>${renderVibeChips(job.herVibe, '#ec4899')}</div>` : ''}
     ${interestsBlock}
-    ${linkedinBlock}
     ${meetupBlock}
     ${herRatingsBlock}
     ${herReloBlock}
@@ -3356,6 +3383,7 @@ window._jobmapShowNotes = function(jobId) {
     ${anyProse}
     ${!anyProse ? '<p style="color:var(--muted);font-size:13px;margin:8px 0">No notes entered yet for this job. Edit to add OMFS specifics, pros/cons, couple notes, etc.</p>' : ''}
     ${careerHtml}
+    ${renderTravelBlocks(job)}
 
     <div class="popup-section city-links">
       <strong>Cost of Living</strong><br>
@@ -3369,7 +3397,7 @@ window._jobmapShowNotes = function(jobId) {
     </div>
 
     <div class="popup-section city-links">
-      <strong>Community pulse — what locals actually say</strong><br>
+      <strong>Community pulse</strong><br>
       ${(() => {
         const L = generateLifestyleLinks(job);
         const interestLinks = L.meetupInterests.slice(0, 4).map(m => `<a href="${escape(m.url)}" target="_blank" title="Local meetups for this interest">Meetup: ${escape(m.label)}</a>`).join('');
@@ -3704,7 +3732,6 @@ function renderJobDetails(job) {
 
     <!-- Action buttons row (all uniform style) -->
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
-      ${job.link ? `<a href="${escape(job.link)}" target="_blank" style="${btn}">Open posting ↗</a>` : ''}
       <button onclick="window._jobmapShowNotes('${job.id}')" style="${btn}">Notes & info</button>
       <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="${btn}">City info</button>
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowHisImpressions('${job.id}')" style="${btn}">His Impressions</button>` : ''}
@@ -3770,14 +3797,11 @@ function renderJobDetails(job) {
       return `<div class="popup-section city-links">
         <strong>Other locations of ${escape(group)}</strong><br>
         ${siblings.length > 0
-          ? siblings.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px">
-              <span>→ ${escape(s.location)}</span>
-              <a href="https://www.google.com/search?q=${encodeURIComponent(group + ' ' + s.location)}" target="_blank" style="font-size:11px" title="Google search for this practice + location">search ↗</a>
-            </div>`).join('')
+          ? siblings.map(s => `<div style="padding:3px 0;font-size:13px">→ ${escape(s.location)}</div>`).join('')
           : '<span style="color:var(--muted);font-size:11px">No other locations added yet</span>'}
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
-          <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find more on Google ↗</a>
-          <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps ↗</a>
+          <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find on Google</a>
+          <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps</a>
         </div>
       </div>`;
     })()}
@@ -3793,29 +3817,64 @@ function renderJobDetails(job) {
       <a href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(job.company)}" target="_blank" title="LinkedIn company search">LinkedIn</a>
     </div>
 
-    <!-- Travel info at the bottom so it doesn't break up the job-specific content -->
-    <div class="popup-section">
-      <strong>Drive to nearest hub</strong><br>
-      ${job.carMiles
-        ? `${job.carMiles} mi · ${formatDriveTime(job.carMinutes)} to <b>${escape(job.carCity)}</b>`
-        : (near ? `<span style="color:var(--muted)">~${near.dist} mi straight-line to ${escape(near.city.name)}</span> <button onclick="window._jobmapLoadDrive('${job.id}')" style="margin-left:6px;padding:2px 8px;font-size:11px;border:1px solid var(--line);background:white;border-radius:4px;cursor:pointer">Get driving</button>` : '')}
-      ${near ? `<br><a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=transit" target="_blank">Transit route ↗</a> · <a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=driving" target="_blank">Directions ↗</a>` : ''}
-    </div>
+    <!-- Couple Context (at the bottom; full detail in Her Situation / His Impressions) -->
     ${(() => {
-      const fromAp = nearestAirport({lat:job.lat,lng:job.lng});
-      if (!fromAp) return '';
-      const driveToAp = haversine({lat:job.lat,lng:job.lng}, fromAp.airport);
-      return `<div class="popup-section">
-        <strong>Fly from ${fromAp.airport.code}</strong> <span style="color:var(--muted);font-size:11px">(${escape(fromAp.airport.name)}, ${driveToAp} mi away)</span>
-        ${destinations.map(d => {
-          const toAp = nearestAirport(d);
-          if (!toAp) return '';
-          const flightMiles = haversine(fromAp.airport, toAp.airport);
-          return `<div>→ ${escape(d.name)} <span style="color:var(--muted);font-size:11px">[${toAp.airport.code}]</span>: <b>~${flightTime(flightMiles)}</b> <span style="color:var(--muted);font-size:11px">(${flightMiles.toLocaleString()} mi)</span></div>`;
-        }).join('')}
+      if (job.kind === 'me') return '';
+      const herField = (job.herCareerField || profile.her.field || '').trim();
+      const linkedinInline = (herField && job.location)
+        ? `<a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(herField)}&location=${encodeURIComponent(job.location)}" target="_blank" style="color:#2563eb;font-size:12px;font-weight:400">LinkedIn (${escape(herField)})</a>`
+        : '';
+      const b = overlapBreakdown(job);
+      const careerNearby = (() => {
+        if (!b) return '';
+        const list = (label, arr) => arr.length
+          ? `<div style="font-size:13px;margin-top:2px"><b>${arr.length}</b> ${label}: <span style="color:var(--muted);font-size:11px">${arr.slice(0,4).map(p => escape(p.name)).join(', ')}${arr.length > 4 ? ` +${arr.length-4} more` : ''}</span></div>`
+          : '';
+        const total = b.universities.length + b.pharma.length + b.labs.length + b.ml.length;
+        const headerRow = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px"><span><b>${escape(profile.her.name)}'s career nearby (50mi)</b></span>${linkedinInline}</div>`;
+        if (total === 0) return `${headerRow}<div style="color:var(--muted);font-size:12px;margin-top:2px">No matching universities, pharma, labs, or ML companies within 50mi. Would likely need remote work.</div>`;
+        return `${headerRow}
+          ${list('universities', b.universities)}
+          ${list('pharma sites', b.pharma)}
+          ${list('national labs / institutes', b.labs)}
+          ${list('AI/ML labs', b.ml)}`;
+      })();
+      const hasAny = job.dualCareer || careerNearby;
+      if (!hasAny) return '';
+      return `<div class="popup-section"><strong>Couple context</strong>
+        ${job.dualCareer ? `<div style="font-size:13px;margin-top:4px"><b>Dual-career:</b> ${escape(job.dualCareer)}</div>` : ''}
+        ${careerNearby}
       </div>`;
     })()}
+
+    <!-- Drive / Fly blocks moved to Notes & Info modal -->
   `;
+}
+
+// Renders the Drive-to-nearest-hub + Fly-from-nearest-airport blocks. Shared between Job details (legacy) and Notes & Info (current home).
+function renderTravelBlocks(job) {
+  if (job.lat == null) return '';
+  const near = nearestMajorCity(job);
+  const driveBlock = `<div class="popup-section">
+    <strong>Drive to nearest hub</strong><br>
+    ${job.carMiles
+      ? `${job.carMiles} mi · ${formatDriveTime(job.carMinutes)} to <b>${escape(job.carCity)}</b>`
+      : (near ? `<span style="color:var(--muted)">~${near.dist} mi straight-line to ${escape(near.city.name)}</span> <button onclick="window._jobmapLoadDrive('${job.id}')" style="margin-left:6px;padding:2px 8px;font-size:11px;border:1px solid var(--line);background:white;border-radius:4px;cursor:pointer">Get driving</button>` : '')}
+    ${near ? `<br><a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=transit" target="_blank">Transit route</a> · <a href="https://www.google.com/maps/dir/?api=1&origin=${job.lat},${job.lng}&destination=${near.city.lat},${near.city.lng}&travelmode=driving" target="_blank">Directions</a>` : ''}
+  </div>`;
+  const fromAp = nearestAirport({lat:job.lat,lng:job.lng});
+  if (!fromAp) return driveBlock;
+  const driveToAp = haversine({lat:job.lat,lng:job.lng}, fromAp.airport);
+  const flyBlock = `<div class="popup-section">
+    <strong>Fly from ${fromAp.airport.code}</strong> <span style="color:var(--muted);font-size:11px">(${escape(fromAp.airport.name)}, ${driveToAp} mi away)</span>
+    ${destinations.map(d => {
+      const toAp = nearestAirport(d);
+      if (!toAp) return '';
+      const flightMiles = haversine(fromAp.airport, toAp.airport);
+      return `<div>→ ${escape(d.name)} <span style="color:var(--muted);font-size:11px">[${toAp.airport.code}]</span>: <b>~${flightTime(flightMiles)}</b> <span style="color:var(--muted);font-size:11px">(${flightMiles.toLocaleString()} mi)</span></div>`;
+    }).join('')}
+  </div>`;
+  return driveBlock + flyBlock;
 }
 
 function escape(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
