@@ -132,13 +132,18 @@
   .leaflet-popup-content { margin: 12px 14px; min-width: 240px; }
   .popup-company { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
   .popup-role { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-  .popup-section { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; }
-  .popup-section strong { display: inline-block; min-width: 70px; color: var(--muted); font-weight: 500; }
-  /* Bigger, more readable text when popup-section is used inside the details modal */
-  #detailsBody .popup-section { font-size: 14px; padding-top: 12px; margin-top: 12px; line-height: 1.5; }
-  #detailsBody .popup-section strong { color: var(--ink); font-weight: 600; font-size: 14px; min-width: 90px; }
-  #detailsBody .popup-section .preserve-lines { white-space: pre-wrap; }
+  /* Unified section styling across all modals:
+     - body text at 13px (line-height 1.5)
+     - section header (the <strong>) at 14px, ink-colored, weight 600 — always the largest font in its section
+     - h3 in modals at 14px (matches strong)
+     - chips, captions, footnotes stay smaller (12px / 11px) */
+  .popup-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
+  .popup-section strong { display: inline-block; color: var(--ink); font-weight: 600; font-size: 14px; min-width: 0; }
+  .popup-section .preserve-lines { white-space: pre-wrap; }
+  #detailsBody .popup-section { padding-top: 14px; margin-top: 14px; }
   #detailsBody .city-links a { font-size: 13px; }
+  .modal h3 { font-size: 14px; font-weight: 600; color: var(--ink); margin: 14px 0 8px; }
+  .modal h3:first-child { margin-top: 0; }
   .popup-actions { margin-top: 10px; display: flex; gap: 6px; }
   .popup-actions button { flex: 1; padding: 6px; border: 1px solid var(--line); background: white; border-radius: 6px; cursor: pointer; font-size: 12px; }
   .popup-actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
@@ -2333,17 +2338,6 @@ function renderLifestyleView(job, s) {
         <div style="margin-bottom:14px"></div>`;
     })()}
 
-    ${s.wiki ? `
-      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
-        ${s.wiki.thumb ? `<img src="${escape(s.wiki.thumb)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" />` : ''}
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:14px;margin-bottom:4px">${escape(s.wiki.title)}</div>
-          <div style="font-size:13px;line-height:1.5">${escape((s.wiki.extract || '').slice(0, 500))}${(s.wiki.extract||'').length > 500 ? '…' : ''}</div>
-          ${s.wiki.url ? `<a href="${escape(s.wiki.url)}" target="_blank" style="font-size:12px">Wikipedia ↗</a>` : ''}
-        </div>
-      </div>
-    ` : ''}
-
     ${s.weather ? `
       <h3 style="font-size:14px;margin:14px 0 8px">Climate (${s.weatherYear} averages)</h3>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
@@ -2385,7 +2379,7 @@ function renderLifestyleView(job, s) {
       ${L.linkedinHer ? `<a href="${escape(L.linkedinHer)}" target="_blank" title="LinkedIn jobs in her field for this city">LinkedIn jobs (her)</a>` : ''}
     </div>
 
-    <h3 style="font-size:14px;margin:14px 0 8px">Dive deeper</h3>
+    <h3>Dive deeper</h3>
     <div class="city-links" style="font-size:13px">
       <a href="${escape(L.greatschools)}" target="_blank" title="School ratings and district comparisons">GreatSchools</a>
       <a href="${escape(L.niche)}" target="_blank" title="Niche rankings: best for families, young pros, retirees">Niche rankings</a>
@@ -2394,6 +2388,20 @@ function renderLifestyleView(job, s) {
       <a href="${escape(L.bestplaces)}" target="_blank" title="Climate, crime, education, economy summary">BestPlaces overview</a>
       <a href="https://www.tripadvisor.com/Search?q=${encodeURIComponent(job.location)}" target="_blank" title="Top-rated attractions, restaurants, neighborhoods">TripAdvisor</a>
     </div>
+
+    ${s.wiki ? `
+      <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px">
+        <h3>From Wikipedia</h3>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          ${s.wiki.thumb ? `<img src="${escape(s.wiki.thumb)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" />` : ''}
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">${escape(s.wiki.title)}</div>
+            <div style="font-size:13px">${escape((s.wiki.extract || '').slice(0, 500))}${(s.wiki.extract||'').length > 500 ? '…' : ''}</div>
+            ${s.wiki.url ? `<a href="${escape(s.wiki.url)}" target="_blank" style="font-size:12px">Open on Wikipedia</a>` : ''}
+          </div>
+        </div>
+      </div>
+    ` : ''}
   `;
 }
 
@@ -2487,22 +2495,49 @@ let compareSelected = new Set();
 function openCompare() {
   compareSelected = new Set();
   document.getElementById('compareTable').innerHTML = '';
-  const chooser = document.getElementById('compareChooser');
-  if (jobs.length === 0) { chooser.innerHTML = '<p style="color:var(--muted)">No jobs yet.</p>'; }
-  else {
-    chooser.innerHTML = jobs.filter(j => j.kind !== 'sister').map(j =>
-      `<label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--line)">
-        <input type="checkbox" onchange="toggleCompare('${j.id}', this.checked)" />
-        <span style="margin-left:6px"><b>${escape(j.company)}</b> · ${escape(j.location)}</span>
-        <span class="status-pill status-${j.status}" style="margin-left:6px">${j.status}</span>
-      </label>`
-    ).join('');
-  }
+  renderCompareChooser();
   document.getElementById('compareModal').classList.add('open');
 }
 function closeCompare() { document.getElementById('compareModal').classList.remove('open'); }
-function toggleCompare(id, on) {
-  if (on) compareSelected.add(id); else compareSelected.delete(id);
+
+// Compact picker: dropdown of unselected jobs + chip row of currently picked jobs.
+// Scales well to dozens of jobs since only the chips take vertical space.
+function renderCompareChooser() {
+  const chooser = document.getElementById('compareChooser');
+  const eligible = jobs.filter(j => j.kind !== 'sister');
+  if (eligible.length === 0) { chooser.innerHTML = '<p style="color:var(--muted);font-size:13px">No jobs yet.</p>'; return; }
+  const selected = eligible.filter(j => compareSelected.has(j.id));
+  const unselected = eligible.filter(j => !compareSelected.has(j.id));
+  const atCap = compareSelected.size >= 4;
+  const dropdown = `
+    <select id="compareAddPicker" onchange="addToCompare(this.value); this.value=''" ${atCap || unselected.length === 0 ? 'disabled' : ''}
+            style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:white;cursor:pointer">
+      <option value="">${atCap ? '— Max 4 jobs picked —' : (unselected.length === 0 ? '— All jobs added —' : '+ Add a job to compare…')}</option>
+      ${unselected.map(j => `<option value="${j.id}">${escape(j.company)} · ${escape(j.location)} (${j.status})</option>`).join('')}
+    </select>`;
+  const chips = selected.length === 0 ? '' : `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+      ${selected.map(j => `
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 4px 5px 10px;background:#f3f4f6;border:1px solid var(--line);border-radius:14px;font-size:12px">
+          <b>${escape(j.company)}</b>
+          <span style="color:var(--muted)">· ${escape(j.location)}</span>
+          <span class="status-pill status-${j.status}" style="font-size:10px;padding:1px 6px">${j.status}</span>
+          <button type="button" onclick="removeFromCompare('${j.id}')" title="Remove from comparison"
+                  style="border:none;background:transparent;color:#6b7280;cursor:pointer;padding:0 4px;font-size:14px;line-height:1">×</button>
+        </span>
+      `).join('')}
+    </div>`;
+  chooser.innerHTML = dropdown + chips + `<div style="font-size:11px;color:var(--muted);margin-top:6px">${compareSelected.size}/4 picked. Need at least 2 to compare.</div>`;
+}
+function addToCompare(id) {
+  if (!id) return;
+  if (compareSelected.size >= 4) return;
+  compareSelected.add(id);
+  renderCompareChooser();
+}
+function removeFromCompare(id) {
+  compareSelected.delete(id);
+  renderCompareChooser();
 }
 
 function renderComparison() {
@@ -2559,9 +2594,9 @@ function renderComparison() {
 
     // ── 4. DECISION SCORE ──
     sectionHeader('Decision score'),
-    ['Score (unified)', j => { const s = decisionScore(j); if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c};font-size:16px">${s}</b>/100`; }],
-    ['Career subscore', j => { const b = decisionBreakdown(j); const s = b.career && b.career.score; if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c}">${s}</b>/100`; }],
-    ['Lifestyle subscore', j => { const b = decisionBreakdown(j); const s = b.lifestyle && b.lifestyle.score; if (s == null) return '<span style="color:var(--muted)">unrated</span>'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c'; return `<b style="color:${c}">${s}</b>/100`; }],
+    ['Score (unified)', j => { const s = decisionScore(j); if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#2563eb'; return `<b style="color:${c};font-size:14px">${s}</b>/100`; }],
+    ['Career subscore', j => { const b = decisionBreakdown(j); const s = b.career && b.career.score; if (s == null) return '—'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#2563eb'; return `<b style="color:${c}">${s}</b>/100`; }],
+    ['Lifestyle subscore', j => { const b = decisionBreakdown(j); const s = b.lifestyle && b.lifestyle.score; if (s == null) return '<span style="color:var(--muted)">unrated</span>'; const c = s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#2563eb'; return `<b style="color:${c}">${s}</b>/100`; }],
 
     // ── 5. CITY / LIFESTYLE ──
     sectionHeader('City & lifestyle'),
@@ -3477,7 +3512,8 @@ function openScoreModal(job) {
   }
   const score = b.total;
   const factors = b.factors;
-  const colorFor = s => s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#b91c1c';
+  // Score color scale: green for strong, amber for mid, blue for weak (blue chosen over red so low scores don't read as alarming).
+  const colorFor = s => s >= 70 ? '#047857' : s >= 50 ? '#b45309' : '#2563eb';
   const color = colorFor(score);
 
   // Two-group breakdown: career factors, then lifestyle factors
