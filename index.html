@@ -627,6 +627,10 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <span class="toggle-label"><span style="display:inline-block;width:18px;height:14px;background:#06b6d4;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #06b6d4;vertical-align:middle;margin-right:6px"></span>AI / ML research labs</span>
       </label>
       <label class="toggle-row">
+        <input type="checkbox" id="driveRingsToggle" onchange="toggleDriveRingsLayer(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #6366f1;vertical-align:middle;margin-right:6px;opacity:0.5"></span>Drive-time rings (20/40/60 min)<br><span style="color:var(--muted);font-size:11px;font-weight:400">Draws around the job you most recently clicked.</span></span>
+      </label>
+      <label class="toggle-row">
         <input type="checkbox" id="pharmaToggle" onchange="togglePharma(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span style="color:var(--muted);font-size:11px">(orange = big pharma · </span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:50%;vertical-align:middle;margin:0 3px"></span><span style="color:var(--muted);font-size:11px">violet = comp chem / AI drug discovery)</span></span>
       </label>
@@ -670,6 +674,25 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Default interests (comma-separated)</label>
         <input id="pf_her_interests" placeholder="e.g. hiking, book clubs, board games" />
       </div>
+    </div>
+
+    <div style="border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:14px">
+      <h3 style="margin:0 0 8px;font-size:14px">Student loans (powers the Compensation modal)</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;color:var(--muted)">Starting balance</label>
+          <input id="pf_loanBalance" placeholder="e.g. 450000" inputmode="decimal" />
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted)">Interest rate (% APR)</label>
+          <input id="pf_loanRate" placeholder="e.g. 6.5" inputmode="decimal" />
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted)">Default monthly payment ($)</label>
+          <input id="pf_loanPayment" placeholder="e.g. 4000" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="help" style="margin-top:6px">Used to estimate years-to-debt-free per job. Per-job loan repayment (in OMFS specifics) is added on top of the default monthly payment.</div>
     </div>
 
     <div class="modal-actions">
@@ -748,6 +771,18 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     <div id="familyBody"></div>
     <div class="modal-actions">
       <button type="button" class="primary" onclick="closeFamilyDistances()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Compensation Modal -->
+<div class="modal-backdrop" id="compModal" style="z-index:1100">
+  <div class="modal" style="width:min(640px,94vw)">
+    <h2 id="compTitle">Compensation details</h2>
+    <div id="compBody"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="openProfile(); closeComp()" style="margin-right:auto">Edit loan inputs</button>
+      <button type="button" class="primary" onclick="closeComp()">Close</button>
     </div>
   </div>
 </div>
@@ -1728,6 +1763,59 @@ function totalGrossComp(job) {
   const production = parseSalary(job.estimatedProduction);
   const pct = parsePercent(job.productionPercent);
   return base + production * pct / 100;
+}
+
+// True comp breakdown — Yr 1 includes signing bonus; ongoing (Yr 2+) does not.
+// Loan repayment from the job (parsed from job.loanAssist e.g. "$25k/yr, PSLF") is included in both.
+function compBreakdown(job) {
+  const base = parseSalary(job.salary);
+  const production = parseSalary(job.estimatedProduction);
+  const pct = parsePercent(job.productionPercent);
+  const productionAdd = production * pct / 100;
+  const signing = parseSalary(job.signingBonus);
+  const loanRepay = parseSalary(job.loanAssist);
+  return {
+    base, production, productionAdd, pct, signing, loanRepay,
+    yr1Total:     base + productionAdd + signing + loanRepay,
+    ongoingTotal: base + productionAdd + loanRepay
+  };
+}
+
+// Standard amortization: months until a fixed monthly payment kills the balance.
+// Returns { months, totalInterest, neverPaysOff } where neverPaysOff is true if payment ≤ monthly interest.
+function loanMonthsToPayoff(balance, annualRatePct, monthlyPayment) {
+  if (!balance || balance <= 0) return { months: 0, totalInterest: 0, neverPaysOff: false };
+  if (!monthlyPayment || monthlyPayment <= 0) return { months: Infinity, totalInterest: Infinity, neverPaysOff: true };
+  const r = (annualRatePct || 0) / 100 / 12;
+  if (r === 0) {
+    const months = Math.ceil(balance / monthlyPayment);
+    return { months, totalInterest: 0, neverPaysOff: false };
+  }
+  const monthlyInterest = balance * r;
+  if (monthlyPayment <= monthlyInterest) return { months: Infinity, totalInterest: Infinity, neverPaysOff: true };
+  const months = -Math.log(1 - (r * balance) / monthlyPayment) / Math.log(1 + r);
+  const total = months * monthlyPayment;
+  return { months: Math.ceil(months), totalInterest: total - balance, neverPaysOff: false };
+}
+
+// Per-job loan payoff: default monthly payment from profile + (annual loan repayment from job / 12).
+function loanPayoffForJob(job) {
+  const L = (profile.loans || {});
+  if (!L.balance || L.balance <= 0) return null;
+  const jobAnnualRepay = parseSalary(job.loanAssist);
+  const monthly = (L.monthlyPayment || 0) + (jobAnnualRepay / 12);
+  const r = loanMonthsToPayoff(L.balance, L.rate, monthly);
+  return { ...r, monthlyPayment: monthly, jobAnnualRepay, profilePayment: L.monthlyPayment || 0, balance: L.balance, rate: L.rate };
+}
+
+function formatMonths(months) {
+  if (!isFinite(months)) return '—';
+  if (months === 0) return 'paid off';
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  if (y === 0) return `${m} mo`;
+  if (m === 0) return `${y} yr`;
+  return `${y} yr ${m} mo`;
 }
 function computeNetPay(gross, stateCode) {
   const fed = fedIncomeTax(gross);
@@ -3003,11 +3091,18 @@ document.getElementById('timelineModal').addEventListener('click', e => {
 const PROFILE_KEY = 'jobmap.profile.v1';
 const DEFAULT_PROFILE = {
   him: { name: 'Dillon', homeCity: 'Grand Rapids, MI', homeLat: 42.9634, homeLng: -85.6681, role: 'OMFS resident', interests: '' },
-  her: { name: 'Isabel', homeCity: 'Notre Dame, IN', homeLat: 41.7001, homeLng: -86.2379, role: 'PhD candidate', field: '', interests: '' }
+  her: { name: 'Isabel', homeCity: 'Notre Dame, IN', homeLat: 41.7001, homeLng: -86.2379, role: 'PhD candidate', field: '', interests: '' },
+  loans: { balance: 0, rate: 0, monthlyPayment: 0 }
 };
 function loadProfile() {
-  try { return { him: { ...DEFAULT_PROFILE.him, ...(JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}).him }, her: { ...DEFAULT_PROFILE.her, ...(JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}).her } }; }
-  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PROFILE)); }
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
+    return {
+      him: { ...DEFAULT_PROFILE.him, ...(raw.him || {}) },
+      her: { ...DEFAULT_PROFILE.her, ...(raw.her || {}) },
+      loans: { ...DEFAULT_PROFILE.loans, ...(raw.loans || {}) }
+    };
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_PROFILE)); }
 }
 let profile = loadProfile();
 function saveProfile() {
@@ -3032,6 +3127,9 @@ function openProfile() {
   document.getElementById('pf_her_role').value = profile.her.role || '';
   document.getElementById('pf_her_field').value = profile.her.field || '';
   document.getElementById('pf_her_interests').value = profile.her.interests || '';
+  document.getElementById('pf_loanBalance').value = profile.loans.balance || '';
+  document.getElementById('pf_loanRate').value = profile.loans.rate || '';
+  document.getElementById('pf_loanPayment').value = profile.loans.monthlyPayment || '';
   document.getElementById('profileStatus').textContent = '';
   document.getElementById('profileModal').classList.add('open');
 }
@@ -3075,6 +3173,11 @@ async function saveProfileFromForm() {
       role: document.getElementById('pf_her_role').value.trim(),
       field: document.getElementById('pf_her_field').value.trim(),
       interests: document.getElementById('pf_her_interests').value.trim()
+    },
+    loans: {
+      balance: parseFloat(document.getElementById('pf_loanBalance').value) || 0,
+      rate: parseFloat(document.getElementById('pf_loanRate').value) || 0,
+      monthlyPayment: parseFloat(document.getElementById('pf_loanPayment').value) || 0
     }
   };
   saveProfile();
@@ -3162,7 +3265,7 @@ window._jobmapShowMySituation = function(jobId) {
     if (!n) return '';
     return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
       <span>${escape(label)}</span>
-      <span><span style="color:var(--accent)">${'★'.repeat(n)}</span><span style="color:#d1d5db">${'★'.repeat(5-n)}</span></span>
+      <span><span style="color:#f59e0b">${'★'.repeat(n)}</span><span style="color:#d1d5db">${'★'.repeat(5-n)}</span></span>
     </div>`;
   };
   const herRatings = [
@@ -3210,12 +3313,12 @@ window._jobmapShowMySituation = function(jobId) {
 
   // Career-fit row: left = stars, right = LinkedIn link (only one or the other may exist)
   const careerFitRow = (fitStars || linkedinInline) ? `<div style="margin-top:4px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-    <span>${fitStars ? `<b>Overall fit:</b> <span style="color:var(--accent)">${fitStars}</span>` : ''}</span>
+    <span>${fitStars ? `<b>Overall fit:</b> <span style="color:#f59e0b">${fitStars}</span>` : ''}</span>
     <span style="text-align:right">${linkedinInline}</span>
   </div>` : '';
   const herThoughtsBlock = (job.partnerFit || job.herVibe || hasHerRelo || job.partnerNotes || anyHerRatings || herInterestsRaw || herField) ? `<div class="popup-section"><strong>${escape(profile.her.name)}'s thoughts</strong>
     ${careerFitRow}
-    ${job.herVibe ? `<div style="margin-top:6px"><div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px">Vibe</div>${renderVibeChips(job.herVibe, '#4f46e5')}</div>` : ''}
+    ${job.herVibe ? `<div style="margin-top:6px"><div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px">Vibe</div>${renderVibeChips(job.herVibe, '#0891b2')}</div>` : ''}
     ${interestsBlock}
     ${meetupBlock}
     ${herRatingsBlock}
@@ -3233,7 +3336,7 @@ window._jobmapShowMySituation = function(jobId) {
     <div class="popup-section"><strong>Her family & friends nearby</strong>
       ${herPeople.map(p => {
         const miles = haversine({lat:job.lat,lng:job.lng}, p);
-        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:var(--accent)">♥</span>';
+        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:#be123c">♥</span>';
         return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
           <span>${badge} <b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})${p.college ? ' · ' + escape(p.college) : ''}</span></span>
           <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
@@ -3497,6 +3600,112 @@ function closeFamilyDistances() { document.getElementById('familyModal').classLi
 document.getElementById('familyModal').addEventListener('click', e => {
   if (e.target.id === 'familyModal') closeFamilyDistances();
 });
+
+/* ---------- Compensation modal ---------- */
+window._jobmapShowComp = function(jobId) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  openCompModal(job);
+};
+function closeComp() { document.getElementById('compModal').classList.remove('open'); }
+document.getElementById('compModal').addEventListener('click', e => {
+  if (e.target.id === 'compModal') closeComp();
+});
+
+function openCompModal(job) {
+  document.getElementById('compTitle').textContent = `${job.company} — Compensation details`;
+  const body = document.getElementById('compBody');
+  const c = compBreakdown(job);
+
+  // Take-home math, pulled from city tax stats when available, else fall back to top-rate by state code.
+  const st = (job.cityStats && job.cityStats.tax && job.cityStats.tax.code) || extractState(job.location);
+  const yr1Net      = c.yr1Total > 0     ? computeNetPay(c.yr1Total, st)     : null;
+  const ongoingNet  = c.ongoingTotal > 0 ? computeNetPay(c.ongoingTotal, st) : null;
+
+  const payoff = loanPayoffForJob(job);
+
+  // ── Headline strip ──
+  const headlineCard = (label, value, sub) => `
+    <div style="flex:1;min-width:130px;background:white;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${escape(label)}</div>
+      <div style="font-size:20px;font-weight:700;margin-top:4px;color:var(--ink)">${value}</div>
+      ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${sub}</div>` : ''}
+    </div>`;
+  const headlineStrip = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+    ${headlineCard('Yr 1 true comp',     c.yr1Total     > 0 ? fmtMoney(c.yr1Total)     : '—', 'base + production + sign-on + loan repay')}
+    ${headlineCard('Ongoing (Yr 2+)',    c.ongoingTotal > 0 ? fmtMoney(c.ongoingTotal) : '—', 'base + production + loan repay')}
+    ${headlineCard('Take-home (Yr 2+)',  ongoingNet ? fmtMoney(ongoingNet.net) : '—', st ? `after ${st} tax + FICA` : 'enter state for tax math')}
+    ${headlineCard('Debt-free in',       payoff ? formatMonths(payoff.months) : '—', payoff ? (payoff.neverPaysOff ? 'payment too low to cover interest' : 'using your default payment') : 'set loan inputs in profile')}
+  </div>`;
+
+  // ── Comp breakdown table ──
+  const row = (label, yr1, ongoing, note) => `<tr>
+    <td style="padding:6px 8px 6px 0;font-size:13px">${escape(label)}${note ? `<br><span style="font-size:11px;color:var(--muted)">${note}</span>` : ''}</td>
+    <td style="padding:6px 8px;text-align:right;font-size:13px">${yr1}</td>
+    <td style="padding:6px 0 6px 8px;text-align:right;font-size:13px">${ongoing}</td>
+  </tr>`;
+  const showOrDash = v => v > 0 ? fmtMoney(v) : '<span style="color:var(--muted)">—</span>';
+  const breakdownTable = `<h3 style="margin:0 0 6px">Comp breakdown</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;text-align:left">
+        <th style="padding:0 8px 6px 0;border-bottom:1px solid var(--line)">Component</th>
+        <th style="padding:0 8px 6px 8px;text-align:right;border-bottom:1px solid var(--line)">Year 1</th>
+        <th style="padding:0 0 6px 8px;text-align:right;border-bottom:1px solid var(--line)">Ongoing (Yr 2+)</th>
+      </tr></thead>
+      <tbody>
+        ${row('Base salary',                  showOrDash(c.base),                           showOrDash(c.base))}
+        ${row('Production bonus',             showOrDash(c.productionAdd),                  showOrDash(c.productionAdd), c.production > 0 ? `est. production ${fmtMoney(c.production)} × ${c.pct || 0}%` : '')}
+        ${row('Signing bonus',                showOrDash(c.signing),                        '<span style="color:var(--muted)">—</span>', 'Yr 1 only')}
+        ${row('Employer loan repayment',      showOrDash(c.loanRepay),                      showOrDash(c.loanRepay), c.loanRepay > 0 ? `parsed from "${escape(job.loanAssist || '')}"` : '')}
+        <tr style="font-weight:700;background:#f9fafb">
+          <td style="padding:8px 8px 8px 0;font-size:13px">True total comp</td>
+          <td style="padding:8px 8px;text-align:right;font-size:13px">${showOrDash(c.yr1Total)}</td>
+          <td style="padding:8px 0 8px 8px;text-align:right;font-size:13px">${showOrDash(c.ongoingTotal)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // ── Take-home math ──
+  const taxBlock = ongoingNet ? `<h3 style="margin:18px 0 6px">Take-home math <span style="font-weight:400;font-size:11px;color:var(--muted)">(${st ? `state: ${st}` : 'national avg'} · on ongoing comp)</span></h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr><td style="padding:4px 0;color:var(--muted)">Gross (Yr 2+)</td><td style="text-align:right">${fmtMoney(ongoingNet.gross)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--muted)">Federal income tax</td><td style="text-align:right">−${fmtMoney(ongoingNet.fed)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--muted)">State income tax${st ? ` (${st})` : ''}</td><td style="text-align:right">−${fmtMoney(ongoingNet.state)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--muted)">FICA (SS + Medicare)</td><td style="text-align:right">−${fmtMoney(ongoingNet.fica)}</td></tr>
+      <tr style="font-weight:700;border-top:1px solid var(--line)"><td style="padding:6px 0">Net / yr</td><td style="text-align:right">${fmtMoney(ongoingNet.net)}</td></tr>
+      <tr><td style="padding:2px 0;color:var(--muted);font-size:11px">≈ ${fmtMoney(ongoingNet.net / 12)}/month</td><td></td></tr>
+    </table>` : `<h3 style="margin:18px 0 6px">Take-home math</h3><p style="color:var(--muted);font-size:13px">Enter a base salary to see the take-home breakdown.</p>`;
+
+  // ── Loan payoff ──
+  const L = profile.loans || {};
+  let loanBlock;
+  if (!L.balance || L.balance <= 0) {
+    loanBlock = `<h3 style="margin:18px 0 6px">Loan payoff</h3>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;font-size:13px">
+        No loan balance set. <a href="#" onclick="event.preventDefault(); closeComp(); openProfile()" style="color:var(--accent);text-decoration:underline">Add your loan inputs in profile</a> to see a payoff date here.
+      </div>`;
+  } else {
+    const monthsLabel = payoff.neverPaysOff
+      ? `<b style="color:#b45309">Payment too low</b> — monthly payment doesn't cover interest at ${L.rate}% APR. Increase payment to pay this off.`
+      : `<b>${formatMonths(payoff.months)}</b> to debt-free`;
+    loanBlock = `<h3 style="margin:18px 0 6px">Loan payoff</h3>
+      <div style="background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px">
+        <div style="margin-bottom:6px">${monthsLabel}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--muted)">
+          <div>Balance: <b style="color:var(--ink)">${fmtMoney(L.balance)}</b></div>
+          <div>Rate: <b style="color:var(--ink)">${L.rate || 0}% APR</b></div>
+          <div>Your default payment: <b style="color:var(--ink)">${fmtMoney(L.monthlyPayment || 0)}/mo</b></div>
+          <div>From this job: <b style="color:var(--ink)">${fmtMoney(payoff.jobAnnualRepay / 12)}/mo</b> ${payoff.jobAnnualRepay > 0 ? '' : '<span style="color:var(--muted)">(none)</span>'}</div>
+          <div style="grid-column:1/-1;padding-top:4px;border-top:1px solid var(--line);margin-top:4px">Total monthly payment used: <b style="color:var(--ink)">${fmtMoney(payoff.monthlyPayment)}/mo</b></div>
+          ${payoff.neverPaysOff ? '' : `<div style="grid-column:1/-1">Total interest over payoff: <b style="color:var(--ink)">${fmtMoney(payoff.totalInterest)}</b></div>`}
+        </div>
+      </div>
+      ${(job.loanAssist && /pslf/i.test(job.loanAssist)) ? `<div style="font-size:11px;color:var(--muted);margin-top:6px">⚑ This job mentions PSLF — if employer is a 501(c)(3) hospital, 10 years of qualifying payments could forgive the remaining balance regardless of the math above.</div>` : ''}`;
+  }
+
+  body.innerHTML = headlineStrip + breakdownTable + taxBlock + loanBlock;
+  document.getElementById('compModal').classList.add('open');
+}
 
 /* ---------- Decision score detail modal ---------- */
 window._jobmapShowScore = function(jobId) {
@@ -3776,18 +3985,12 @@ function renderJobDetails(job) {
     <!-- Action buttons row (all uniform style) -->
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
       <button onclick="window._jobmapShowNotes('${job.id}')" style="${btn}">Notes & info</button>
+      <button onclick="window._jobmapShowComp('${job.id}')" style="${btn}">Compensation</button>
       <button onclick="window._jobmapShowCityStats('${job.id}','col')" style="${btn}">City info</button>
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowHisImpressions('${job.id}')" style="${btn}">His Impressions</button>` : ''}
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowMySituation('${job.id}')" style="${btn}">Her situation</button>` : ''}
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowScore('${job.id}')" style="${btn}">Decision matrix</button>` : ''}
     </div>
-
-    <!-- Production + base breakdown (inline, if entered) -->
-    ${(job.estimatedProduction || job.productionPercent) ? `<div class="popup-section"><strong>Production-based comp</strong>
-      ${job.estimatedProduction ? `<div>Estimated yearly production: ${escape(job.estimatedProduction)}</div>` : ''}
-      ${job.productionPercent ? `<div>% to income: ${escape(job.productionPercent)}%</div>` : ''}
-      ${(() => { const t = totalGrossComp(job); return t > 0 ? `<div style="margin-top:4px;font-weight:600">Estimated total gross: ${fmtMoney(t)}</div>` : ''; })()}
-    </div>` : ''}
 
     <!-- Workdays/week (inline, prominent — sits in the main section) -->
     ${job.workdaysPerWeek ? `<div style="margin-bottom:10px;font-size:13px"><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : ''}
@@ -4255,6 +4458,55 @@ function focusJob(jobId) {
   if (!job || job.lat == null) return;
   map.setView([job.lat, job.lng], 8);
   markers[jobId] && markers[jobId].openPopup();
+  lastFocusedJobId = jobId;
+  if (driveRingsEnabled) redrawDriveRings();
+}
+
+/* ---------- Drive-time isochrone rings (rough approximation) ----------
+   Real isochrones need a routing service. We approximate as concentric circles using
+   a typical 35 mph blended speed (mix of highway + surface), giving 20 / 40 / 60 min ≈
+   12 / 23 / 35 miles. Good enough for "could we live there?" framing.
+   Layer behavior: toggle on → rings appear around the most recently focused job and
+   follow you as you click between jobs. Toggle off → rings disappear.            */
+let driveRingsLayer = null;
+let driveRingsEnabled = false;
+let lastFocusedJobId = null;
+function clearDriveRings() {
+  if (driveRingsLayer) { map.removeLayer(driveRingsLayer); driveRingsLayer = null; }
+}
+function redrawDriveRings() {
+  clearDriveRings();
+  if (!driveRingsEnabled) return;
+  const job = jobs.find(j => j.id === lastFocusedJobId);
+  if (!job || job.lat == null) return;
+  const MI_TO_M = 1609.34;
+  const rings = [
+    { minutes: 20, miles: 12, color: '#16a34a', fill: 0.10 },
+    { minutes: 40, miles: 23, color: '#0891b2', fill: 0.06 },
+    { minutes: 60, miles: 35, color: '#6366f1', fill: 0.04 }
+  ];
+  driveRingsLayer = L.layerGroup();
+  rings.slice().reverse().forEach(r => {
+    L.circle([job.lat, job.lng], {
+      radius: r.miles * MI_TO_M,
+      color: r.color, weight: 2, opacity: 0.6,
+      fillColor: r.color, fillOpacity: r.fill, interactive: false
+    }).bindTooltip(`~${r.minutes} min drive (${r.miles} mi)`, { permanent: false, sticky: true }).addTo(driveRingsLayer);
+  });
+  driveRingsLayer.addTo(map);
+}
+function toggleDriveRingsLayer(on) {
+  driveRingsEnabled = on;
+  if (on) {
+    // Fall back to first omfs/current pin if user hasn't focused anything yet
+    if (!lastFocusedJobId) {
+      const fallback = jobs.find(j => j.lat != null && j.kind !== 'sister');
+      if (fallback) lastFocusedJobId = fallback.id;
+    }
+    redrawDriveRings();
+  } else {
+    clearDriveRings();
+  }
 }
 
 /* ---------- Form ---------- */
