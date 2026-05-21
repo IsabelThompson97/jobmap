@@ -253,6 +253,7 @@
         <button onclick="openProfile(); closeManageMenu()">Profile (his / her info)…</button>
         <button onclick="openDestinations(); closeManageMenu()">Plane destinations…</button>
         <button onclick="openPeople(); closeManageMenu()">Family & friends…</button>
+        <button onclick="openHouses(); closeManageMenu()">Houses / listings…</button>
         <button onclick="openWeights(); closeManageMenu()">Decision matrix weights…</button>
         <button onclick="exportData(); closeManageMenu()">Export backup</button>
         <button onclick="document.getElementById('importFile').click(); closeManageMenu()">Import backup</button>
@@ -603,6 +604,10 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <input type="checkbox" id="peopleToggle" onchange="togglePeople(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ec4899;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ec4899;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
       </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="housesToggle" onchange="toggleHouses(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Houses / listings <span style="color:var(--muted);font-size:11px;font-weight:400">(add under Manage → Houses)</span></span>
+      </label>
 
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">His career context</div>
       <label class="toggle-row">
@@ -720,6 +725,21 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       <button type="button" class="primary" onclick="savePeopleFromForm()">Save</button>
     </div>
     <div id="peopleStatus" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div>
+
+<!-- Houses Modal -->
+<div class="modal-backdrop" id="housesModal">
+  <div class="modal" style="width:min(680px,94vw)">
+    <h2>Houses / listings</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Paste in Zillow (or any) listings you're considering. Turn on the "Houses" map layer to see them, click a pin for a quick card.</p>
+    <div id="housesList"></div>
+    <button type="button" onclick="addHouseRow()" style="margin-top:8px;padding:6px 10px;border:1px dashed var(--line);border-radius:6px;background:white;cursor:pointer;font-size:12px;width:100%">+ Add a house</button>
+    <div class="modal-actions">
+      <button type="button" onclick="closeHouses()">Cancel</button>
+      <button type="button" class="primary" onclick="saveHousesFromForm()">Save</button>
+    </div>
+    <div id="housesStatus" style="margin-top:8px;font-size:12px"></div>
   </div>
 </div>
 
@@ -1047,6 +1067,18 @@ function savePeople() {
   syncConfigToSheet('people', people);
 }
 let showPeople = false, peopleLayer = null;
+
+// ---------- Houses (Zillow / for-sale listings, user-curated) ----------
+const HOUSES_KEY = 'jobmap.houses.v1';
+let houses = (() => {
+  try { return JSON.parse(localStorage.getItem(HOUSES_KEY)) || []; }
+  catch(e) { return []; }
+})();
+function saveHouses() {
+  localStorage.setItem(HOUSES_KEY, JSON.stringify(houses));
+  syncConfigToSheet('houses', houses);
+}
+let showHouses = false, housesLayer = null;
 
 function travelEstimate(miles) {
   if (miles < 250) {
@@ -2111,6 +2143,11 @@ async function pullFromSheet() {
         localStorage.setItem(PEOPLE_KEY, JSON.stringify(people));
         if (showPeople) drawPeople();
       }
+      if (Array.isArray(cfg.houses)) {
+        houses = cfg.houses;
+        localStorage.setItem(HOUSES_KEY, JSON.stringify(houses));
+        if (showHouses) drawHouses();
+      }
       if (Array.isArray(cfg.destinations)) {
         destinations = cfg.destinations;
         localStorage.setItem(DESTINATIONS_KEY, JSON.stringify(destinations));
@@ -2911,6 +2948,99 @@ document.getElementById('peopleModal').addEventListener('click', e => {
   if (e.target.id === 'peopleModal') closePeople();
 });
 
+/* ---------- Houses / listings ---------- */
+function openHouses() {
+  const list = document.getElementById('housesList');
+  list.innerHTML = houses.map((h, i) => `
+    <div style="border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px">
+        <input id="h_addr_${i}"  value="${escape(h.address || '')}"  placeholder="Address or city, state" />
+        <input id="h_price_${i}" value="${escape(h.price || '')}"    placeholder="Price (e.g. $425k)" />
+        <button type="button" onclick="removeHouse(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
+        <input id="h_beds_${i}"  value="${escape(h.beds || '')}"  placeholder="Beds (e.g. 3)" />
+        <input id="h_baths_${i}" value="${escape(h.baths || '')}" placeholder="Baths (e.g. 2.5)" />
+        <input id="h_sqft_${i}"  value="${escape(h.sqft || '')}"  placeholder="Sq ft (e.g. 1850)" />
+      </div>
+      <input id="h_zillow_${i}" value="${escape(h.zillowUrl || '')}" placeholder="Zillow URL (https://www.zillow.com/...)" style="margin-top:6px" />
+      <input id="h_image_${i}"  value="${escape(h.imageUrl || '')}"  placeholder="Image URL (right-click photo on Zillow → Copy Image Address)" style="margin-top:6px" />
+      <textarea id="h_notes_${i}" placeholder="Quick notes: fenced yard, nice kitchen, no garage…" style="margin-top:6px;min-height:50px">${escape(h.notes || '')}</textarea>
+    </div>
+  `).join('');
+  document.getElementById('housesStatus').textContent = '';
+  document.getElementById('housesModal').classList.add('open');
+}
+function closeHouses() { document.getElementById('housesModal').classList.remove('open'); }
+function addHouseRow() { houses.push({ address: '', lat: null, lng: null, price: '', beds: '', baths: '', sqft: '', zillowUrl: '', imageUrl: '', notes: '' }); openHouses(); }
+function removeHouse(i) { houses.splice(i, 1); openHouses(); }
+async function saveHousesFromForm() {
+  const status = document.getElementById('housesStatus');
+  status.textContent = 'Looking up coordinates…'; status.style.color = '';
+  const newHouses = [];
+  for (let i = 0; i < houses.length; i++) {
+    const get = id => (document.getElementById(id) || {}).value || '';
+    const addr   = get(`h_addr_${i}`).trim();
+    const price  = get(`h_price_${i}`).trim();
+    const beds   = get(`h_beds_${i}`).trim();
+    const baths  = get(`h_baths_${i}`).trim();
+    const sqft   = get(`h_sqft_${i}`).trim();
+    const zillow = get(`h_zillow_${i}`).trim();
+    const image  = get(`h_image_${i}`).trim();
+    const notes  = get(`h_notes_${i}`).trim();
+    if (!addr) continue;
+    const existing = houses[i];
+    // Reuse existing coords if address unchanged
+    if (existing && existing.address === addr && existing.lat != null) {
+      newHouses.push({ ...existing, address: addr, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
+      continue;
+    }
+    try {
+      const coords = await geocode(addr);
+      if (!coords) { status.textContent = `Couldn't find "${addr}"`; status.style.color = '#b91c1c'; return; }
+      newHouses.push({ address: addr, lat: coords.lat, lng: coords.lng, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
+    } catch (e) {
+      status.textContent = `Lookup failed for "${addr}"`; status.style.color = '#b91c1c'; return;
+    }
+  }
+  houses = newHouses;
+  saveHouses();
+  if (showHouses) drawHouses();
+  closeHouses();
+}
+document.getElementById('housesModal').addEventListener('click', e => {
+  if (e.target.id === 'housesModal') closeHouses();
+});
+
+/* ---------- Houses map layer ---------- */
+function toggleHouses(on) { showHouses = on; if (on) drawHouses(); else clearHouses(); }
+function clearHouses() { if (housesLayer) { map.removeLayer(housesLayer); housesLayer = null; } }
+function drawHouses() {
+  clearHouses();
+  housesLayer = L.layerGroup().addTo(map);
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="background:#16a34a;color:white;font-size:13px;font-weight:700;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);border:2px solid white;line-height:1">🏠</div>',
+    iconSize: [22, 22], iconAnchor: [11, 11]
+  });
+  houses.forEach(h => {
+    if (h.lat == null || h.lng == null) return;
+    const m = L.marker([h.lat, h.lng], { icon }).addTo(housesLayer);
+    m.bindPopup(housePopupHtml(h), { maxWidth: 280, minWidth: 220 });
+  });
+}
+function housePopupHtml(h) {
+  const stats = [h.beds && `${escape(h.beds)} bd`, h.baths && `${escape(h.baths)} ba`, h.sqft && `${escape(h.sqft)} sqft`].filter(Boolean).join(' · ');
+  return `
+    ${h.imageUrl ? `<img src="${escape(h.imageUrl)}" style="width:100%;height:140px;object-fit:cover;border-radius:6px;margin-bottom:6px" onerror="this.style.display='none'" />` : ''}
+    ${h.price    ? `<div style="font-size:15px;font-weight:700">${escape(h.price)}</div>` : ''}
+    ${stats      ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${stats}</div>` : ''}
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${escape(h.address || '')}</div>
+    ${h.notes    ? `<div style="font-size:12px;margin-top:6px;padding:6px 8px;background:#f9fafb;border-radius:6px;white-space:pre-wrap">${escape(h.notes)}</div>` : ''}
+    ${h.zillowUrl ? `<div style="margin-top:8px"><a href="${escape(h.zillowUrl)}" target="_blank" style="color:var(--accent);font-size:12px;font-weight:600">View on Zillow ↗</a></div>` : ''}
+  `;
+}
+
 /* ---------- 40-mile radius layer (drawn around each visible job pin) ---------- */
 let showJobRadius = false, jobRadiusLayer = null;
 function toggleJobRadius(on) { showJobRadius = on; if (on) drawJobRadius(); else clearJobRadius(); }
@@ -3144,11 +3274,7 @@ function loadProfile() {
 let profile = loadProfile();
 function saveProfile() {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  console.log('[saveProfile] sending to sheet:', JSON.parse(JSON.stringify(profile)));
-  syncConfigToSheet('profile', profile)
-    .then(() => setSyncStatus('✓ Profile saved to sheet (incl. loans)', 'success'))
-    .catch(e => setSyncStatus('Sheet sync failed: ' + e.message, 'error'));
-  setTimeout(() => setSyncStatus(''), 3500);
+  syncConfigToSheet('profile', profile);
 }
 // Home-base getters used everywhere (His Impressions, Her Situation, relocation cost, etc.)
 function getHisHome() { return { name: profile.him.homeCity.split(',')[0].trim(), city: profile.him.homeCity, lat: profile.him.homeLat, lng: profile.him.homeLng, note: `${profile.him.name}'s current location` }; }
