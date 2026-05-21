@@ -2963,6 +2963,7 @@ function openHouses() {
         <input id="h_baths_${i}" value="${escape(h.baths || '')}" placeholder="Baths (e.g. 2.5)" />
         <input id="h_sqft_${i}"  value="${escape(h.sqft || '')}"  placeholder="Sq ft (e.g. 1850)" />
       </div>
+      <input id="h_latlng_${i}" value="${h.lat != null && h.lng != null ? `${h.lat}, ${h.lng}` : ''}" placeholder="Lat, Lng (optional — paste from Google Maps if address won't geocode)" style="margin-top:6px" />
       <input id="h_zillow_${i}" value="${escape(h.zillowUrl || '')}" placeholder="Zillow URL (https://www.zillow.com/...)" style="margin-top:6px" />
       <input id="h_image_${i}"  value="${escape(h.imageUrl || '')}"  placeholder="Image URL (right-click photo on Zillow → Copy Image Address)" style="margin-top:6px" />
       <textarea id="h_notes_${i}" placeholder="Quick notes: fenced yard, nice kitchen, no garage…" style="margin-top:6px;min-height:50px">${escape(h.notes || '')}</textarea>
@@ -2981,6 +2982,7 @@ async function saveHousesFromForm() {
   for (let i = 0; i < houses.length; i++) {
     const get = id => (document.getElementById(id) || {}).value || '';
     const addr   = get(`h_addr_${i}`).trim();
+    const latlng = get(`h_latlng_${i}`).trim();
     const price  = get(`h_price_${i}`).trim();
     const beds   = get(`h_beds_${i}`).trim();
     const baths  = get(`h_baths_${i}`).trim();
@@ -2989,15 +2991,25 @@ async function saveHousesFromForm() {
     const image  = get(`h_image_${i}`).trim();
     const notes  = get(`h_notes_${i}`).trim();
     if (!addr) continue;
+    // If the user pasted "lat, lng" coords directly, skip geocoding entirely (handles rural addresses Nominatim can't find).
+    const latlngMatch = latlng.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (latlngMatch) {
+      newHouses.push({ address: addr, lat: parseFloat(latlngMatch[1]), lng: parseFloat(latlngMatch[2]), price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
+      continue;
+    }
     const existing = houses[i];
-    // Reuse existing coords if address unchanged
+    // Reuse existing coords if address unchanged and no override given
     if (existing && existing.address === addr && existing.lat != null) {
       newHouses.push({ ...existing, address: addr, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
       continue;
     }
     try {
       const coords = await geocode(addr);
-      if (!coords) { status.textContent = `Couldn't find "${addr}"`; status.style.color = '#b91c1c'; return; }
+      if (!coords) {
+        status.innerHTML = `Couldn't find "${escape(addr)}" — paste lat/lng from Google Maps in the optional box (right-click pin → first item is the coordinates)`;
+        status.style.color = '#b91c1c';
+        return;
+      }
       newHouses.push({ address: addr, lat: coords.lat, lng: coords.lng, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
     } catch (e) {
       status.textContent = `Lookup failed for "${addr}"`; status.style.color = '#b91c1c'; return;
