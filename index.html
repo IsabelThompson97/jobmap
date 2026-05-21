@@ -1765,6 +1765,13 @@ function parsePercent(s) {
   const m = String(s).match(/([\d.]+)/);
   return m ? parseFloat(m[1]) : 0;
 }
+// Accepts $450,000 / 450k / 450000.50 / " 6.5% " etc. — strips $, commas, %, whitespace.
+function parseLooseNumber(s) {
+  if (s == null || s === '') return 0;
+  const cleaned = String(s).replace(/[$,%\s]/g, '');
+  const v = parseFloat(cleaned);
+  return isFinite(v) ? v : 0;
+}
 function totalGrossComp(job) {
   const base = parseSalary(job.salary);
   const production = parseSalary(job.estimatedProduction);
@@ -3137,7 +3144,11 @@ function loadProfile() {
 let profile = loadProfile();
 function saveProfile() {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  syncConfigToSheet('profile', profile);
+  console.log('[saveProfile] sending to sheet:', JSON.parse(JSON.stringify(profile)));
+  syncConfigToSheet('profile', profile)
+    .then(() => setSyncStatus('✓ Profile saved to sheet (incl. loans)', 'success'))
+    .catch(e => setSyncStatus('Sheet sync failed: ' + e.message, 'error'));
+  setTimeout(() => setSyncStatus(''), 3500);
 }
 // Home-base getters used everywhere (His Impressions, Her Situation, relocation cost, etc.)
 function getHisHome() { return { name: profile.him.homeCity.split(',')[0].trim(), city: profile.him.homeCity, lat: profile.him.homeLat, lng: profile.him.homeLng, note: `${profile.him.name}'s current location` }; }
@@ -3206,9 +3217,9 @@ async function saveProfileFromForm() {
       interests: document.getElementById('pf_her_interests').value.trim()
     },
     loans: {
-      balance: parseFloat(document.getElementById('pf_loanBalance').value) || 0,
-      rate: parseFloat(document.getElementById('pf_loanRate').value) || 0,
-      monthlyPayment: parseFloat(document.getElementById('pf_loanPayment').value) || 0
+      balance: parseLooseNumber(document.getElementById('pf_loanBalance').value),
+      rate: parseLooseNumber(document.getElementById('pf_loanRate').value),
+      monthlyPayment: parseLooseNumber(document.getElementById('pf_loanPayment').value)
     }
   };
   saveProfile();
