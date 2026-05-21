@@ -598,22 +598,19 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     <h2 style="margin:0 0 6px">Map Layers</h2>
     <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Toggle overlays on the map.</p>
     <div class="toggle-list">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px">People</div>
       <label class="toggle-row">
         <input type="checkbox" id="peopleToggle" onchange="togglePeople(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ec4899;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ec4899;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
       </label>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">His career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="traumaToggle" onchange="toggleTrauma(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#b91c1c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #b91c1c;vertical-align:middle;margin-right:6px"></span>Level 1 trauma centers</span>
       </label>
-      <label class="toggle-row">
-        <input type="checkbox" id="cityDistanceToggle" onchange="toggleCityDistance(this.checked)" />
-        <span class="toggle-label">Show distance to nearest major city</span>
-      </label>
-      <label class="toggle-row">
-        <input type="checkbox" id="airportsToggle" onchange="toggleAirports(this.checked)" />
-        <span class="toggle-label">Show major US airports</span>
-      </label>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Her career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="universitiesToggle" onchange="toggleUniversities(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Universities (comp chem / R1)</span>
@@ -627,12 +624,22 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <span class="toggle-label"><span style="display:inline-block;width:18px;height:14px;background:#06b6d4;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #06b6d4;vertical-align:middle;margin-right:6px"></span>AI / ML research labs</span>
       </label>
       <label class="toggle-row">
-        <input type="checkbox" id="driveRingsToggle" onchange="toggleDriveRingsLayer(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #6366f1;vertical-align:middle;margin-right:6px;opacity:0.5"></span>Drive-time rings (20/40/60 min)<br><span style="color:var(--muted);font-size:11px;font-weight:400">Draws around the job you most recently clicked.</span></span>
-      </label>
-      <label class="toggle-row">
         <input type="checkbox" id="pharmaToggle" onchange="togglePharma(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span style="color:var(--muted);font-size:11px">(orange = big pharma · </span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:50%;vertical-align:middle;margin:0 3px"></span><span style="color:var(--muted);font-size:11px">violet = comp chem / AI drug discovery)</span></span>
+      </label>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Travel & geography</div>
+      <label class="toggle-row">
+        <input type="checkbox" id="jobRadiusToggle" onchange="toggleJobRadius(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:transparent;border-radius:50%;border:2px solid #4f46e5;vertical-align:middle;margin-right:6px"></span>25-mile radius around each job</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="cityDistanceToggle" onchange="toggleCityDistance(this.checked)" />
+        <span class="toggle-label">Show distance to nearest major city</span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="airportsToggle" onchange="toggleAirports(this.checked)" />
+        <span class="toggle-label">Show major US airports</span>
       </label>
     </div>
     <div class="modal-actions">
@@ -2108,7 +2115,8 @@ async function pullFromSheet() {
       if (cfg.profile && typeof cfg.profile === 'object') {
         profile = {
           him: { ...DEFAULT_PROFILE.him, ...(cfg.profile.him || {}) },
-          her: { ...DEFAULT_PROFILE.her, ...(cfg.profile.her || {}) }
+          her: { ...DEFAULT_PROFILE.her, ...(cfg.profile.her || {}) },
+          loans: { ...DEFAULT_PROFILE.loans, ...(cfg.profile.loans || {}) }
         };
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
         if (typeof refreshHomeBases === 'function') refreshHomeBases();
@@ -2896,6 +2904,28 @@ document.getElementById('peopleModal').addEventListener('click', e => {
   if (e.target.id === 'peopleModal') closePeople();
 });
 
+/* ---------- 40-mile radius layer (drawn around each visible job pin) ---------- */
+let showJobRadius = false, jobRadiusLayer = null;
+function toggleJobRadius(on) { showJobRadius = on; if (on) drawJobRadius(); else clearJobRadius(); }
+function clearJobRadius() { if (jobRadiusLayer) { map.removeLayer(jobRadiusLayer); jobRadiusLayer = null; } }
+function drawJobRadius() {
+  clearJobRadius();
+  jobRadiusLayer = L.layerGroup().addTo(map);
+  const MI_TO_M = 1609.34;
+  jobs.forEach(job => {
+    if (job.lat == null || job.kind === 'me') return;
+    if (job.kind === 'sister') {
+      const parent = jobs.find(p => p.id === job.parentId);
+      if (!parent || !passesFilter(parent)) return;
+    } else if (!passesFilter(job)) return;
+    L.circle([job.lat, job.lng], {
+      radius: 25 * MI_TO_M,
+      color: '#4f46e5', weight: 1.5, opacity: 0.55,
+      fillColor: '#4f46e5', fillOpacity: 0.05, interactive: false
+    }).addTo(jobRadiusLayer);
+  });
+}
+
 function togglePeople(on) { showPeople = on; if (on) drawPeople(); else clearPeople(); }
 function clearPeople() { if (peopleLayer) { map.removeLayer(peopleLayer); peopleLayer = null; } }
 function drawPeople() {
@@ -3127,6 +3157,7 @@ function openProfile() {
   document.getElementById('pf_her_role').value = profile.her.role || '';
   document.getElementById('pf_her_field').value = profile.her.field || '';
   document.getElementById('pf_her_interests').value = profile.her.interests || '';
+  if (!profile.loans) profile.loans = { ...DEFAULT_PROFILE.loans };
   document.getElementById('pf_loanBalance').value = profile.loans.balance || '';
   document.getElementById('pf_loanRate').value = profile.loans.rate || '';
   document.getElementById('pf_loanPayment').value = profile.loans.monthlyPayment || '';
@@ -4229,6 +4260,7 @@ function renderMarkers() {
     markers[job.id] = m;
   });
   if (showCityDistance) drawCityDistance();
+  if (showJobRadius) drawJobRadius();
 }
 
 const SORT_KEY = 'jobmap.sortBy.v1';
@@ -4458,55 +4490,6 @@ function focusJob(jobId) {
   if (!job || job.lat == null) return;
   map.setView([job.lat, job.lng], 8);
   markers[jobId] && markers[jobId].openPopup();
-  lastFocusedJobId = jobId;
-  if (driveRingsEnabled) redrawDriveRings();
-}
-
-/* ---------- Drive-time isochrone rings (rough approximation) ----------
-   Real isochrones need a routing service. We approximate as concentric circles using
-   a typical 35 mph blended speed (mix of highway + surface), giving 20 / 40 / 60 min ≈
-   12 / 23 / 35 miles. Good enough for "could we live there?" framing.
-   Layer behavior: toggle on → rings appear around the most recently focused job and
-   follow you as you click between jobs. Toggle off → rings disappear.            */
-let driveRingsLayer = null;
-let driveRingsEnabled = false;
-let lastFocusedJobId = null;
-function clearDriveRings() {
-  if (driveRingsLayer) { map.removeLayer(driveRingsLayer); driveRingsLayer = null; }
-}
-function redrawDriveRings() {
-  clearDriveRings();
-  if (!driveRingsEnabled) return;
-  const job = jobs.find(j => j.id === lastFocusedJobId);
-  if (!job || job.lat == null) return;
-  const MI_TO_M = 1609.34;
-  const rings = [
-    { minutes: 20, miles: 12, color: '#16a34a', fill: 0.10 },
-    { minutes: 40, miles: 23, color: '#0891b2', fill: 0.06 },
-    { minutes: 60, miles: 35, color: '#6366f1', fill: 0.04 }
-  ];
-  driveRingsLayer = L.layerGroup();
-  rings.slice().reverse().forEach(r => {
-    L.circle([job.lat, job.lng], {
-      radius: r.miles * MI_TO_M,
-      color: r.color, weight: 2, opacity: 0.6,
-      fillColor: r.color, fillOpacity: r.fill, interactive: false
-    }).bindTooltip(`~${r.minutes} min drive (${r.miles} mi)`, { permanent: false, sticky: true }).addTo(driveRingsLayer);
-  });
-  driveRingsLayer.addTo(map);
-}
-function toggleDriveRingsLayer(on) {
-  driveRingsEnabled = on;
-  if (on) {
-    // Fall back to first omfs/current pin if user hasn't focused anything yet
-    if (!lastFocusedJobId) {
-      const fallback = jobs.find(j => j.lat != null && j.kind !== 'sister');
-      if (fallback) lastFocusedJobId = fallback.id;
-    }
-    redrawDriveRings();
-  } else {
-    clearDriveRings();
-  }
 }
 
 /* ---------- Form ---------- */
