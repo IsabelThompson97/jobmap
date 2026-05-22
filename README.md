@@ -95,13 +95,13 @@ One-time 5-minute setup connects your Job Map to a Google Sheet for:
 
 Includes a ready-to-use Google Apps Script that handles all the sync logic.
 
-### Progressive Web App (PWA)
-- Offline access - Browse and manage your jobs even without internet
+### Home Screen Install
 - Install to home screen - "Add to Home Screen" on iOS or Android for quick access
-- Works like a native app - Full-screen, icon in app drawer
+- App-like view - Opens full-screen without browser chrome once added to your home screen
+- Note: an internet connection is required (for the map tiles and Google Sheet sync); the app does not currently work fully offline
 
 ### Data Management
-- Export backup - Download all your job data as JSON (encrypted locally)
+- Export backup - Download all your job data as a JSON file
 - Import backup - Restore from a previous export
 - Manage destinations - Set 3 important places to calculate distances for every job
 - Family & friends - Add up to 5 people whose location matters; drive/flight times show on each job popup
@@ -110,32 +110,39 @@ Includes a ready-to-use Google Apps Script that handles all the sync logic.
 
 ## Getting Started
 
-### Quick Start (No Setup Required)
+### Trying the live demo (no setup)
 
-1. Open the app: Visit the URL where you've deployed Job Map (or use the repo directly)
-2. Add a job: Click + Add Job in the sidebar
-3. Fill in details: Company, location (city, state), status, and notes
-4. Watch it appear: The job shows on the map instantly
-5. Explore the map: Click pins for details, use filters to narrow down
+The publicly hosted version of Job Map loads a shared **demo sheet** filled with fictional sample data, so you can explore every feature — pins, filters, the decision matrix, comparisons, the map layers — without any setup. The demo sheet is public and may be reset at any time, so don't store anything real in it. To use Job Map for your own search, host your own copy and connect your own Google Sheet, as described below.
 
-All your data is saved in your browser's local storage—no account required.
+### Installation — host your own copy
 
-### Enable Google Sheets Sync (Optional)
+Job Map is a single static HTML file plus a Google Apps Script backend. Standing up your own instance takes about ten minutes and keeps all of your data in a Google Sheet that **you** own.
 
-To sync your jobs to a Google Sheet for backup and cross-device access:
+**1. Get the code**
 
-1. Open a new Google Sheet: Go to sheets.new and name it "Job Map"
-2. Open Apps Script: Click Extensions -> Apps Script in the sheet
-3. Copy the script: In Job Map, go to Manage -> Sync to Google Sheet... and click "Copy script"
-4. Paste & save: Paste the code into the Apps Script editor, then save (Ctrl/Cmd+S)
-5. Deploy: Click Deploy -> New deployment, select Web app, set:
-   - Execute as: Me
-   - Who has access: Anyone
-   - Click Deploy and authorize
-6. Connect: Copy the Web app URL Google gives you and paste it in Job Map's sync settings
-7. Test: Click "Test Connection" to verify, then click "Save & Sync"
+- Fork this repository on GitHub (click **Fork** at the top right), or download `index.html` and add it to a new repository of your own.
 
-That's it! Your jobs now sync automatically.
+**2. Publish it with GitHub Pages**
+
+- This repo includes a GitHub Actions workflow (`.github/workflows/jekyll-gh-pages.yml`) that builds and deploys the site automatically.
+- In your fork, go to **Settings → Pages**, and under "Build and deployment" set **Source** to **GitHub Actions**.
+- Push to the `main` branch (or open the **Actions** tab and run the workflow manually). GitHub will publish your site at `https://<your-username>.github.io/<repo-name>/`.
+
+**3. Set up your own Google Sheet backend**
+
+- Create a new Google Sheet (visit sheets.new) and name it whatever you like.
+- In that sheet, open **Extensions → Apps Script**.
+- In your deployed Job Map, open **Manage → Sync to Google Sheet…** and click **Copy script**. Paste it into the Apps Script editor and save.
+- Click **Deploy → New deployment → Web app**, set **Execute as: Me** and **Who has access: Anyone**, then **Deploy** and authorize. Copy the Web app URL (it ends in `/exec`).
+
+**4. Connect your sheet**
+
+- Back in your deployed app, open **Manage → Sync to Google Sheet…**, paste your `/exec` URL, click **Test Connection** to verify, then **Save & Sync**.
+- From then on, every change syncs automatically to *your* sheet, and your data lives only there and in your own browser.
+
+> **Connect your own sheet — this matters.** The code ships with a default URL that points only to the public demo sheet, never to anyone else's real data. Always set up and connect your own Google Sheet using the steps above so your entries go to a sheet you control. Connecting a sheet only affects your own browser and your own sheet; it cannot reach or overwrite anyone else's data.
+
+> **Updating the code later:** to change the published app without minting a new backend URL, edit your existing Apps Script deployment to a new version (**Manage deployments → Edit**) rather than creating a brand-new deployment. Creating a new deployment generates a different `/exec` URL and you'd have to reconnect.
 
 ---
 
@@ -161,11 +168,11 @@ That's it! Your jobs now sync automatically.
    - Pros, cons, notes
 5. OMFS-specific fields (collapse to see more):
    - Practice group, DSO affiliation, partnership track, case mix, etc.
-6. His Impressions (Dillon):
+6. His Impressions:
    - Location fit ratings (community, education, career growth, outdoor, culture, urban/rural, safety)
    - Vibe tags and interests
    - Relocation readiness (1-year, 5-year, 10-year outlook and escape velocity)
-7. Couple's Context (Isabel):
+7. Couple's Context:
    - Her overall fit rating
    - Her career field for job search links
    - Her vibe tags and interests
@@ -210,7 +217,7 @@ That's it! Your jobs now sync automatically.
 ### Setting Destination Distances
 
 1. Click Manage -> Plane destinations...
-2. Customize 3 places (default: NYC, Southport NC, Grand Rapids MI)
+2. Customize 3 places (e.g., the cities you fly to most often)
 3. Save
 4. Every job shows straight-line distance + estimated flight time to each destination
 
@@ -317,9 +324,10 @@ Your existing role (marked with solid green pin).
 - If needed, re-deploy the Google Apps Script with a fresh deployment URL
 
 ### My data disappeared
-- Check if you're in a private/incognito browser window (local storage doesn't persist)
-- Try clearing browser cache/cookies in regular mode
-- If you've been syncing, your data should be in the Google Sheet
+- If you've been syncing, your data is safe in your Google Sheet — reconnect via Manage → Sync to reload it
+- Check whether you're in a private/incognito window (locally stored data doesn't persist there)
+- Note that clearing site data/cookies for the app's address removes locally stored jobs, so avoid that if you haven't synced
+- Safari (iOS/macOS) auto-clears this kind of local storage after about 7 days without opening the app; syncing to a sheet protects against this
 - Use Import backup if you have a previous JSON export
 
 ### Locations not found
@@ -367,14 +375,13 @@ No build process, no dependencies to install—just open index.html in a browser
 
 - Modern browsers: Chrome, Edge, Safari, Firefox (latest versions)
 - Mobile: iOS Safari (via Home Screen), Android Chrome
-- Offline: Works offline after first load (PWA)
+- Connectivity: An internet connection is required for the map and for Google Sheet sync; full offline use is not currently supported
 
 ---
 
-## Keyboard Shortcuts
+## Closing dialogs
 
-- Escape: Close modals
-- Ctrl/Cmd+S: Save in form (some fields)
+Job Map is primarily mouse/touch driven. Close any open panel with the ✕ in its corner. (Dedicated keyboard shortcuts aren't implemented yet.)
 
 ---
 
