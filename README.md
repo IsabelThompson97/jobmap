@@ -439,3 +439,5 @@ v1.0 - Initial release with core features: job tracking, interactive map, decisi
 ---
 
 Happy job hunting!
+
+<img width="1470" height="956" alt="Screenshot 2026-05-21 at 9 10 15 PM" src="https://github.com/user-attachments/assets/93446211-f430-4628-9fc0-42a9bb3705e7" /><img width="1470" height="956" alt="Screenshot 2026-05-21 at 9 10 34 PM" src="https://github.com/user-attachments/assets/a0111246-f484-4918-b089-f45a75fab988" /><img width="1470" height="956" alt="Screenshot 2026-05-21 at 9 10 57 PM" src="https://github.com/user-attachments/assets/f92213c0-5380-4920-ae6a-aafdc86fd8ae" />
