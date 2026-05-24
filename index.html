@@ -165,7 +165,6 @@
   .pharma-marker.compchem { background: #7c3aed; }
   .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
-  .rail-hub { background: #0f172a; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.35); white-space: nowrap; }
   .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
   /* Friend variant: bright blue, triangle silhouette via clip-path */
   .person-marker.friend { background: #2563eb; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); width: 14px; height: 14px; font-size: 0; }
@@ -5329,15 +5328,13 @@ function drawRailSystems(systems, opts) {
   });
   Object.keys(hubs).forEach(name => {
     const h = hubs[name];
-    L.marker([h.lat, h.lng], {
-      icon: L.divIcon({
-        className: 'label-icon',
-        html: `<div class="rail-hub">◆ ${escape(name)}</div>`,
-        iconSize: null,
-        iconAnchor: [8, 8]
-      }),
-      zIndexOffset: 200
-    }).addTo(group).bindTooltip('Hub terminal — station times are measured to here', { direction: 'top' });
+    L.circleMarker([h.lat, h.lng], {
+      radius: radius + 3, color: '#ffffff', weight: 2,
+      fillColor: '#0f172a', fillOpacity: 1
+    }).addTo(group).bindTooltip(
+      `<b>${escape(name)}</b><br><span style="color:#94a3b8">Hub terminal — times are measured to here</span>`,
+      { direction: 'top' }
+    );
   });
   return group;
 }
