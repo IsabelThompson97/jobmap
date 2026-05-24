@@ -165,6 +165,7 @@
   .pharma-marker.compchem { background: #7c3aed; }
   .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
+  .rail-hub { background: #0f172a; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.35); white-space: nowrap; }
   .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
   /* Friend variant: bright blue, triangle silhouette via clip-path */
   .person-marker.friend { background: #2563eb; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); width: 14px; height: 14px; font-size: 0; }
@@ -646,6 +647,21 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <input type="checkbox" id="airportsToggle" onchange="toggleAirports(this.checked)" />
         <span class="toggle-label">Show major US airports</span>
       </label>
+
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Rail / transit connectivity</div>
+      <label class="toggle-row">
+        <input type="checkbox" id="commuterRailToggle" onchange="toggleCommuterRail(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px solid #6366f1;vertical-align:middle;margin-right:6px"></span>Commuter rail to downtown <span style="color:var(--muted);font-size:11px;font-weight:400">(Metra, LIRR, NJT, Metro-North, MBTA, SEPTA, MARC/VRE, Caltrain)</span></span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="subwayToggle" onchange="toggleSubway(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #c60c30;vertical-align:middle;margin-right:6px"></span>Subway / metro lines <span style="color:var(--muted);font-size:11px;font-weight:400">(CTA, NYC Subway, MBTA, SEPTA, WMATA, BART)</span></span>
+      </label>
+      <label class="toggle-row">
+        <input type="checkbox" id="amtrakToggle" onchange="toggleAmtrak(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:4px dashed #1d4ed8;vertical-align:middle;margin-right:6px"></span>Amtrak / intercity rail <span style="color:var(--muted);font-size:11px;font-weight:400">(Chicago ↔ Milwaukee, Michigan, Indiana · NY ↔ DC, Boston, Albany/Buffalo)</span></span>
+      </label>
+      <div style="font-size:11px;color:var(--muted);margin:2px 0 0;line-height:1.4">Hover a station for approximate travel time to that hub terminal (◆). Lines and times are schematic estimates — commuter/subway for typical weekday service, Amtrak for typical end-to-end trips.</div>
     </div>
     <div class="modal-actions">
       <button type="button" class="primary" onclick="closeLayers()">Done</button>
@@ -1674,6 +1690,682 @@ let showPharma = false, pharmaLayer = null;
 let showLabs = false, labsLayer = null;
 let showMLLabs = false, mlLabsLayer = null;
 let showTrauma = false, traumaLayer = null;
+let showCommuterRail = false, commuterRailLayer = null;
+let showSubway = false, subwayLayer = null;
+let showAmtrak = false, amtrakLayer = null;
+
+/* ----------------------------------------------------------------------------
+   RAIL CONNECTIVITY DATA
+   Hand-curated, schematic. Coordinates and travel times are APPROXIMATE and
+   reflect typical weekday inbound times to each metro's downtown hub (station
+   with min:0). Stations in each line are ordered outer-terminus -> hub so the
+   polyline reads as one route. Major stations only, not every stop.
+---------------------------------------------------------------------------- */
+const COMMUTER_RAIL = [
+  { metro:'Chicago', hub:'Chicago downtown (Union / Ogilvie / Millennium / LaSalle)', lines:[
+    { name:'Metra BNSF', color:'#0ea5e9', stations:[
+      {name:'Aurora', lat:41.7595, lng:-88.3163, min:62},
+      {name:'Route 59 (Aurora)', lat:41.7717, lng:-88.2030, min:52},
+      {name:'Naperville', lat:41.7795, lng:-88.1470, min:44},
+      {name:'Lisle', lat:41.7967, lng:-88.0742, min:40},
+      {name:'Downers Grove (Main St)', lat:41.7986, lng:-88.0103, min:33},
+      {name:'Westmont', lat:41.7957, lng:-87.9756, min:30},
+      {name:'Clarendon Hills', lat:41.7975, lng:-87.9555, min:28},
+      {name:'Hinsdale', lat:41.8005, lng:-87.9370, min:26},
+      {name:'Riverside', lat:41.8330, lng:-87.8230, min:20},
+      {name:'Harlem Ave (Berwyn)', lat:41.8390, lng:-87.8030, min:18},
+      {name:'Berwyn', lat:41.8420, lng:-87.7937, min:16},
+      {name:'Cicero', lat:41.8530, lng:-87.7450, min:13},
+      {name:'Western Ave', lat:41.8770, lng:-87.6860, min:7},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6391, min:0} ]},
+    { name:'Metra UP-North', color:'#22c55e', stations:[
+      {name:'Kenosha, WI', lat:42.5847, lng:-87.8212, min:93},
+      {name:'Zion', lat:42.4470, lng:-87.8330, min:78},
+      {name:'Waukegan', lat:42.3650, lng:-87.8430, min:68},
+      {name:'Lake Bluff', lat:42.2790, lng:-87.8350, min:58},
+      {name:'Lake Forest', lat:42.2586, lng:-87.8400, min:54},
+      {name:'Highland Park', lat:42.1817, lng:-87.8009, min:46},
+      {name:'Ravinia', lat:42.1560, lng:-87.7720, min:43},
+      {name:'Glencoe', lat:42.1350, lng:-87.7580, min:40},
+      {name:'Winnetka', lat:42.1080, lng:-87.7360, min:36},
+      {name:'Wilmette', lat:42.0720, lng:-87.7050, min:32},
+      {name:'Evanston (Central St)', lat:42.0630, lng:-87.6920, min:29},
+      {name:'Evanston (Davis St)', lat:42.0461, lng:-87.6818, min:26},
+      {name:'Rogers Park', lat:42.0090, lng:-87.6680, min:20},
+      {name:'Clybourn', lat:41.9180, lng:-87.6680, min:8},
+      {name:'Ogilvie Transportation Ctr', lat:41.8823, lng:-87.6406, min:0} ]},
+    { name:'Metra UP-West', color:'#84cc16', stations:[
+      {name:'Elburn', lat:41.8894, lng:-88.4720, min:72},
+      {name:'Geneva', lat:41.8835, lng:-88.3050, min:55},
+      {name:'West Chicago', lat:41.8847, lng:-88.2034, min:48},
+      {name:'Winfield', lat:41.8770, lng:-88.1610, min:45},
+      {name:'Wheaton', lat:41.8661, lng:-88.1070, min:42},
+      {name:'Glen Ellyn', lat:41.8775, lng:-88.0670, min:38},
+      {name:'Lombard', lat:41.8810, lng:-88.0080, min:34},
+      {name:'Villa Park', lat:41.8900, lng:-87.9760, min:31},
+      {name:'Elmhurst', lat:41.8994, lng:-87.9403, min:27},
+      {name:'Bellwood', lat:41.8830, lng:-87.8780, min:22},
+      {name:'Melrose Park', lat:41.9000, lng:-87.8570, min:20},
+      {name:'Maywood', lat:41.8800, lng:-87.8430, min:18},
+      {name:'River Forest', lat:41.8950, lng:-87.8160, min:15},
+      {name:'Oak Park', lat:41.8869, lng:-87.7935, min:13},
+      {name:'Ogilvie Transportation Ctr', lat:41.8823, lng:-87.6406, min:0} ]},
+    { name:'Metra Electric (Main Line)', color:'#14b8a6', stations:[
+      {name:'University Park', lat:41.4456, lng:-87.6849, min:62},
+      {name:'Richton Park', lat:41.4830, lng:-87.7000, min:56},
+      {name:'Matteson', lat:41.5040, lng:-87.7130, min:53},
+      {name:'Olympia Fields', lat:41.5110, lng:-87.6900, min:50},
+      {name:'Flossmoor', lat:41.5430, lng:-87.6850, min:46},
+      {name:'Homewood', lat:41.5594, lng:-87.6678, min:42},
+      {name:'Harvey', lat:41.6090, lng:-87.6470, min:36},
+      {name:'Riverdale', lat:41.6420, lng:-87.6320, min:32},
+      {name:'Kensington/115th St', lat:41.6900, lng:-87.6190, min:26},
+      {name:'63rd St', lat:41.7800, lng:-87.5960, min:16},
+      {name:'Hyde Park (55-56-57 St)', lat:41.7944, lng:-87.5862, min:13},
+      {name:'47th St (Kenwood)', lat:41.8090, lng:-87.5930, min:11},
+      {name:'McCormick Place', lat:41.8510, lng:-87.6170, min:6},
+      {name:'Van Buren St', lat:41.8767, lng:-87.6244, min:3},
+      {name:'Millennium Station', lat:41.8841, lng:-87.6244, min:0} ]},
+    { name:'Metra Milwaukee District North', color:'#ca8a04', stations:[
+      {name:'Fox Lake', lat:42.3960, lng:-88.1840, min:95},
+      {name:'Round Lake', lat:42.3540, lng:-88.0950, min:82},
+      {name:'Grayslake', lat:42.3440, lng:-88.0340, min:76},
+      {name:'Libertyville', lat:42.2830, lng:-87.9560, min:64},
+      {name:'Lake Forest (MD-N)', lat:42.2440, lng:-87.8580, min:56},
+      {name:'Deerfield', lat:42.1690, lng:-87.8440, min:48},
+      {name:'Northbrook', lat:42.1270, lng:-87.8290, min:44},
+      {name:'Glenview', lat:42.0700, lng:-87.8150, min:38},
+      {name:'Morton Grove', lat:42.0410, lng:-87.7900, min:34},
+      {name:'Edgebrook', lat:41.9990, lng:-87.7600, min:28},
+      {name:'Western Ave', lat:41.8770, lng:-87.6860, min:7},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6391, min:0} ]},
+    { name:'Metra Rock Island District', color:'#db2777', stations:[
+      {name:'Joliet', lat:41.5250, lng:-88.0820, min:62},
+      {name:'New Lenox', lat:41.5120, lng:-87.9650, min:54},
+      {name:'Mokena (Front St)', lat:41.5340, lng:-87.8890, min:48},
+      {name:'Tinley Park', lat:41.5730, lng:-87.7920, min:42},
+      {name:'Oak Forest', lat:41.6020, lng:-87.7480, min:38},
+      {name:'Midlothian', lat:41.6250, lng:-87.7190, min:34},
+      {name:'Robbins', lat:41.6440, lng:-87.7050, min:31},
+      {name:'Blue Island (Vermont St)', lat:41.6570, lng:-87.6810, min:28},
+      {name:'Gresham (87th St)', lat:41.7360, lng:-87.6470, min:18},
+      {name:'35th St / Lou Jones', lat:41.8310, lng:-87.6300, min:8},
+      {name:'LaSalle Street Station', lat:41.8763, lng:-87.6320, min:0} ]},
+    { name:'South Shore Line (NICTD)', color:'#f97316', stations:[
+      {name:'South Bend Airport', lat:41.7080, lng:-86.3170, min:150},
+      {name:'Carroll Ave (Michigan City)', lat:41.7180, lng:-86.9300, min:98},
+      {name:'11th St (Michigan City)', lat:41.7110, lng:-86.8950, min:95},
+      {name:'Beverly Shores', lat:41.6920, lng:-86.9760, min:87},
+      {name:'Dune Park', lat:41.6470, lng:-87.0810, min:80},
+      {name:'Ogden Dunes / Portage', lat:41.6190, lng:-87.1860, min:74},
+      {name:'Miller', lat:41.6010, lng:-87.2620, min:66},
+      {name:'Gary Metro Center', lat:41.6010, lng:-87.3370, min:60},
+      {name:'East Chicago', lat:41.6230, lng:-87.4540, min:50},
+      {name:'Hammond', lat:41.5760, lng:-87.5060, min:45},
+      {name:'Hegewisch (Chicago)', lat:41.6510, lng:-87.5470, min:38},
+      {name:'Van Buren St', lat:41.8767, lng:-87.6244, min:4},
+      {name:'Millennium Station', lat:41.8841, lng:-87.6244, min:0} ]} ]},
+
+  { metro:'New York — Long Island (LIRR)', hub:'NY Penn Station', lines:[
+    { name:'LIRR Port Washington', color:'#6366f1', stations:[
+      {name:'Port Washington', lat:40.8187, lng:-73.6987, min:44},
+      {name:'Manhasset', lat:40.7990, lng:-73.6960, min:39},
+      {name:'Great Neck', lat:40.7866, lng:-73.7290, min:34},
+      {name:'Douglaston', lat:40.7680, lng:-73.7430, min:30},
+      {name:'Bayside', lat:40.7614, lng:-73.7776, min:27},
+      {name:'Auburndale', lat:40.7600, lng:-73.7900, min:25},
+      {name:'Flushing-Main St', lat:40.7596, lng:-73.8300, min:21},
+      {name:'Woodside', lat:40.7454, lng:-73.9050, min:13},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'LIRR Ronkonkoma', color:'#818cf8', stations:[
+      {name:'Ronkonkoma', lat:40.8110, lng:-73.1130, min:72},
+      {name:'Central Islip', lat:40.7900, lng:-73.1980, min:66},
+      {name:'Brentwood', lat:40.7830, lng:-73.2480, min:62},
+      {name:'Deer Park', lat:40.7620, lng:-73.3290, min:57},
+      {name:'Wyandanch', lat:40.7470, lng:-73.3760, min:53},
+      {name:'Farmingdale', lat:40.7320, lng:-73.4460, min:48},
+      {name:'Bethpage', lat:40.7440, lng:-73.4830, min:45},
+      {name:'Hicksville', lat:40.7665, lng:-73.5290, min:40},
+      {name:'Westbury', lat:40.7560, lng:-73.5880, min:36},
+      {name:'Mineola', lat:40.7470, lng:-73.6410, min:32},
+      {name:'New Hyde Park', lat:40.7370, lng:-73.6880, min:28},
+      {name:'Floral Park', lat:40.7230, lng:-73.7030, min:25},
+      {name:'Queens Village', lat:40.7180, lng:-73.7430, min:22},
+      {name:'Jamaica', lat:40.7003, lng:-73.8090, min:17},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'LIRR Babylon', color:'#a5b4fc', stations:[
+      {name:'Babylon', lat:40.6970, lng:-73.3260, min:52},
+      {name:'Lindenhurst', lat:40.6870, lng:-73.3740, min:49},
+      {name:'Amityville', lat:40.6790, lng:-73.4170, min:46},
+      {name:'Massapequa', lat:40.6670, lng:-73.4710, min:43},
+      {name:'Seaford', lat:40.6650, lng:-73.4920, min:41},
+      {name:'Wantagh', lat:40.6680, lng:-73.5100, min:39},
+      {name:'Bellmore', lat:40.6680, lng:-73.5290, min:37},
+      {name:'Merrick', lat:40.6630, lng:-73.5510, min:35},
+      {name:'Freeport', lat:40.6580, lng:-73.5830, min:32},
+      {name:'Baldwin', lat:40.6560, lng:-73.6090, min:30},
+      {name:'Rockville Centre', lat:40.6590, lng:-73.6410, min:27},
+      {name:'Lynbrook', lat:40.6580, lng:-73.6720, min:24},
+      {name:'Valley Stream', lat:40.6640, lng:-73.7080, min:21},
+      {name:'Jamaica', lat:40.7003, lng:-73.8090, min:15},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'LIRR Port Jefferson', color:'#4f46e5', stations:[
+      {name:'Port Jefferson', lat:40.9470, lng:-73.0590, min:105},
+      {name:'Stony Brook', lat:40.9130, lng:-73.1290, min:98},
+      {name:'Smithtown', lat:40.8560, lng:-73.2010, min:88},
+      {name:'Kings Park', lat:40.8870, lng:-73.2540, min:84},
+      {name:'Northport', lat:40.8930, lng:-73.3470, min:78},
+      {name:'Greenlawn', lat:40.8650, lng:-73.3680, min:74},
+      {name:'Huntington', lat:40.8530, lng:-73.4090, min:70},
+      {name:'Cold Spring Harbor', lat:40.8530, lng:-73.4490, min:66},
+      {name:'Syosset', lat:40.8230, lng:-73.5010, min:58},
+      {name:'Hicksville', lat:40.7665, lng:-73.5290, min:50},
+      {name:'Mineola', lat:40.7470, lng:-73.6410, min:42},
+      {name:'Jamaica', lat:40.7003, lng:-73.8090, min:22},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'LIRR Montauk (South Fork)', color:'#c7d2fe', stations:[
+      {name:'Montauk', lat:41.0400, lng:-71.9550, min:200},
+      {name:'East Hampton', lat:40.9620, lng:-72.1880, min:180},
+      {name:'Bridgehampton', lat:40.9380, lng:-72.3020, min:170},
+      {name:'Southampton', lat:40.8870, lng:-72.3890, min:162},
+      {name:'Hampton Bays', lat:40.8690, lng:-72.5170, min:152},
+      {name:'Westhampton', lat:40.8260, lng:-72.6480, min:142},
+      {name:'Speonk', lat:40.8210, lng:-72.7060, min:135},
+      {name:'Mastic-Shirley', lat:40.7980, lng:-72.8430, min:118},
+      {name:'Patchogue', lat:40.7620, lng:-73.0150, min:100},
+      {name:'Sayville', lat:40.7370, lng:-73.0830, min:92},
+      {name:'Babylon', lat:40.6970, lng:-73.3260, min:62},
+      {name:'Jamaica', lat:40.7003, lng:-73.8090, min:28},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]} ]},
+
+  { metro:'New York — New Jersey (NJ Transit)', hub:'NY Penn Station', lines:[
+    { name:'NJT Northeast Corridor', color:'#0891b2', stations:[
+      {name:'Trenton', lat:40.2185, lng:-74.7563, min:68},
+      {name:'Hamilton', lat:40.2100, lng:-74.6920, min:62},
+      {name:'Princeton Junction', lat:40.3160, lng:-74.6240, min:55},
+      {name:'New Brunswick', lat:40.4960, lng:-74.4410, min:45},
+      {name:'Edison', lat:40.5180, lng:-74.4030, min:42},
+      {name:'Metuchen', lat:40.5410, lng:-74.3630, min:39},
+      {name:'Metropark', lat:40.5680, lng:-74.3290, min:35},
+      {name:'Rahway', lat:40.6080, lng:-74.2790, min:31},
+      {name:'Linden', lat:40.6330, lng:-74.2440, min:28},
+      {name:'Elizabeth', lat:40.6680, lng:-74.2120, min:24},
+      {name:'Newark Airport', lat:40.7040, lng:-74.1690, min:20},
+      {name:'Newark Penn', lat:40.7345, lng:-74.1645, min:16},
+      {name:'Secaucus Junction', lat:40.7610, lng:-74.0760, min:9},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'NJT Morris & Essex (Morristown)', color:'#06b6d4', stations:[
+      {name:'Dover', lat:40.8840, lng:-74.5560, min:72},
+      {name:'Denville', lat:40.8830, lng:-74.4830, min:66},
+      {name:'Morris Plains', lat:40.8290, lng:-74.4800, min:60},
+      {name:'Morristown', lat:40.7970, lng:-74.4760, min:56},
+      {name:'Convent Station', lat:40.7780, lng:-74.4430, min:52},
+      {name:'Madison', lat:40.7570, lng:-74.4150, min:49},
+      {name:'Chatham', lat:40.7410, lng:-74.3840, min:46},
+      {name:'Summit', lat:40.7160, lng:-74.3580, min:42},
+      {name:'Short Hills', lat:40.7250, lng:-74.3240, min:38},
+      {name:'Millburn', lat:40.7250, lng:-74.3040, min:36},
+      {name:'Maplewood', lat:40.7310, lng:-74.2750, min:32},
+      {name:'South Orange', lat:40.7460, lng:-74.2610, min:29},
+      {name:'Newark Broad St', lat:40.7470, lng:-74.1720, min:20},
+      {name:'Secaucus Junction', lat:40.7610, lng:-74.0760, min:10},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'NJT North Jersey Coast', color:'#67e8f9', stations:[
+      {name:'Bay Head', lat:40.0700, lng:-74.0410, min:105},
+      {name:'Point Pleasant Beach', lat:40.0910, lng:-74.0480, min:100},
+      {name:'Manasquan', lat:40.1180, lng:-74.0480, min:95},
+      {name:'Belmar', lat:40.1790, lng:-74.0220, min:88},
+      {name:'Asbury Park', lat:40.2230, lng:-74.0090, min:84},
+      {name:'Long Branch', lat:40.3040, lng:-73.9920, min:78},
+      {name:'Little Silver', lat:40.3350, lng:-74.0390, min:72},
+      {name:'Red Bank', lat:40.3490, lng:-74.0680, min:68},
+      {name:'Middletown, NJ', lat:40.3970, lng:-74.1110, min:63},
+      {name:'Hazlet', lat:40.4140, lng:-74.1780, min:58},
+      {name:'Matawan (Aberdeen)', lat:40.4140, lng:-74.2290, min:52},
+      {name:'South Amboy', lat:40.4830, lng:-74.2780, min:46},
+      {name:'Perth Amboy', lat:40.5120, lng:-74.2730, min:42},
+      {name:'Woodbridge', lat:40.5650, lng:-74.2850, min:38},
+      {name:'Rahway', lat:40.6080, lng:-74.2790, min:31},
+      {name:'Newark Penn', lat:40.7345, lng:-74.1645, min:16},
+      {name:'Secaucus Junction', lat:40.7610, lng:-74.0760, min:9},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'NJT Raritan Valley', color:'#0e7490', stations:[
+      {name:'High Bridge', lat:40.6680, lng:-74.8960, min:95},
+      {name:'Annandale', lat:40.6390, lng:-74.8800, min:90},
+      {name:'Lebanon', lat:40.6420, lng:-74.8350, min:86},
+      {name:'White House', lat:40.6160, lng:-74.7700, min:80},
+      {name:'Raritan', lat:40.5710, lng:-74.6360, min:72},
+      {name:'Somerville', lat:40.5710, lng:-74.6100, min:70},
+      {name:'Bridgewater', lat:40.5700, lng:-74.5780, min:67},
+      {name:'Bound Brook', lat:40.5680, lng:-74.5380, min:63},
+      {name:'Dunellen', lat:40.5890, lng:-74.4710, min:57},
+      {name:'Plainfield', lat:40.6160, lng:-74.4070, min:52},
+      {name:'Fanwood', lat:40.6410, lng:-74.3840, min:48},
+      {name:'Westfield', lat:40.6510, lng:-74.3470, min:44},
+      {name:'Cranford', lat:40.6560, lng:-74.3000, min:39},
+      {name:'Roselle Park', lat:40.6650, lng:-74.2640, min:35},
+      {name:'Union', lat:40.6960, lng:-74.2680, min:30},
+      {name:'Newark Penn', lat:40.7345, lng:-74.1645, min:20},
+      {name:'Secaucus Junction', lat:40.7610, lng:-74.0760, min:12},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'NJT Main/Bergen County', color:'#155e75', stations:[
+      {name:'Suffern, NY', lat:41.1140, lng:-74.1490, min:72},
+      {name:'Mahwah', lat:41.0870, lng:-74.1440, min:68},
+      {name:'Ramsey', lat:41.0570, lng:-74.1410, min:64},
+      {name:'Waldwick', lat:41.0120, lng:-74.1180, min:58},
+      {name:'Ridgewood', lat:40.9890, lng:-74.1100, min:54},
+      {name:'Glen Rock', lat:40.9620, lng:-74.1190, min:51},
+      {name:'Hawthorne', lat:40.9490, lng:-74.1540, min:48},
+      {name:'Paterson', lat:40.9160, lng:-74.1720, min:44},
+      {name:'Clifton', lat:40.8680, lng:-74.1620, min:39},
+      {name:'Passaic', lat:40.8590, lng:-74.1290, min:36},
+      {name:'Garfield', lat:40.8790, lng:-74.1130, min:33},
+      {name:'Rutherford', lat:40.8260, lng:-74.1070, min:26},
+      {name:'Secaucus Junction', lat:40.7610, lng:-74.0760, min:14},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]} ]},
+
+  { metro:'New York — Hudson Valley/CT (Metro-North)', hub:'Grand Central Terminal', lines:[
+    { name:'MNR Hudson Line', color:'#7c3aed', stations:[
+      {name:'Poughkeepsie', lat:41.7060, lng:-73.9370, min:108},
+      {name:'Beacon', lat:41.5040, lng:-73.9870, min:82},
+      {name:'Cold Spring', lat:41.4200, lng:-73.9540, min:72},
+      {name:'Peekskill', lat:41.2880, lng:-73.9310, min:58},
+      {name:'Croton-Harmon', lat:41.1900, lng:-73.8810, min:50},
+      {name:'Ossining', lat:41.1570, lng:-73.8680, min:46},
+      {name:'Tarrytown', lat:41.0830, lng:-73.8680, min:40},
+      {name:'Dobbs Ferry', lat:41.0140, lng:-73.8800, min:34},
+      {name:'Hastings-on-Hudson', lat:40.9940, lng:-73.8790, min:32},
+      {name:'Yonkers', lat:40.9350, lng:-73.9010, min:28},
+      {name:'Riverdale', lat:40.8980, lng:-73.9150, min:22},
+      {name:'Marble Hill', lat:40.8740, lng:-73.9100, min:18},
+      {name:'Harlem-125th St', lat:40.8050, lng:-73.9390, min:10},
+      {name:'Grand Central Terminal', lat:40.7527, lng:-73.9772, min:0} ]},
+    { name:'MNR Harlem Line', color:'#9333ea', stations:[
+      {name:'Wassaic', lat:41.8270, lng:-73.5610, min:130},
+      {name:'Dover Plains', lat:41.7430, lng:-73.5760, min:118},
+      {name:'Pawling', lat:41.5630, lng:-73.6010, min:98},
+      {name:'Southeast (Brewster)', lat:41.3970, lng:-73.6160, min:72},
+      {name:'Goldens Bridge', lat:41.2940, lng:-73.6790, min:62},
+      {name:'Katonah', lat:41.2600, lng:-73.6850, min:58},
+      {name:'Bedford Hills', lat:41.2380, lng:-73.6940, min:55},
+      {name:'Mount Kisco', lat:41.2030, lng:-73.7290, min:50},
+      {name:'Chappaqua', lat:41.1600, lng:-73.7660, min:46},
+      {name:'Pleasantville', lat:41.1340, lng:-73.7860, min:43},
+      {name:'North White Plains', lat:41.0490, lng:-73.7690, min:38},
+      {name:'White Plains', lat:41.0330, lng:-73.7690, min:35},
+      {name:'Scarsdale', lat:40.9890, lng:-73.8090, min:31},
+      {name:'Bronxville', lat:40.9380, lng:-73.8330, min:26},
+      {name:'Fordham', lat:40.8620, lng:-73.8890, min:16},
+      {name:'Harlem-125th St', lat:40.8050, lng:-73.9390, min:10},
+      {name:'Grand Central Terminal', lat:40.7527, lng:-73.9772, min:0} ]},
+    { name:'MNR New Haven Line', color:'#a855f7', stations:[
+      {name:'New Haven (Union)', lat:41.2970, lng:-72.9270, min:112},
+      {name:'Milford', lat:41.2300, lng:-73.0640, min:100},
+      {name:'Stratford', lat:41.1910, lng:-73.1300, min:94},
+      {name:'Bridgeport', lat:41.1790, lng:-73.1880, min:88},
+      {name:'Fairfield', lat:41.1410, lng:-73.2580, min:82},
+      {name:'Westport', lat:41.1190, lng:-73.3700, min:72},
+      {name:'South Norwalk', lat:41.0960, lng:-73.4210, min:66},
+      {name:'Darien', lat:41.0780, lng:-73.4690, min:62},
+      {name:'Stamford', lat:41.0470, lng:-73.5420, min:52},
+      {name:'Greenwich', lat:41.0210, lng:-73.6260, min:45},
+      {name:'Port Chester', lat:41.0030, lng:-73.6660, min:42},
+      {name:'Rye', lat:40.9800, lng:-73.6840, min:39},
+      {name:'Mamaroneck', lat:40.9530, lng:-73.7340, min:35},
+      {name:'Larchmont', lat:40.9280, lng:-73.7560, min:32},
+      {name:'New Rochelle', lat:40.9120, lng:-73.7830, min:28},
+      {name:'Harlem-125th St', lat:40.8050, lng:-73.9390, min:12},
+      {name:'Grand Central Terminal', lat:40.7527, lng:-73.9772, min:0} ]} ]},
+
+  { metro:'Boston (MBTA Commuter Rail)', hub:'South / North Station', lines:[
+    { name:'Providence/Stoughton', color:'#9333ea', stations:[
+      {name:'Providence, RI', lat:41.8298, lng:-71.4128, min:70},
+      {name:'Attleboro', lat:41.9420, lng:-71.2850, min:50},
+      {name:'Sharon', lat:42.1240, lng:-71.1790, min:38},
+      {name:'Route 128', lat:42.2100, lng:-71.1470, min:22},
+      {name:'Back Bay', lat:42.3475, lng:-71.0757, min:10},
+      {name:'South Station', lat:42.3519, lng:-71.0552, min:0} ]},
+    { name:'Framingham/Worcester', color:'#a855f7', stations:[
+      {name:'Worcester', lat:42.2620, lng:-71.7980, min:85},
+      {name:'Framingham', lat:42.2770, lng:-71.4160, min:50},
+      {name:'Natick Center', lat:42.2830, lng:-71.3490, min:42},
+      {name:'Wellesley Square', lat:42.2960, lng:-71.2940, min:32},
+      {name:'Back Bay', lat:42.3475, lng:-71.0757, min:8},
+      {name:'South Station', lat:42.3519, lng:-71.0552, min:0} ]},
+    { name:'Newburyport', color:'#c084fc', stations:[
+      {name:'Newburyport', lat:42.8000, lng:-70.8770, min:70},
+      {name:'Beverly', lat:42.5470, lng:-70.8850, min:38},
+      {name:'Salem', lat:42.5240, lng:-70.8970, min:30},
+      {name:'Lynn', lat:42.4620, lng:-70.9450, min:18},
+      {name:'North Station', lat:42.3663, lng:-71.0623, min:0} ]},
+    { name:'Rockport', color:'#e9d5ff', stations:[
+      {name:'Rockport', lat:42.6560, lng:-70.6210, min:72},
+      {name:'Gloucester', lat:42.6160, lng:-70.6680, min:65},
+      {name:'Beverly', lat:42.5470, lng:-70.8850, min:38},
+      {name:'Salem', lat:42.5240, lng:-70.8970, min:30},
+      {name:'North Station', lat:42.3663, lng:-71.0623, min:0} ]},
+    { name:'Fitchburg', color:'#d8b4fe', stations:[
+      {name:'Fitchburg', lat:42.5840, lng:-71.8020, min:80},
+      {name:'Concord', lat:42.4570, lng:-71.3590, min:45},
+      {name:'Waltham', lat:42.3740, lng:-71.2360, min:25},
+      {name:'Porter', lat:42.3880, lng:-71.1190, min:10},
+      {name:'North Station', lat:42.3663, lng:-71.0623, min:0} ]} ]},
+
+  { metro:'Philadelphia (SEPTA Regional Rail)', hub:'Suburban / 30th St', lines:[
+    { name:'Paoli/Thorndale', color:'#0d9488', stations:[
+      {name:'Thorndale', lat:40.0010, lng:-75.7560, min:62},
+      {name:'Downingtown', lat:40.0070, lng:-75.7030, min:58},
+      {name:'Paoli', lat:40.0430, lng:-75.4830, min:42},
+      {name:'Villanova', lat:40.0370, lng:-75.3430, min:32},
+      {name:'Ardmore', lat:40.0070, lng:-75.2890, min:25},
+      {name:'30th Street Station', lat:39.9566, lng:-75.1820, min:5},
+      {name:'Suburban Station', lat:39.9540, lng:-75.1682, min:0} ]},
+    { name:'Lansdale/Doylestown', color:'#0f766e', stations:[
+      {name:'Doylestown', lat:40.3100, lng:-75.1300, min:75},
+      {name:'Lansdale', lat:40.2410, lng:-75.2830, min:52},
+      {name:'Ambler', lat:40.1540, lng:-75.2210, min:38},
+      {name:'Jenkintown-Wyncote', lat:40.0950, lng:-75.1490, min:28},
+      {name:'Suburban Station', lat:39.9540, lng:-75.1682, min:0} ]},
+    { name:'Trenton Line', color:'#2dd4bf', stations:[
+      {name:'Trenton, NJ', lat:40.2185, lng:-74.7563, min:55},
+      {name:'Levittown', lat:40.1390, lng:-74.8120, min:45},
+      {name:'Cornwells Heights', lat:40.0760, lng:-74.9520, min:30},
+      {name:'North Philadelphia', lat:39.9970, lng:-75.1530, min:12},
+      {name:'Suburban Station', lat:39.9540, lng:-75.1682, min:0} ]} ]},
+
+  { metro:'Washington, DC (MARC / VRE)', hub:'Washington Union Station', lines:[
+    { name:'MARC Penn Line', color:'#b45309', stations:[
+      {name:'Baltimore Penn', lat:39.3074, lng:-76.6156, min:62},
+      {name:'BWI Marshall', lat:39.1900, lng:-76.6940, min:40},
+      {name:'New Carrollton', lat:38.9480, lng:-76.8720, min:22},
+      {name:'Washington Union Station', lat:38.8973, lng:-77.0063, min:0} ]},
+    { name:'MARC Brunswick Line', color:'#d97706', stations:[
+      {name:'Martinsburg, WV', lat:39.4570, lng:-77.9640, min:95},
+      {name:'Brunswick, MD', lat:39.3140, lng:-77.6280, min:70},
+      {name:'Germantown', lat:39.1760, lng:-77.2710, min:48},
+      {name:'Rockville', lat:39.0840, lng:-77.1460, min:38},
+      {name:'Silver Spring', lat:38.9940, lng:-77.0310, min:18},
+      {name:'Washington Union Station', lat:38.8973, lng:-77.0063, min:0} ]},
+    { name:'VRE Fredericksburg', color:'#f59e0b', stations:[
+      {name:'Fredericksburg, VA', lat:38.3030, lng:-77.4900, min:95},
+      {name:'Woodbridge', lat:38.6580, lng:-77.2470, min:55},
+      {name:'Alexandria', lat:38.8060, lng:-77.0610, min:25},
+      {name:"L'Enfant", lat:38.8850, lng:-77.0220, min:12},
+      {name:'Washington Union Station', lat:38.8973, lng:-77.0063, min:0} ]},
+    { name:'VRE Manassas', color:'#fbbf24', stations:[
+      {name:'Manassas', lat:38.7510, lng:-77.4750, min:75},
+      {name:'Burke Centre', lat:38.7860, lng:-77.2960, min:50},
+      {name:'Alexandria', lat:38.8060, lng:-77.0610, min:25},
+      {name:"L'Enfant", lat:38.8850, lng:-77.0220, min:12},
+      {name:'Washington Union Station', lat:38.8973, lng:-77.0063, min:0} ]} ]},
+
+  { metro:'San Francisco Bay (Caltrain)', hub:'SF 4th & King', lines:[
+    { name:'Caltrain', color:'#dc2626', stations:[
+      {name:'Gilroy', lat:37.0030, lng:-121.5670, min:95},
+      {name:'San Jose Diridon', lat:37.3297, lng:-121.9030, min:65},
+      {name:'Sunnyvale', lat:37.3780, lng:-122.0310, min:55},
+      {name:'Mountain View', lat:37.3940, lng:-122.0760, min:50},
+      {name:'Palo Alto', lat:37.4430, lng:-122.1650, min:45},
+      {name:'Redwood City', lat:37.4850, lng:-122.2320, min:38},
+      {name:'Hillsdale', lat:37.5380, lng:-122.2980, min:32},
+      {name:'Millbrae', lat:37.5990, lng:-122.3870, min:22},
+      {name:'SF 22nd St', lat:37.7570, lng:-122.3920, min:5},
+      {name:'SF 4th & King', lat:37.7766, lng:-122.3946, min:0} ]} ]}
+];
+
+const SUBWAY = [
+  { metro:'Chicago (CTA "L")', hub:'the Loop', lines:[
+    { name:'Red Line', color:'#c60c30', stations:[
+      {name:'Howard', lat:42.0190, lng:-87.6730, min:32},
+      {name:'Belmont', lat:41.9397, lng:-87.6530, min:18},
+      {name:'Fullerton', lat:41.9255, lng:-87.6530, min:12},
+      {name:'Clark/Division', lat:41.9040, lng:-87.6314, min:6},
+      {name:'Lake (State/Lake)', lat:41.8847, lng:-87.6278, min:0},
+      {name:'Roosevelt', lat:41.8674, lng:-87.6270, min:5},
+      {name:'Sox-35th', lat:41.8312, lng:-87.6300, min:14},
+      {name:'95th/Dan Ryan', lat:41.7224, lng:-87.6244, min:30} ]},
+    { name:'Blue Line', color:'#00a1de', stations:[
+      {name:"O'Hare Airport", lat:41.9786, lng:-87.9048, min:45},
+      {name:'Rosemont', lat:41.9836, lng:-87.8590, min:40},
+      {name:'Jefferson Park', lat:41.9706, lng:-87.7607, min:30},
+      {name:'Logan Square', lat:41.9295, lng:-87.7086, min:18},
+      {name:'Damen', lat:41.9100, lng:-87.6770, min:12},
+      {name:'Clark/Lake', lat:41.8856, lng:-87.6306, min:0},
+      {name:'UIC-Halsted', lat:41.8757, lng:-87.6497, min:6},
+      {name:'Forest Park', lat:41.8743, lng:-87.8170, min:30} ]},
+    { name:'Brown Line', color:'#62361b', stations:[
+      {name:'Kimball', lat:41.9670, lng:-87.7130, min:38},
+      {name:'Western', lat:41.9663, lng:-87.6884, min:30},
+      {name:'Belmont', lat:41.9397, lng:-87.6530, min:18},
+      {name:'Fullerton', lat:41.9255, lng:-87.6530, min:12},
+      {name:'Merchandise Mart', lat:41.8884, lng:-87.6360, min:3},
+      {name:'Clark/Lake', lat:41.8856, lng:-87.6306, min:0} ]} ]},
+
+  { metro:'New York City Subway', hub:'Times Sq / Midtown', lines:[
+    { name:'1/2/3 (7th Ave)', color:'#ee352e', stations:[
+      {name:'Van Cortlandt-242 St', lat:40.8895, lng:-73.8987, min:40},
+      {name:'96 St', lat:40.7940, lng:-73.9720, min:14},
+      {name:'72 St', lat:40.7785, lng:-73.9819, min:9},
+      {name:'Times Sq-42 St', lat:40.7557, lng:-73.9870, min:0},
+      {name:'34 St-Penn Station', lat:40.7505, lng:-73.9910, min:2},
+      {name:'Chambers St', lat:40.7155, lng:-74.0090, min:10},
+      {name:'South Ferry', lat:40.7020, lng:-74.0130, min:15} ]},
+    { name:'A/C/E (8th Ave)', color:'#0039a6', stations:[
+      {name:'Inwood-207 St', lat:40.8680, lng:-73.9190, min:35},
+      {name:'125 St', lat:40.8110, lng:-73.9520, min:22},
+      {name:'59 St-Columbus Circle', lat:40.7682, lng:-73.9819, min:6},
+      {name:'42 St-Port Authority', lat:40.7570, lng:-73.9897, min:2},
+      {name:'World Trade Center', lat:40.7126, lng:-74.0099, min:12},
+      {name:'Jay St-MetroTech', lat:40.6924, lng:-73.9873, min:18} ]},
+    { name:'4/5/6 (Lexington Ave)', color:'#00933c', stations:[
+      {name:'Pelham Bay Park', lat:40.8526, lng:-73.8281, min:45},
+      {name:'125 St', lat:40.8044, lng:-73.9374, min:18},
+      {name:'86 St', lat:40.7794, lng:-73.9557, min:12},
+      {name:'Grand Central-42 St', lat:40.7527, lng:-73.9790, min:3},
+      {name:'Brooklyn Bridge-City Hall', lat:40.7132, lng:-74.0042, min:10},
+      {name:'Bowling Green', lat:40.7050, lng:-74.0140, min:14} ]},
+    { name:'7 (Flushing)', color:'#b933ad', stations:[
+      {name:'Flushing-Main St', lat:40.7596, lng:-73.8300, min:22},
+      {name:'Mets-Willets Point', lat:40.7546, lng:-73.8455, min:25},
+      {name:'Jackson Hts-74 St', lat:40.7466, lng:-73.8910, min:16},
+      {name:'Court Sq', lat:40.7470, lng:-73.9450, min:8},
+      {name:'Grand Central-42 St', lat:40.7527, lng:-73.9790, min:3},
+      {name:'Times Sq-42 St', lat:40.7557, lng:-73.9870, min:0} ]},
+    { name:'N/Q/R/W (Broadway)', color:'#fccc0a', stations:[
+      {name:'Astoria-Ditmars Blvd', lat:40.7752, lng:-73.9120, min:22},
+      {name:'Queensboro Plaza', lat:40.7508, lng:-73.9400, min:12},
+      {name:'Times Sq-42 St', lat:40.7557, lng:-73.9870, min:0},
+      {name:'34 St-Herald Sq', lat:40.7497, lng:-73.9877, min:2},
+      {name:'Atlantic Av-Barclays Ctr', lat:40.6840, lng:-73.9770, min:18},
+      {name:'Coney Island-Stillwell', lat:40.5772, lng:-73.9812, min:50} ]} ]},
+
+  { metro:'Boston (MBTA "T")', hub:'Park Street / Downtown', lines:[
+    { name:'Red Line', color:'#da291c', stations:[
+      {name:'Alewife', lat:42.3954, lng:-71.1425, min:22},
+      {name:'Harvard', lat:42.3736, lng:-71.1190, min:13},
+      {name:'Central', lat:42.3654, lng:-71.1037, min:10},
+      {name:'Kendall/MIT', lat:42.3625, lng:-71.0862, min:7},
+      {name:'Park Street', lat:42.3564, lng:-71.0624, min:0},
+      {name:'South Station', lat:42.3519, lng:-71.0552, min:3},
+      {name:'JFK/UMass', lat:42.3206, lng:-71.0524, min:10},
+      {name:'Ashmont', lat:42.2843, lng:-71.0639, min:22},
+      {name:'Braintree', lat:42.2074, lng:-71.0011, min:30} ]},
+    { name:'Orange Line', color:'#ed8b00', stations:[
+      {name:'Oak Grove', lat:42.4368, lng:-71.0712, min:25},
+      {name:'Malden Center', lat:42.4267, lng:-71.0742, min:22},
+      {name:'Sullivan Square', lat:42.3839, lng:-71.0769, min:12},
+      {name:'North Station', lat:42.3663, lng:-71.0623, min:4},
+      {name:'Downtown Crossing', lat:42.3556, lng:-71.0601, min:2},
+      {name:'Back Bay', lat:42.3475, lng:-71.0757, min:6},
+      {name:'Forest Hills', lat:42.3005, lng:-71.1138, min:20} ]},
+    { name:'Blue Line', color:'#003da5', stations:[
+      {name:'Wonderland', lat:42.4134, lng:-70.9917, min:22},
+      {name:'Airport', lat:42.3741, lng:-71.0301, min:10},
+      {name:'Aquarium', lat:42.3593, lng:-71.0517, min:4},
+      {name:'State', lat:42.3589, lng:-71.0578, min:3},
+      {name:'Bowdoin', lat:42.3613, lng:-71.0622, min:0} ]} ]},
+
+  { metro:'Philadelphia (SEPTA Metro)', hub:'City Hall / 15th St', lines:[
+    { name:'Market-Frankford Line', color:'#0072ce', stations:[
+      {name:'69th St Transp. Ctr', lat:39.9628, lng:-75.2560, min:30},
+      {name:'40th St', lat:39.9560, lng:-75.2020, min:12},
+      {name:'30th St', lat:39.9540, lng:-75.1820, min:8},
+      {name:'15th St / City Hall', lat:39.9526, lng:-75.1635, min:0},
+      {name:'8th St', lat:39.9510, lng:-75.1530, min:3},
+      {name:'Frankford Transp. Ctr', lat:40.0190, lng:-75.0820, min:30} ]},
+    { name:'Broad Street Line', color:'#f47920', stations:[
+      {name:'Fern Rock', lat:40.0410, lng:-75.1380, min:22},
+      {name:'Erie', lat:39.9990, lng:-75.1500, min:14},
+      {name:'Girard', lat:39.9700, lng:-75.1560, min:8},
+      {name:'City Hall', lat:39.9540, lng:-75.1635, min:0},
+      {name:'Walnut-Locust', lat:39.9480, lng:-75.1650, min:2},
+      {name:'NRG (Stadiums)', lat:39.9090, lng:-75.1690, min:12} ]} ]},
+
+  { metro:'Washington, DC (Metro)', hub:'Metro Center', lines:[
+    { name:'Red Line', color:'#bf0d3e', stations:[
+      {name:'Shady Grove', lat:39.1200, lng:-77.1647, min:42},
+      {name:'Rockville', lat:39.0840, lng:-77.1460, min:38},
+      {name:'Bethesda', lat:38.9840, lng:-77.0944, min:22},
+      {name:'Dupont Circle', lat:38.9097, lng:-77.0434, min:6},
+      {name:'Metro Center', lat:38.8983, lng:-77.0281, min:0},
+      {name:'Union Station', lat:38.8979, lng:-77.0061, min:4},
+      {name:'Silver Spring', lat:38.9940, lng:-77.0310, min:16},
+      {name:'Glenmont', lat:39.0620, lng:-77.0530, min:30} ]},
+    { name:'Silver Line', color:'#a1a1a4', stations:[
+      {name:'Ashburn', lat:39.0050, lng:-77.4900, min:62},
+      {name:'Washington Dulles Airport', lat:38.9560, lng:-77.4480, min:55},
+      {name:'Reston Town Center', lat:38.9540, lng:-77.3590, min:45},
+      {name:'Tysons', lat:38.9200, lng:-77.2230, min:30},
+      {name:'Rosslyn', lat:38.8957, lng:-77.0717, min:10},
+      {name:'Metro Center', lat:38.8983, lng:-77.0281, min:0} ]},
+    { name:'Blue Line', color:'#009cde', stations:[
+      {name:'Franconia-Springfield', lat:38.7660, lng:-77.1680, min:38},
+      {name:'King St-Old Town', lat:38.8060, lng:-77.0610, min:22},
+      {name:'Pentagon', lat:38.8690, lng:-77.0540, min:12},
+      {name:'Rosslyn', lat:38.8957, lng:-77.0717, min:8},
+      {name:'Foggy Bottom-GWU', lat:38.9008, lng:-77.0500, min:5},
+      {name:'Metro Center', lat:38.8983, lng:-77.0281, min:0} ]},
+    { name:'Green/Yellow Line', color:'#00a94f', stations:[
+      {name:'Greenbelt', lat:39.0110, lng:-76.9110, min:30},
+      {name:'College Park-U of Md', lat:38.9786, lng:-76.9275, min:24},
+      {name:'Fort Totten', lat:38.9520, lng:-77.0020, min:18},
+      {name:'Gallery Place', lat:38.8984, lng:-77.0218, min:2},
+      {name:"L'Enfant Plaza", lat:38.8848, lng:-77.0217, min:4},
+      {name:'Anacostia', lat:38.8628, lng:-76.9956, min:10},
+      {name:'Branch Ave', lat:38.8270, lng:-76.9120, min:28} ]} ]},
+
+  { metro:'San Francisco Bay (BART)', hub:'Embarcadero / Montgomery', lines:[
+    { name:'Richmond–Millbrae', color:'#ed1c24', stations:[
+      {name:'Richmond', lat:37.9370, lng:-122.3530, min:40},
+      {name:'El Cerrito del Norte', lat:37.9255, lng:-122.3170, min:35},
+      {name:'Berkeley (Downtown)', lat:37.8700, lng:-122.2680, min:30},
+      {name:'MacArthur', lat:37.8290, lng:-122.2670, min:24},
+      {name:'19th St Oakland', lat:37.8074, lng:-122.2690, min:20},
+      {name:'Embarcadero', lat:37.7929, lng:-122.3970, min:0},
+      {name:'Daly City', lat:37.7060, lng:-122.4690, min:14},
+      {name:'Millbrae', lat:37.5997, lng:-122.3865, min:30} ]},
+    { name:'Antioch–SFO', color:'#ffd200', stations:[
+      {name:'Antioch', lat:37.9960, lng:-121.7830, min:70},
+      {name:'Pittsburg/Bay Point', lat:38.0190, lng:-121.9450, min:55},
+      {name:'Concord', lat:37.9730, lng:-122.0290, min:45},
+      {name:'Walnut Creek', lat:37.9056, lng:-122.0670, min:40},
+      {name:'Lafayette', lat:37.8930, lng:-122.1240, min:33},
+      {name:'Rockridge', lat:37.8443, lng:-122.2515, min:25},
+      {name:'MacArthur', lat:37.8290, lng:-122.2670, min:22},
+      {name:'Embarcadero', lat:37.7929, lng:-122.3970, min:0},
+      {name:'SFO Airport', lat:37.6160, lng:-122.3920, min:45} ]},
+    { name:'Dublin/Pleasanton–Daly City', color:'#0099d8', stations:[
+      {name:'Dublin/Pleasanton', lat:37.7017, lng:-121.8990, min:55},
+      {name:'Castro Valley', lat:37.6907, lng:-122.0756, min:45},
+      {name:'Bay Fair', lat:37.6970, lng:-122.1267, min:40},
+      {name:'Coliseum', lat:37.7540, lng:-122.1970, min:28},
+      {name:'Lake Merritt', lat:37.7975, lng:-122.2660, min:20},
+      {name:'Embarcadero', lat:37.7929, lng:-122.3970, min:0} ]},
+    { name:'Berryessa–Daly City', color:'#4db748', stations:[
+      {name:'Berryessa/N. San Jose', lat:37.3680, lng:-121.8740, min:65},
+      {name:'Milpitas', lat:37.4100, lng:-121.8910, min:60},
+      {name:'Fremont', lat:37.5575, lng:-121.9766, min:50},
+      {name:'Union City', lat:37.5912, lng:-122.0173, min:42},
+      {name:'Hayward', lat:37.6700, lng:-122.0870, min:38},
+      {name:'Bay Fair', lat:37.6970, lng:-122.1267, min:35},
+      {name:'Coliseum', lat:37.7540, lng:-122.1970, min:28},
+      {name:'Embarcadero', lat:37.7929, lng:-122.3970, min:0} ]} ]}
+];
+
+/* Amtrak / intercity rail. Times are approximate end-to-end rail times to the
+   hub city terminal (Chicago Union Station / NY Penn Station); long-distance,
+   so labels render as hours once over ~90 min. Schematic, major stops only. */
+const AMTRAK = [
+  { metro:'Chicago — Amtrak (Midwest)', hub:'Chicago Union Station', lines:[
+    { name:'Hiawatha → Milwaukee', color:'#1d4ed8', stations:[
+      {name:'Milwaukee (Intermodal)', lat:43.0345, lng:-87.9220, min:89},
+      {name:'Milwaukee Airport', lat:42.9450, lng:-87.8990, min:80},
+      {name:'Sturtevant, WI', lat:42.6900, lng:-87.9080, min:62},
+      {name:'Glenview, IL', lat:42.0700, lng:-87.8150, min:30},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6396, min:0} ]},
+    { name:'Wolverine → Detroit', color:'#dc2626', stations:[
+      {name:'Pontiac, MI', lat:42.6360, lng:-83.2910, min:360},
+      {name:'Detroit', lat:42.3270, lng:-83.0640, min:330},
+      {name:'Dearborn, MI', lat:42.3030, lng:-83.2330, min:320},
+      {name:'Ann Arbor, MI', lat:42.2700, lng:-83.7470, min:295},
+      {name:'Jackson, MI', lat:42.2470, lng:-84.4010, min:270},
+      {name:'Battle Creek, MI', lat:42.2960, lng:-85.1790, min:230},
+      {name:'Kalamazoo, MI', lat:42.2920, lng:-85.5860, min:205},
+      {name:'Niles, MI', lat:41.8290, lng:-86.2540, min:165},
+      {name:'New Buffalo, MI', lat:41.7940, lng:-86.7460, min:140},
+      {name:'Michigan City, IN', lat:41.7110, lng:-86.9070, min:120},
+      {name:'Hammond-Whiting, IN', lat:41.6760, lng:-87.5010, min:40},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6396, min:0} ]},
+    { name:'Pere Marquette → Grand Rapids', color:'#ea580c', stations:[
+      {name:'Grand Rapids, MI', lat:42.9520, lng:-85.6680, min:230},
+      {name:'Holland, MI', lat:42.7860, lng:-86.1080, min:200},
+      {name:'Bangor, MI', lat:42.3110, lng:-86.1110, min:165},
+      {name:'St. Joseph / Benton Harbor', lat:42.1160, lng:-86.4530, min:140},
+      {name:'New Buffalo, MI', lat:41.7940, lng:-86.7460, min:115},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6396, min:0} ]},
+    { name:'Blue Water → Port Huron', color:'#0891b2', stations:[
+      {name:'Port Huron, MI', lat:42.9700, lng:-82.4250, min:360},
+      {name:'Flint, MI', lat:43.0100, lng:-83.6900, min:300},
+      {name:'East Lansing, MI', lat:42.7340, lng:-84.4820, min:250},
+      {name:'Battle Creek, MI', lat:42.2960, lng:-85.1790, min:215},
+      {name:'Kalamazoo, MI', lat:42.2920, lng:-85.5860, min:195},
+      {name:'Niles, MI', lat:41.8290, lng:-86.2540, min:160},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6396, min:0} ]},
+    { name:'Cardinal → Indianapolis', color:'#7c3aed', stations:[
+      {name:'Indianapolis, IN', lat:39.7720, lng:-86.1610, min:300},
+      {name:'Crawfordsville, IN', lat:40.0420, lng:-86.8990, min:230},
+      {name:'Lafayette, IN', lat:40.4160, lng:-86.8950, min:190},
+      {name:'Rensselaer, IN', lat:40.9370, lng:-87.1510, min:130},
+      {name:'Dyer, IN', lat:41.4940, lng:-87.5210, min:60},
+      {name:'Chicago Union Station', lat:41.8786, lng:-87.6396, min:0} ]} ]},
+
+  { metro:'New York — Amtrak (Northeast/Empire)', hub:'NY Penn Station', lines:[
+    { name:'NE Corridor → Washington', color:'#1d4ed8', stations:[
+      {name:'Washington Union Station', lat:38.8973, lng:-77.0063, min:205},
+      {name:'Baltimore Penn', lat:39.3074, lng:-76.6156, min:165},
+      {name:'Wilmington, DE', lat:39.7370, lng:-75.5510, min:130},
+      {name:'Philadelphia 30th St', lat:39.9566, lng:-75.1820, min:80},
+      {name:'Trenton, NJ', lat:40.2185, lng:-74.7563, min:55},
+      {name:'Newark Penn', lat:40.7345, lng:-74.1645, min:18},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'NE Corridor → Boston', color:'#dc2626', stations:[
+      {name:'Boston South Station', lat:42.3519, lng:-71.0552, min:220},
+      {name:'Providence, RI', lat:41.8298, lng:-71.4128, min:175},
+      {name:'New London, CT', lat:41.3540, lng:-72.0950, min:140},
+      {name:'New Haven, CT', lat:41.2970, lng:-72.9270, min:110},
+      {name:'Stamford, CT', lat:41.0470, lng:-73.5420, min:55},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]},
+    { name:'Empire Service → Albany/Buffalo', color:'#16a34a', stations:[
+      {name:'Buffalo-Exchange St', lat:42.8790, lng:-78.8710, min:480},
+      {name:'Rochester, NY', lat:43.1610, lng:-77.6090, min:380},
+      {name:'Syracuse, NY', lat:43.0770, lng:-76.1740, min:290},
+      {name:'Utica, NY', lat:43.1010, lng:-75.2280, min:240},
+      {name:'Albany-Rensselaer', lat:42.6410, lng:-73.7390, min:150},
+      {name:'Hudson, NY', lat:42.2520, lng:-73.7910, min:110},
+      {name:'Poughkeepsie', lat:41.7060, lng:-73.9370, min:95},
+      {name:'Croton-Harmon', lat:41.1900, lng:-73.8810, min:60},
+      {name:'NY Penn Station', lat:40.7506, lng:-73.9935, min:0} ]} ]}
+];
 
 function nearestAirport(point) {
   if (!point || point.lat == null) return null;
@@ -2261,6 +2953,9 @@ function openLayers() {
   document.getElementById('peopleToggle').checked = showPeople;
   document.getElementById('traumaToggle').checked = showTrauma;
   document.getElementById('pharmaToggle').checked = showPharma;
+  document.getElementById('commuterRailToggle').checked = showCommuterRail;
+  document.getElementById('subwayToggle').checked = showSubway;
+  document.getElementById('amtrakToggle').checked = showAmtrak;
   document.getElementById('layersModal').classList.add('open');
 }
 function closeLayers() { document.getElementById('layersModal').classList.remove('open'); }
@@ -4598,6 +5293,79 @@ function drawPharma() {
     }).addTo(pharmaLayer).bindTooltip(`${p.name}${p.note ? ' — ' + p.note : ''}`, { direction: 'top' });
   });
 }
+
+/* ---------- Rail connectivity (commuter rail + subway/metro + Amtrak) ---------- */
+function fmtRailTime(m) {
+  if (m >= 90) { const h = Math.floor(m / 60), mm = m % 60; return mm ? `${h}h ${mm}m` : `${h}h`; }
+  return `${m} min`;
+}
+function drawRailSystems(systems, opts) {
+  opts = opts || {};
+  const weight = opts.weight || 3;
+  const dashArray = opts.dashArray || null;
+  const radius = opts.radius || 4;
+  const group = L.layerGroup().addTo(map);
+  const hubs = {};
+  systems.forEach(sys => {
+    sys.lines.forEach(line => {
+      const pts = line.stations.map(s => [s.lat, s.lng]);
+      L.polyline(pts, {
+        color: line.color || '#475569',
+        weight: weight,
+        opacity: 0.8,
+        dashArray: dashArray
+      }).addTo(group);
+      line.stations.forEach(s => {
+        if (s.min === 0) { hubs[s.name] = { lat: s.lat, lng: s.lng }; return; }
+        L.circleMarker([s.lat, s.lng], {
+          radius: radius, color: line.color || '#475569', weight: 2,
+          fillColor: '#ffffff', fillOpacity: 1
+        }).addTo(group).bindTooltip(
+          `<b>${escape(s.name)}</b><br>~${fmtRailTime(s.min)} → ${escape(sys.hub)}<br><span style="color:#94a3b8">${escape(line.name)}</span>`,
+          { direction: 'top' }
+        );
+      });
+    });
+  });
+  Object.keys(hubs).forEach(name => {
+    const h = hubs[name];
+    L.marker([h.lat, h.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="rail-hub">◆ ${escape(name)}</div>`,
+        iconSize: null,
+        iconAnchor: [8, 8]
+      }),
+      zIndexOffset: 200
+    }).addTo(group).bindTooltip('Hub terminal — station times are measured to here', { direction: 'top' });
+  });
+  return group;
+}
+function toggleCommuterRail(on) {
+  showCommuterRail = on;
+  clearCommuterRail();
+  if (on) commuterRailLayer = drawRailSystems(COMMUTER_RAIL, { weight: 3 });
+}
+function clearCommuterRail() {
+  if (commuterRailLayer) { map.removeLayer(commuterRailLayer); commuterRailLayer = null; }
+}
+function toggleSubway(on) {
+  showSubway = on;
+  clearSubway();
+  if (on) subwayLayer = drawRailSystems(SUBWAY, { weight: 3, dashArray: '5 5' });
+}
+function clearSubway() {
+  if (subwayLayer) { map.removeLayer(subwayLayer); subwayLayer = null; }
+}
+function toggleAmtrak(on) {
+  showAmtrak = on;
+  clearAmtrak();
+  if (on) amtrakLayer = drawRailSystems(AMTRAK, { weight: 4, dashArray: '14 8', radius: 5 });
+}
+function clearAmtrak() {
+  if (amtrakLayer) { map.removeLayer(amtrakLayer); amtrakLayer = null; }
+}
+
 function clearCityDistance() {
   if (cityDistanceLayer) { map.removeLayer(cityDistanceLayer); cityDistanceLayer = null; }
 }
