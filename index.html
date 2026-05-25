@@ -1360,11 +1360,11 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
   <div class="modal" style="width:min(960px,96vw)">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:16px">
-        <h2 style="margin:0">Calendar</h2>
+        <h2 style="margin:0">Timeline</h2>
         <!-- View toggle (left side) -->
         <div id="calViewToggle" style="display:inline-flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em">
-          <button type="button" data-view="month" onclick="setCalView('month')" class="calViewBtn on" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted);border-right:1px solid var(--line)">Month</button>
-          <button type="button" data-view="list"  onclick="setCalView('list')"  class="calViewBtn" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted)">List</button>
+          <button type="button" data-view="list"  onclick="setCalView('list')"  class="calViewBtn on" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted);border-right:1px solid var(--line)">List</button>
+          <button type="button" data-view="month" onclick="setCalView('month')" class="calViewBtn" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted)">Month</button>
         </div>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);flex-wrap:wrap">
@@ -1499,10 +1499,10 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
   .cal-list-month:first-child { padding-top: 0; }
   .cal-list-row {
     display: grid;
-    grid-template-columns: 64px 70px 1fr auto;
-    gap: 14px;
-    align-items: baseline;
-    padding: 10px 0;
+    grid-template-columns: 56px 110px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 4px;
     border-bottom: 1px solid var(--line);
     cursor: pointer;
   }
@@ -1543,15 +1543,17 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     margin-top: 2px;
   }
   .cal-list-actions {
-    display: flex; gap: 10px;
+    display: flex; gap: 14px;
     font-family: var(--font-mono);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    white-space: nowrap;
   }
   .cal-list-actions a {
     color: var(--muted);
     text-decoration: none;
+    white-space: nowrap;
   }
   .cal-list-actions a:hover { color: var(--ink); }
   .cal-list-today {
@@ -4776,7 +4778,7 @@ const CAL_EVENT_TYPES = [
   { key: 'offerDeadline',       label: 'Offer deadline',   short: 'DDL', color: 'var(--rejected)' },
 ];
 
-let calState = { year: new Date().getFullYear(), month: new Date().getMonth(), jobId: 'all', view: 'month' };
+let calState = { year: new Date().getFullYear(), month: new Date().getMonth(), jobId: 'all', view: 'list' };
 
 function setCalView(v) {
   calState.view = v;
