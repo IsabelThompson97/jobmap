@@ -4797,34 +4797,51 @@ function toggleGcalPanel() {
 }
 
 function openTimeline() {
-  // Default to a month with the most events, if any
-  const all = gatherCalendarEvents('all');
-  if (all.length) {
-    // Pick the latest event's month so user lands somewhere useful
-    const latest = all[all.length - 1].date;
-    const d = new Date(latest + 'T00:00:00');
-    if (!isNaN(d)) { calState.year = d.getFullYear(); calState.month = d.getMonth(); }
-  }
-  // Build job filter dropdown
-  const sel = document.getElementById('calJobFilter');
-  const jobOpts = jobs.filter(j => j.kind !== 'sister')
-    .slice().sort((a,b) => a.company.localeCompare(b.company))
-    .map(j => `<option value="${j.id}">${escape(j.company)}</option>`).join('');
-  sel.innerHTML = `<option value="all">All jobs</option>${jobOpts}`;
-  sel.value = calState.jobId;
-  // Legend
-  document.getElementById('calLegend').innerHTML = CAL_EVENT_TYPES.map(t =>
-    `<span style="display:inline-flex;align-items:center;gap:5px">
-      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${t.color}"></span>${t.label}
-    </span>`).join('');
-  // Reset gcal panel & reflect current view in toggle/nav
+  // Open the modal FIRST so a downstream error in build/render doesn't leave the user
+  // staring at a non-responsive Timeline button. Subsequent steps are individually
+  // try/catch-wrapped so one bad job (e.g. missing `company`) can't kill the whole view.
+  document.getElementById('timelineModal').classList.add('open');
+
+  try {
+    // Default to the month of the latest event, if any
+    const all = gatherCalendarEvents('all');
+    if (all.length) {
+      const latest = all[all.length - 1].date;
+      const d = new Date(latest + 'T00:00:00');
+      if (!isNaN(d)) { calState.year = d.getFullYear(); calState.month = d.getMonth(); }
+    }
+  } catch (e) { console.warn('[openTimeline] gather error:', e); }
+
+  try {
+    // Build job filter dropdown — guard against null/undefined company strings
+    const sel = document.getElementById('calJobFilter');
+    const jobOpts = jobs.filter(j => j && j.kind !== 'sister')
+      .slice()
+      .sort((a, b) => String(a.company || '').localeCompare(String(b.company || '')))
+      .map(j => `<option value="${j.id}">${escape(j.company || '(untitled)')}</option>`).join('');
+    sel.innerHTML = `<option value="all">All jobs</option>${jobOpts}`;
+    sel.value = calState.jobId;
+  } catch (e) { console.warn('[openTimeline] job filter error:', e); }
+
+  try {
+    document.getElementById('calLegend').innerHTML = CAL_EVENT_TYPES.map(t =>
+      `<span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${t.color}"></span>${t.label}
+      </span>`).join('');
+  } catch (e) { console.warn('[openTimeline] legend error:', e); }
+
   document.getElementById('gcalPanel').style.display = 'none';
   document.querySelectorAll('.calViewBtn').forEach(b => {
     b.classList.toggle('on', b.dataset.view === calState.view);
   });
   document.getElementById('calNav').style.display = calState.view === 'month' ? 'flex' : 'none';
-  renderCalendar();
-  document.getElementById('timelineModal').classList.add('open');
+
+  try { renderCalendar(); }
+  catch (e) {
+    console.warn('[openTimeline] render error:', e);
+    document.getElementById('timelineBody').innerHTML =
+      `<p style="color:var(--muted);font-size:12px;margin-top:10px">Couldn't render the timeline — one of your jobs may be missing a date or company. Check the browser console for details.</p>`;
+  }
 }
 function closeTimeline() { document.getElementById('timelineModal').classList.remove('open'); }
 document.getElementById('timelineModal').addEventListener('click', e => {
@@ -4833,12 +4850,12 @@ document.getElementById('timelineModal').addEventListener('click', e => {
 
 function gatherCalendarEvents(jobId) {
   const events = [];
-  jobs.filter(j => j.kind !== 'sister' && (jobId === 'all' || j.id === jobId)).forEach(j => {
+  (jobs || []).filter(j => j && j.kind !== 'sister' && (jobId === 'all' || j.id === jobId)).forEach(j => {
     CAL_EVENT_TYPES.forEach(et => {
       if (j[et.key]) events.push({ date: j[et.key], type: et, job: j });
     });
   });
-  events.sort((a, b) => a.date.localeCompare(b.date));
+  events.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   return events;
 }
 
