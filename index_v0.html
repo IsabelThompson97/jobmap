@@ -13,622 +13,170 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='38' fill='%234f46e5'/><path d='M90 28c-25 0-46 21-46 46 0 36 46 78 46 78s46-42 46-78c0-25-21-46-46-46zm0 62a16 16 0 110-32 16 16 0 010 32z' fill='white'/></svg>" />
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%234f46e5'/><path d='M16 5c-4 0-8 4-8 8 0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z' fill='white'/></svg>" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
-  /* ============================================================
-     Job Map — Redesign
-     Editorial-minimal: warm paper, ink, one muted accent.
-     Status shown as left-edge color bar, mono for data,
-     serif for the wordmark. Tweaks override --accent + theme.
-     ============================================================ */
   :root {
-    /* Surface tones — warm, low-saturation paper */
-    --bg: #f5f2eb;
-    --panel: #fbfaf6;
-    --panel-2: #f1ede4;
-    --ink: #1a1815;
-    --ink-2: #3d3a34;
-    --muted: #8c867a;
-    --line: #e4dfd2;
-    --line-strong: #cfc8b6;
-    /* Single accent — terracotta default (tweakable) */
-    --accent: oklch(0.58 0.12 38);
-    --accent-soft: oklch(0.96 0.018 60);
-    --accent-ink: oklch(0.38 0.10 38);
-    /* Status — muted, harmonised set (lower chroma than the originals) */
-    --potential:    oklch(0.70 0.01 80);
-    --applied:      oklch(0.72 0.13 75);
-    --interviewing: oklch(0.60 0.10 250);
-    --offer:        oklch(0.62 0.10 150);
-    --rejected:     oklch(0.60 0.13 25);
-    --current:      oklch(0.55 0.09 160);
-
-    --radius: 4px;
-    --radius-lg: 8px;
-    --shadow-pop: 0 1px 2px rgba(26,24,21,0.04), 0 8px 24px rgba(26,24,21,0.08);
-
-    --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    --font-serif: "Instrument Serif", "Cormorant Garamond", Georgia, serif;
-    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-    /* ------------------------------------------------------------
-       Type scale — three families, fixed sizes, one rule per role.
-       Every element in the app should pick from this set; no
-       custom font-size / font-family overrides outside this scale.
-
-         Display     serif  30 / 22         (sidebar wordmark, modal h2)
-         Title       sans   15  (500)       (job card .company, popup-company)
-         Body        sans   13              (paragraphs, inputs, toggle labels, button copy)
-         Body-sm     sans   12              (secondary muted copy, subtitles, helpers)
-         Eyebrow     mono   11  (caps)      (toolbar, status pills, modal h3, section captions, links in toolbar)
-         Caption     mono   10  (caps)      (modal field labels, card meta, chips, small status)
-         Micro       mono    9  (caps)      (tweak panel labels, tiny captions)
-       ------------------------------------------------------------ */
-    --fs-display-lg: 30px;
-    --fs-display: 22px;
-    --fs-title: 15px;
-    --fs-body: 13px;
-    --fs-body-sm: 12px;
-    --fs-eyebrow: 11px;
-    --fs-caption: 10px;
-    --fs-micro: 9px;
-
-    --ls-display: -0.01em;
-    --ls-eyebrow: 0.1em;
-    --ls-caption: 0.08em;
-  }
-  /* ============================================================
-     Typography utilities — used directly in markup so every
-     occurrence of an eyebrow / caption is identical.
-     ============================================================ */
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: var(--fs-eyebrow);
-    text-transform: uppercase;
-    letter-spacing: var(--ls-eyebrow);
-    color: var(--muted);
-    font-weight: 400;
-  }
-  .caption {
-    font-family: var(--font-mono);
-    font-size: var(--fs-caption);
-    text-transform: uppercase;
-    letter-spacing: var(--ls-caption);
-    color: var(--muted);
-    font-weight: 400;
-  }
-
-  body.theme-mono {
-    --bg: #f4f4f2;
+    --bg: #f7f6f2;
     --panel: #ffffff;
-    --panel-2: #ececea;
-    --ink: #111111;
-    --ink-2: #2a2a2a;
-    --muted: #767676;
-    --line: #e2e2df;
-    --line-strong: #c9c9c5;
-  }
-  /* Theme: Soft (clean white, cooler neutrals) */
-  body.theme-soft {
-    --bg: #f6f6f8;
-    --panel: #ffffff;
-    --panel-2: #f0f0f4;
     --ink: #1f2330;
-    --ink-2: #3a3f4d;
-    --muted: #767e8c;
-    --line: #e9e9ee;
-    --line-strong: #d0d0d8;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --potential: #9ca3af;
+    --applied: #3b82f6;
+    --interviewing: #f59e0b;
+    --offer: #10b981;
+    --rejected: #ef4444;
+    --current: #059669;
   }
   * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    font-family: var(--font-sans);
-    font-size: var(--fs-body);
-    color: var(--ink); background: var(--bg);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "ss01", "cv11";
-  }
-  #app { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
-
-  /* ---------- Sidebar shell ---------- */
-  #sidebar {
-    background: var(--panel);
-    border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; overflow: hidden;
-  }
-  #sidebar header {
-    padding: 22px 22px 18px;
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  }
-  #sidebar header h1 {
-    margin: 0;
-    font-family: var(--font-serif);
-    font-size: 30px; font-weight: 400;
-    letter-spacing: -0.01em; line-height: 1;
-    color: var(--ink);
-  }
-  #sidebar header h1 .dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent); margin-right: 6px; vertical-align: 4px;
-  }
-  #sidebar header p {
-    margin: 0; color: var(--muted); font-size: 11px;
-    text-transform: uppercase; letter-spacing: 0.12em;
-    font-family: var(--font-mono); font-weight: 400;
-  }
-
-  /* ---------- Toolbar (text-button row) ---------- */
-  #toolbar {
-    padding: 14px 22px;
-    display: flex; gap: 18px; align-items: center;
-    border-bottom: 1px solid var(--line);
-  }
-  #toolbar button {
-    flex: none;
-    padding: 0; margin: 0;
-    background: transparent; border: none; cursor: pointer;
-    font-family: inherit; font-size: 13px; color: var(--ink-2);
-    line-height: 1;
-    position: relative;
-  }
-  #toolbar button:hover { color: var(--ink); }
-  #toolbar button::after {
-    content: ""; position: absolute; left: 0; right: 0; bottom: -4px;
-    height: 1px; background: var(--ink); transform: scaleX(0);
-    transform-origin: left; transition: transform 0.18s ease;
-  }
-  #toolbar button:hover::after { transform: scaleX(1); }
-  #toolbar button.primary {
-    margin-right: auto;
-    color: var(--ink); font-weight: 500;
-    display: inline-flex; align-items: center; gap: 6px;
-  }
-  #toolbar button.primary::before {
-    content: ""; display: inline-block; width: 8px; height: 8px;
-    border-radius: 50%; background: var(--accent);
-  }
-  #toolbar button.primary::after { left: 14px; }
-  #toolbar .tb-sep { flex: 1; }
-
-  /* ---------- Filter row ---------- */
-  #filterTrigger {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 22px; border-bottom: 1px solid var(--line);
-    font-size: 11px; color: var(--muted);
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
-  }
-  #filterBtn {
-    background: transparent; border: none; cursor: pointer;
-    padding: 0; font-size: 11px; color: var(--muted);
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
-    display: inline-flex; align-items: center; gap: 6px;
-  }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  #app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+  #sidebar { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  #sidebar header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  #sidebar header h1 { margin: 0 0 4px; font-size: 18px; }
+  #sidebar header p { margin: 0; color: var(--muted); font-size: 12px; }
+  #toolbar { padding: 10px 14px; display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+  #toolbar button { flex: 1; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; cursor: pointer; }
+  #toolbar button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  #toolbar button:hover { filter: brightness(0.97); }
+  #filterTrigger { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  #filterBtn { background: transparent; border: none; cursor: pointer; padding: 4px 0; font-size: 12px; color: var(--muted); font-family: inherit; display: inline-flex; align-items: center; gap: 4px; }
   #filterBtn:hover { color: var(--ink); }
-  #sortSelect {
-    background: transparent; border: none; cursor: pointer;
-    padding: 0 14px 0 0; font-size: 11px; color: var(--muted);
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0l4 6 4-6z' fill='%238c867a'/></svg>");
-    background-repeat: no-repeat; background-position: right 0 center;
-  }
+  /* Sort select styled to match #filterBtn — same minimal text look, sits inline next to Filter */
+  #sortSelect { background: transparent; border: none; cursor: pointer; padding: 4px 16px 4px 0; font-size: 12px; color: var(--muted); font-family: inherit; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0l4 6 4-6z' fill='%236b7280'/></svg>"); background-repeat: no-repeat; background-position: right 2px center; }
   #sortSelect:hover { color: var(--ink); }
-  #filterTrigger .triggerGroup { display: flex; align-items: center; gap: 18px; }
-  #filterDot { display: none; width: 5px; height: 5px; background: var(--accent); border-radius: 50%; }
+  #filterTrigger .triggerGroup { display: flex; align-items: center; gap: 14px; }
+  #filterDot { display: none; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
   #filterDot.active { display: inline-block; }
-  #jobCount { font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-  /* ---------- Filter panel ---------- */
-  #filterBar {
-    padding: 14px 22px;
-    border-bottom: 1px solid var(--line);
-    background: var(--panel-2);
-    display: flex; flex-direction: column; gap: 12px;
-    overflow: hidden;
-    transition: max-height 0.22s ease, padding 0.22s ease, opacity 0.18s ease;
-    max-height: 320px;
-  }
-  #filterBar.collapsed {
-    max-height: 0; padding-top: 0; padding-bottom: 0;
-    border-bottom: none; opacity: 0;
-  }
-  #searchInput {
-    width: 100%; padding: 9px 12px;
-    border: 1px solid var(--line); border-radius: var(--radius);
-    font-size: 13px; font-family: inherit;
-    background: var(--panel); color: var(--ink);
-    transition: border-color 0.15s;
-  }
-  #searchInput:focus { outline: none; border-color: var(--accent); }
+  #jobCount { font-size: 11px; }
+  #filterBar { padding: 8px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; overflow: hidden; transition: max-height 0.2s ease, padding 0.2s ease; max-height: 200px; }
+  #filterBar.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom: none; }
+  #searchInput { width: 100%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
   #statusChips { display: flex; flex-wrap: wrap; gap: 4px; }
-  .starFilters { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
-  .starFilters label { min-width: 60px; }
-  .starRow { display: inline-flex; gap: 1px; }
-  .starRow span { cursor: pointer; color: var(--line-strong); font-size: 14px; line-height: 1; transition: color 0.1s; }
-  .starRow span.on { color: var(--ink); }
-  .clearStars {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    font-size: 10px; padding: 0; font-family: var(--font-mono);
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .clearStars:hover { color: var(--ink); }
-  .chip {
-    font-size: 10px; padding: 4px 9px;
-    border-radius: var(--radius); cursor: pointer;
-    border: 1px solid var(--line); background: var(--panel);
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--muted); user-select: none;
-    font-family: var(--font-mono);
-    display: inline-flex; align-items: center; gap: 5px;
-    transition: color 0.12s, border-color 0.12s, background 0.12s;
-  }
-  .chip::before {
-    content: ""; display: inline-block;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--chip-c, var(--muted));
-  }
-  .chip.s-potential    { --chip-c: var(--potential); }
-  .chip.s-applied      { --chip-c: var(--applied); }
-  .chip.s-interviewing { --chip-c: var(--interviewing); }
-  .chip.s-offer        { --chip-c: var(--offer); }
-  .chip.s-rejected     { --chip-c: var(--rejected); }
-  .chip.s-current      { --chip-c: var(--current); }
-  .chip:hover { color: var(--ink); border-color: var(--line-strong); }
-  .chip.on {
-    color: var(--ink); background: var(--panel-2);
-    border-color: var(--line-strong);
-  }
-  .chip.on::before { box-shadow: 0 0 0 2px var(--panel-2); }
-
-  /* ---------- Sync status strip ---------- */
-  #syncStatus {
-    font-size: 11px; color: var(--muted);
-    padding: 8px 22px; border-bottom: 1px solid var(--line);
-    display: none; font-family: var(--font-mono);
-    letter-spacing: 0.04em;
-  }
+  .starFilters { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .starFilters label { min-width: 56px; }
+  .starRow { display: inline-flex; gap: 2px; }
+  .starRow span { cursor: pointer; color: #d1d5db; font-size: 16px; line-height: 1; }
+  .starRow span.on { color: #f59e0b; }
+  .clearStars { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; text-decoration: underline; }
+  #filterBar { max-height: 280px; }
+  .chip { font-size: 10px; padding: 3px 8px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: white; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); user-select: none; }
+  .chip.on { color: white; border-color: transparent; }
+  .chip.on.s-potential { background: var(--potential); }
+  .chip.on.s-applied { background: var(--applied); }
+  .chip.on.s-interviewing { background: var(--interviewing); }
+  .chip.on.s-offer { background: var(--offer); }
+  .chip.on.s-rejected { background: var(--rejected); }
+  #syncStatus { font-size: 11px; color: var(--muted); padding: 6px 14px; border-bottom: 1px solid var(--line); display: none; }
   #syncStatus.visible { display: block; }
-  #syncStatus.error { color: oklch(0.55 0.13 25); }
-  #syncStatus.success { color: oklch(0.55 0.10 150); }
-
-  /* ---------- Job list ---------- */
-  #jobList { overflow-y: auto; flex: 1; padding: 4px 0 12px; }
-  .job-card {
-    position: relative;
-    padding: 14px 22px 14px 28px;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--line);
-    border-radius: 0;
-    margin: 0;
-    transition: background 0.12s;
-  }
-  .job-card::before {
-    content: ""; position: absolute;
-    left: 0; top: 14px; bottom: 14px;
-    width: 3px; border-radius: 0 2px 2px 0;
-    background: var(--card-c, var(--muted));
-  }
-  .job-card:hover { background: var(--panel-2); }
-  .job-card .row1 {
-    display: flex; justify-content: space-between;
-    align-items: baseline; gap: 10px; margin-bottom: 4px;
-  }
-  .job-card .company {
-    font-family: var(--font-serif);
-    font-weight: 400; font-size: 19px;
-    color: var(--ink); letter-spacing: 0;
-    line-height: 1.15;
-  }
-  .job-card .role { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .job-card .loc {
-    font-size: 12px; color: var(--muted);
-    margin-top: 2px;
-    font-family: var(--font-mono);
-    display: inline-flex; align-items: center;
-  }
-  .job-card .meta {
-    margin-top: 6px;
-    display: flex; gap: 10px; align-items: center;
-    font-family: var(--font-mono); font-size: 10px;
-    color: var(--muted); letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
-  }
-  .job-card .meta .stars { color: var(--ink); font-family: var(--font-sans); font-size: 11px; letter-spacing: 0; }
-  .job-card .meta .sep { width: 2px; height: 2px; background: var(--line-strong); border-radius: 50%; }
-  .job-card.card-potential    { --card-c: var(--potential); }
-  .job-card.card-applied      { --card-c: var(--applied); }
-  .job-card.card-interviewing { --card-c: var(--interviewing); }
-  .job-card.card-offer        { --card-c: var(--offer); }
-  .job-card.card-rejected     { --card-c: var(--rejected); }
-  .job-card.card-current      { --card-c: var(--current); }
-  .status-pill {
-    font-size: 11px; padding: 3px 8px;
-    border-radius: 2px; color: var(--ink);
-    text-transform: uppercase; letter-spacing: 0.1em;
-    white-space: nowrap;
-    background: var(--panel-2);
-    font-family: var(--font-mono); font-weight: 400;
-    border: 1px solid var(--line);
-    display: inline-flex; align-items: center; gap: 5px;
-  }
-  .status-pill::before {
-    content: ""; width: 5px; height: 5px; border-radius: 50%;
-    background: var(--pill-c, var(--muted));
-  }
-  .status-potential    { --pill-c: var(--potential); }
-  .status-applied      { --pill-c: var(--applied); }
-  .status-interviewing { --pill-c: var(--interviewing); }
-  .status-offer        { --pill-c: var(--offer); }
-  .status-rejected     { --pill-c: var(--rejected); }
-  .status-current      { --pill-c: var(--current); }
-  .excitement {
-    color: var(--ink); font-size: 11px; margin-top: 4px;
-    letter-spacing: 0.05em;
-  }
-  .excitement .off { color: var(--line-strong); }
-
-  /* ---------- Code block ---------- */
-  .code-block {
-    background: #161512; color: #e8e5dc;
-    padding: 14px; border-radius: var(--radius);
-    font-family: var(--font-mono); font-size: 11px;
-    max-height: 240px; overflow: auto;
-    white-space: pre; margin-top: 6px;
-    line-height: 1.55;
-  }
-  .steps { font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+  #syncStatus.error { color: #b91c1c; }
+  #syncStatus.success { color: #047857; }
+  #jobList { overflow-y: auto; flex: 1; padding: 8px; }
+  .code-block { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; max-height: 240px; overflow: auto; white-space: pre; margin-top: 6px; }
+  .steps { font-size: 13px; line-height: 1.6; }
   .steps li { margin-bottom: 8px; }
-  .steps code {
-    background: var(--panel-2); padding: 1px 6px; border-radius: 3px;
-    font-size: 12px; font-family: var(--font-mono);
-  }
-  details summary {
-    cursor: pointer; font-weight: 500; padding: 8px 0;
-    font-size: 13px; color: var(--ink);
-    font-family: var(--font-mono); letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  #map { height: 100%; position: relative; background: var(--panel-2); }
-
-  /* ---------- Manage bar ---------- */
-  #manageBar {
-    position: relative;
-    border-top: 1px solid var(--line);
-    padding: 14px 22px;
-    background: var(--panel);
-  }
-  #manageBtn {
-    width: 100%; padding: 10px 12px;
-    font-size: 11px;
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em;
-    border: 1px solid var(--line);
-    background: var(--panel); color: var(--ink-2);
-    border-radius: var(--radius);
-    cursor: pointer; text-align: left;
-    display: flex; justify-content: space-between; align-items: center;
-    transition: border-color 0.12s, color 0.12s;
-  }
-  #manageBtn:hover { border-color: var(--ink); color: var(--ink); }
-  #manageMenu {
-    display: none; position: absolute;
-    bottom: calc(100% - 4px); left: 22px; right: 22px;
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-pop);
-    padding: 6px; z-index: 100;
-  }
+  .steps code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .job-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: white; }
+  .job-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .job-card .row1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .job-card .company { font-weight: 600; font-size: 14px; }
+  .job-card .role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .job-card .loc { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .status-pill { font-size: 10px; padding: 2px 7px; border-radius: 999px; color: white; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  .status-potential { background: var(--potential); }
+  .status-applied { background: var(--applied); }
+  .status-interviewing { background: var(--interviewing); }
+  .status-offer { background: var(--offer); }
+  .status-rejected { background: var(--rejected); }
+  .status-current { background: var(--current); }
+  .excitement { color: #f59e0b; font-size: 11px; margin-top: 4px; }
+  #map { height: 100%; position: relative; }
+  #manageBar { position: relative; border-top: 1px solid var(--line); padding: 10px 12px; background: var(--panel); }
+  #manageBtn { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); background: white; border-radius: 8px; cursor: pointer; text-align: left; }
+  #manageBtn:hover { background: var(--accent-soft); }
+  #manageMenu { display: none; position: absolute; bottom: calc(100% - 4px); left: 12px; right: 12px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 4px; z-index: 100; }
   #manageMenu.open { display: block; }
-  #manageMenu button {
-    display: block; width: 100%; text-align: left;
-    padding: 9px 12px; border: none; background: transparent;
-    cursor: pointer; font-size: 13px; border-radius: 2px;
-    font-family: inherit; color: var(--ink-2);
-  }
-  #manageMenu button:hover { background: var(--panel-2); color: var(--ink); }
+  #manageMenu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; font-size: 13px; border-radius: 6px; font-family: inherit; color: var(--ink); }
+  #manageMenu button:hover { background: var(--accent-soft); }
 
-  /* ---------- Modal ---------- */
-  .modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(26,24,21,0.36);
-    backdrop-filter: blur(2px);
-    display: none; align-items: center; justify-content: center;
-    z-index: 1000;
-  }
+  /* Modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,18,30,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
   .modal-backdrop.open { display: flex; }
-  .modal {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    width: min(640px, 92vw); max-height: 90vh;
-    overflow-y: auto; padding: 28px 30px;
-    box-shadow: 0 30px 80px rgba(26,24,21,0.18);
-    color: var(--ink);
-  }
-  .modal h2 {
-    margin: 0 0 18px;
-    font-family: var(--font-serif);
-    font-size: 26px; font-weight: 400;
-    letter-spacing: -0.01em; line-height: 1.1;
-  }
-  .modal label {
-    display: block; font-size: 10px; color: var(--muted);
-    margin: 14px 0 5px; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    font-family: var(--font-mono);
-  }
+  .modal { background: white; border-radius: 14px; width: min(640px, 92vw); max-height: 90vh; overflow-y: auto; padding: 22px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .modal h2 { margin: 0 0 14px; font-size: 18px; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; font-weight: 500; }
   .modal input, .modal select, .modal textarea {
-    width: 100%; padding: 9px 11px;
-    border: 1px solid var(--line); border-radius: var(--radius);
-    font-size: 13px; font-family: inherit;
-    background: var(--panel); color: var(--ink);
-    transition: border-color 0.12s;
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit;
   }
-  .modal input:focus, .modal select:focus, .modal textarea:focus {
-    outline: none; border-color: var(--accent);
-  }
-  .modal textarea { min-height: 60px; resize: vertical; line-height: 1.5; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-actions {
-    display: flex; gap: 8px; justify-content: flex-end;
-    margin-top: 22px;
-    padding-top: 18px; border-top: 1px solid var(--line);
-  }
-  .modal-actions button {
-    padding: 9px 16px; border-radius: var(--radius);
-    border: 1px solid var(--line); background: var(--panel);
-    cursor: pointer; font-size: 12px;
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--ink-2);
-    transition: border-color 0.12s, color 0.12s, background 0.12s;
-  }
-  .modal-actions button:hover { border-color: var(--ink); color: var(--ink); }
-  .modal-actions .primary {
-    background: var(--ink); color: var(--panel);
-    border-color: var(--ink);
-  }
-  .modal-actions .primary:hover {
-    background: var(--accent); border-color: var(--accent);
-    color: white;
-  }
-  .modal-actions .danger {
-    background: transparent; color: var(--rejected);
-    border-color: var(--rejected);
-  }
-  .modal-actions .danger:hover { background: var(--rejected); color: white; }
-
-  .stars { display: inline-flex; gap: 3px; cursor: pointer; }
-  .stars span { font-size: 22px; color: var(--line-strong); transition: color 0.1s; }
-  .stars span.on { color: var(--ink); }
+  .modal textarea { min-height: 60px; resize: vertical; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .modal-actions button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: white; cursor: pointer; font-size: 13px; }
+  .modal-actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .modal-actions .danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .stars { display: inline-flex; gap: 2px; cursor: pointer; }
+  .stars span { font-size: 22px; color: #d1d5db; }
+  .stars span.on { color: #f59e0b; }
+  /* compact 1–5 rating widget used in His Impressions / Couple's Context */
   .mini-stars { display: inline-flex; gap: 2px; cursor: pointer; user-select: none; }
-  .mini-stars span { font-size: 18px; color: var(--line-strong); line-height: 1; transition: color 0.1s; }
-  .mini-stars span.on { color: var(--ink); }
-  .rating-grid { display: grid; grid-template-columns: 1fr; gap: 0; margin-bottom: 8px; }
-  .rating-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; font-size: 13px;
-    border-bottom: 1px solid var(--line);
-  }
-  .rating-row:last-child { border-bottom: none; }
-  .rating-row > span:first-child { color: var(--ink-2); }
-  .help {
-    font-size: 11px; color: var(--muted);
-    margin-top: 5px; line-height: 1.5;
-  }
+  .mini-stars span { font-size: 18px; color: #d1d5db; line-height: 1; }
+  .mini-stars span.on { color: #f59e0b; }
+  .rating-grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
+  .rating-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+  .rating-row > span:first-child { color: var(--text); }
+  .help { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-  /* ---------- Leaflet popup ---------- */
-  .leaflet-popup-content-wrapper {
-    border-radius: var(--radius-lg) !important;
-    background: var(--panel) !important;
-    color: var(--ink) !important;
-    box-shadow: var(--shadow-pop) !important;
-    border: 1px solid var(--line) !important;
-  }
-  .leaflet-popup-tip { background: var(--panel) !important; }
-  .leaflet-popup-content { margin: 14px 16px; min-width: 240px; font-family: var(--font-sans); }
-  .popup-company {
-    font-family: var(--font-serif);
-    font-weight: 400; font-size: 19px; margin-bottom: 2px;
-    color: var(--ink); letter-spacing: 0;
-    line-height: 1.15;
-  }
-  .popup-role { color: var(--muted); font-size: 12px; margin-bottom: 6px; font-family: var(--font-mono); }
-  .popup-section {
-    margin-top: 14px; padding-top: 12px;
-    border-top: 1px solid var(--line);
-    font-size: 13px; line-height: 1.55;
-  }
-  .popup-section strong {
-    display: inline-block; color: var(--ink); font-weight: 500;
-    font-size: 13px; min-width: 0;
-    text-transform: uppercase; letter-spacing: 0.12em;
-    font-family: var(--font-mono);
-  }
+  /* Popup detail view */
+  .leaflet-popup-content { margin: 12px 14px; min-width: 240px; }
+  .popup-company { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .popup-role { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  /* Unified section styling across all modals:
+     - body text at 13px (line-height 1.5)
+     - section header (the <strong>) at 14px, ink-colored, weight 600 — always the largest font in its section
+     - h3 in modals at 14px (matches strong)
+     - chips, captions, footnotes stay smaller (12px / 11px) */
+  .popup-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
+  .popup-section strong { display: inline-block; color: var(--ink); font-weight: 600; font-size: 13px; min-width: 0; text-transform: uppercase; letter-spacing: 0.5px; }
   .popup-section .preserve-lines { white-space: pre-wrap; }
-  #detailsBody .popup-section { padding-top: 16px; margin-top: 16px; }
+  #detailsBody .popup-section { padding-top: 14px; margin-top: 14px; }
   #detailsBody .city-links a { font-size: 13px; }
-  .modal h3 {
-    font-size: 13px; font-weight: 500; color: var(--ink);
-    margin: 18px 0 10px;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    font-family: var(--font-mono);
-  }
+  .modal h3 { font-size: 14px; font-weight: 600; color: var(--ink); margin: 14px 0 8px; }
   .modal h3:first-child { margin-top: 0; }
-  .popup-actions { margin-top: 12px; display: flex; gap: 6px; }
-  .popup-actions button {
-    flex: 1; padding: 7px 8px;
-    border: 1px solid var(--line); background: var(--panel);
-    border-radius: var(--radius); cursor: pointer; font-size: 11px;
-    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--ink-2);
-    transition: border-color 0.1s, color 0.1s;
-  }
-  .popup-actions button:hover { border-color: var(--ink); color: var(--ink); }
-  .popup-actions .primary {
-    background: var(--ink); color: var(--panel); border-color: var(--ink);
-  }
-  .popup-actions .primary:hover { background: var(--accent); border-color: var(--accent); color: white; }
-  .city-links a {
-    color: var(--accent-ink); text-decoration: none;
-    margin-right: 10px; border-bottom: 1px solid transparent;
-    transition: border-color 0.12s;
-  }
-  .city-links a:hover { border-bottom-color: var(--accent-ink); }
+  .popup-actions { margin-top: 10px; display: flex; gap: 6px; }
+  .popup-actions button { flex: 1; padding: 6px; border: 1px solid var(--line); background: white; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .popup-actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .city-links a { color: var(--accent); text-decoration: none; margin-right: 8px; }
+  .city-links a:hover { text-decoration: underline; }
 
-  .toggle-list { display: flex; flex-direction: column; gap: 6px; }
-  .modal label.toggle-row {
-    display: grid; grid-template-columns: 20px 1fr;
-    align-items: center; gap: 12px;
-    padding: 11px 14px; border: 1px solid var(--line);
-    border-radius: var(--radius); cursor: pointer; user-select: none;
-    margin: 0; background: var(--panel);
-    /* override .modal label defaults — toggle rows are not field captions */
-    font-size: 13px; color: var(--ink); font-weight: 400;
-    text-transform: none; letter-spacing: 0;
-    font-family: var(--font-serif);
-    transition: border-color 0.12s, background 0.12s;
-  }
-  .toggle-row:hover { border-color: var(--line-strong); background: var(--panel-2); }
-  .toggle-row input[type="checkbox"] { margin: 0; width: 15px; height: 15px; justify-self: center; accent-color: var(--accent); }
-  .toggle-row .toggle-label {
-    font-size: 13px; color: var(--ink);
-    font-family: var(--font-serif);
-    letter-spacing: -0.005em;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-    line-height: 1.35;
-  }
-  .toggle-row .toggle-label .hint {
-    flex-basis: 100%;
-    margin-top: 1px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 400;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
+  .toggle-list { display: flex; flex-direction: column; gap: 8px; }
+  .toggle-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; user-select: none; margin: 0; }
+  .toggle-row:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .toggle-row input[type="checkbox"] { margin: 0; width: 16px; height: 16px; justify-self: center; }
+  .toggle-row .toggle-label { font-size: 13px; color: var(--ink); }
 
-  /* ---------- Marker / map decorations (preserved) ---------- */
+  /* Strip default Leaflet divIcon background so label markers render cleanly */
   .leaflet-div-icon.label-icon { background: transparent; border: none; padding: 0; }
-  .map-label { background: var(--panel); border: 1px solid var(--accent); color: var(--accent-ink); padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); display: inline-block; font-family: var(--font-mono); }
-  .airport-marker { background: #1e293b; color: white; font-size: 10px; font-weight: 500; padding: 2px 5px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; font-family: var(--font-mono); }
+  .map-label { background: white; border: 1px solid #6366f1; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); display: inline-block; }
+  .airport-marker { background: #1e293b; color: white; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; }
   .uni-marker { background: #16a34a; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .pharma-marker { background: #ea580c; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .pharma-marker.compchem { background: #7c3aed; }
   .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
   .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  /* Friend variant: bright blue, triangle silhouette via clip-path */
   .person-marker.friend { background: #2563eb; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); width: 14px; height: 14px; font-size: 0; }
-  .citytab-btn { padding: 9px 14px; border: none; background: none; cursor: pointer; font-weight: 400; border-bottom: 1px solid transparent; margin-bottom: -1px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
-  .citytab-btn.active { font-weight: 500; border-bottom-color: var(--ink); color: var(--ink); }
-  .citytab-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  /* City Info sub-tab nav (re-used by Cost / Lifestyle / Community) */
+  .citytab-btn { padding: 8px 14px; border: none; background: none; cursor: pointer; font-weight: 400; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 13px; }
+  .citytab-btn.active { font-weight: 600; border-bottom-color: var(--accent); }
+  .citytab-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
   .trauma-marker { background: #b91c1c; color: white; font-size: 10px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  /* Her pin (single color, distinct from his status-colored pins) */
   .pin-marker.kind-me { background: #8b5cf6 !important; }
+
+  /* Custom marker */
   .pin-marker {
     width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
@@ -636,74 +184,12 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
   .pin-marker .inner { transform: rotate(45deg); display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 11px; font-weight: 700; }
-  .pin-badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: white; font-size: 9px; font-weight: 700; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; display: flex; align-items: center; justify-content: center; transform: rotate(45deg); border: 1.5px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1; }
-
-  .modal input[type="date"] { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
-  ::selection { background: var(--accent); color: white; }
-  #jobList::-webkit-scrollbar { width: 8px; }
-  #jobList::-webkit-scrollbar-track { background: transparent; }
-  #jobList::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
-  #jobList::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
+  .pin-badge { position: absolute; top: -6px; right: -8px; background: #06b6d4; color: white; font-size: 9px; font-weight: 700; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; display: flex; align-items: center; justify-content: center; transform: rotate(45deg); border: 1.5px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1; }
 
   @media (max-width: 720px) {
-    #app { grid-template-columns: 1fr; grid-template-rows: 45vh 55vh; }
+    #app { grid-template-columns: 1fr; grid-template-rows: 40vh 60vh; }
     #sidebar { border-right: none; border-bottom: 1px solid var(--line); }
-    #sidebar header { padding: 16px 18px 14px; }
-    #sidebar header h1 { font-size: 24px; }
-    #toolbar, #filterTrigger, #filterBar, #syncStatus, #manageBar { padding-left: 18px; padding-right: 18px; }
-    .job-card { padding-left: 22px; padding-right: 18px; }
   }
-
-  /* ---------- Tweaks panel chrome (built in) ---------- */
-  #tweakPanel {
-    position: fixed; right: 18px; bottom: 18px; z-index: 1500;
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-pop);
-    width: 260px; padding: 14px 16px;
-    font-family: var(--font-sans); color: var(--ink);
-    display: none;
-  }
-  #tweakPanel.open { display: block; }
-  #tweakPanel .tw-title {
-    font-family: var(--font-serif); font-size: 18px; font-weight: 400;
-    line-height: 1; margin: 0 0 10px; letter-spacing: -0.01em;
-  }
-  #tweakPanel .tw-close {
-    position: absolute; top: 10px; right: 10px;
-    background: transparent; border: none; cursor: pointer;
-    color: var(--muted); font-size: 14px; line-height: 1;
-  }
-  #tweakPanel .tw-close:hover { color: var(--ink); }
-  #tweakPanel .tw-label {
-    font-size: 9px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.12em;
-    font-family: var(--font-mono);
-    margin: 14px 0 6px;
-  }
-  #tweakPanel .tw-label:first-of-type { margin-top: 4px; }
-  #tweakPanel .tw-group { display: flex; gap: 4px; flex-wrap: wrap; }
-  #tweakPanel .tw-opt {
-    flex: 1; min-width: 0;
-    padding: 6px 8px; border: 1px solid var(--line);
-    background: var(--panel); cursor: pointer;
-    font-size: 10px; font-family: var(--font-mono);
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--ink-2); border-radius: var(--radius);
-    transition: border-color 0.12s, color 0.12s, background 0.12s;
-  }
-  #tweakPanel .tw-opt:hover { border-color: var(--ink); color: var(--ink); }
-  #tweakPanel .tw-opt.active { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-  #tweakPanel .tw-swatch {
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 1px solid var(--line); cursor: pointer;
-    padding: 0; position: relative; overflow: hidden;
-  }
-  #tweakPanel .tw-swatch.active::after {
-    content: ""; position: absolute; inset: -3px;
-    border: 1.5px solid var(--ink); border-radius: 50%;
-  }
-  #tweakPanel .tw-swatch-row { display: flex; gap: 8px; }
 </style>
 </head>
 <body>
@@ -711,20 +197,19 @@
 <div id="app">
   <aside id="sidebar">
     <header>
-      <h1><span class="dot"></span> Job Map ⟟</h1>
-      <p>APPLICATIONS + INTERVIEWS</p>
+      <h1>📍 Job Map</h1>
+      <p>Track applications, interviews & places</p>
     </header>
     <div id="toolbar">
-      <button class="primary" style="font-size: 13px; height: 14px; font-weight: 500; width: 70px; justify-content: flex-start; font-family: &quot;Instrument Serif&quot;; text-align: center; align-items: center; gap: 10px" onclick="openJobForm()">New entry</button>
-      <span class="tb-sep"></span>
-      <button onclick="openCompare()" title="Compare jobs side-by-side" style="font-family: &quot;Instrument Serif&quot;">Compare</button>
-      <button onclick="openTimeline()" title="Application/interview timeline" style="font-family: &quot;Instrument Serif&quot;">Timeline</button>
-      <button onclick="openLayers()" title="Map layers and overlays" style="font-family: &quot;Instrument Serif&quot;; border-width: 0px; border-style: solid">Layers</button>
+      <button class="primary" onclick="openJobForm()">+ Add Job</button>
+      <button onclick="openCompare()" title="Compare jobs side-by-side">Compare</button>
+      <button onclick="openTimeline()" title="Application/interview timeline">Timeline</button>
+      <button onclick="openLayers()" title="Map layers and overlays">Layers</button>
     </div>
     <div id="syncStatus"></div>
     <div id="filterTrigger">
       <span class="triggerGroup">
-        <button id="filterBtn" onclick="toggleFilterPanel()">Filter <span id="filterDot"></span></button>
+        <button id="filterBtn" onclick="toggleFilterPanel()">Filter <span id="filterDot"></span> <span style="opacity:0.6">▾</span></button>
         <select id="sortSelect" onchange="setSortBy(this.value)" title="Sort the job list">
           <option value="status">Sort: status</option>
           <option value="score">Sort: decision score</option>
@@ -762,7 +247,7 @@
     </div>
     <div id="jobList"></div>
     <div id="manageBar">
-      <button id="manageBtn" onclick="toggleManageMenu(event)">Manage <span style="opacity:0.55">▾</span></button>
+      <button id="manageBtn" onclick="toggleManageMenu(event)">Manage ▾</button>
       <div id="manageMenu">
         <button onclick="openSettings(); closeManageMenu()">Sync to Google Sheet…</button>
         <button onclick="openProfile(); closeManageMenu()">Profile (his / her info)…</button>
@@ -790,7 +275,7 @@
       <select id="f_kind" onchange="updateKindUI()">
         <option value="omfs">His OMFS practice (status-colored pins)</option>
         <option value="current">His CURRENT position (green pin)</option>
-        <option value="me">Her possible employer (purple pin)</option>
+        <option value="me">My possible employer — comp chem (purple pin)</option>
         <option value="sister">Sister location (linked to a main job)</option>
       </select>
 
@@ -943,7 +428,7 @@
       </details>
 
       <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
-        <summary id="f_hisImpressionsSummary">His Impressions</summary>
+        <summary>His Impressions (Dillon)</summary>
         <div class="help" style="margin-bottom:6px">Categorical ratings + gut feelings about location & lifestyle fit for him. Shows up in the "His Impressions" modal.</div>
 
         <label>Location fit ratings (1–5)</label>
@@ -989,7 +474,7 @@
       </details>
 
       <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
-        <summary id="f_couplesContextSummary">Couple's Context</summary>
+        <summary>Couple's Context (Isabel)</summary>
         <div class="help" style="margin-bottom:6px">All of this shows up in "Her situation" — not on the main job page.</div>
 
         <label>Her overall fit (1–5)</label>
@@ -1044,7 +529,7 @@
         <label>Her notes</label>
         <textarea id="f_partnerNotes" placeholder="What would I need to be happy here?
 What am I worried about?
-Questions to ask him / the practice…
+Questions to ask Dillon / the practice…
 Things to research before deciding…
 Red flags I noticed…
 Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"></textarea>
@@ -1114,23 +599,23 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     <h2 style="margin:0 0 6px">Map Layers</h2>
     <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Toggle overlays on the map.</p>
     <div class="toggle-list">
-      <div class="eyebrow layers-cap">People</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px">People</div>
       <label class="toggle-row">
         <input type="checkbox" id="peopleToggle" onchange="togglePeople(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ec4899;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ec4899;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="housesToggle" onchange="toggleHouses(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Houses / listings <span class="hint">(add under Manage → Houses)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Houses / listings <span style="color:var(--muted);font-size:11px;font-weight:400">(add under Manage → Houses)</span></span>
       </label>
 
-      <div class="eyebrow layers-cap">His career context</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">His career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="traumaToggle" onchange="toggleTrauma(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#b91c1c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #b91c1c;vertical-align:middle;margin-right:6px"></span>Level 1 trauma centers</span>
       </label>
 
-      <div class="eyebrow layers-cap">Her career context</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Her career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="universitiesToggle" onchange="toggleUniversities(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Universities (comp chem / R1)</span>
@@ -1145,10 +630,10 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="pharmaToggle" onchange="togglePharma(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:9px;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span class="hint">(orange = big pharma · violet = comp chem / AI drug discovery)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span style="color:var(--muted);font-size:11px">(orange = big pharma · </span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:50%;vertical-align:middle;margin:0 3px"></span><span style="color:var(--muted);font-size:11px">violet = comp chem / AI drug discovery)</span></span>
       </label>
 
-      <div class="eyebrow layers-cap">Travel &amp; geography</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Travel & geography</div>
       <label class="toggle-row">
         <input type="checkbox" id="jobRadiusToggle" onchange="toggleJobRadius(this.checked)" />
         <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:transparent;border-radius:50%;border:2px solid #4f46e5;vertical-align:middle;margin-right:6px"></span>25-mile radius around each job</span>
@@ -1162,18 +647,18 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <span class="toggle-label">Show major US airports</span>
       </label>
 
-      <div class="eyebrow layers-cap">Rail / transit connectivity</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px">Rail / transit connectivity</div>
       <label class="toggle-row">
         <input type="checkbox" id="commuterRailToggle" onchange="toggleCommuterRail(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px solid #6366f1;vertical-align:middle;margin-right:6px"></span>Commuter rail to downtown <span class="hint">(Metra, LIRR, NJT, Metro-North, MBTA, SEPTA, MARC/VRE, Caltrain)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px solid #6366f1;vertical-align:middle;margin-right:6px"></span>Commuter rail to downtown <span style="color:var(--muted);font-size:11px;font-weight:400">(Metra, LIRR, NJT, Metro-North, MBTA, SEPTA, MARC/VRE, Caltrain)</span></span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="subwayToggle" onchange="toggleSubway(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #c60c30;vertical-align:middle;margin-right:6px"></span>Subway / metro lines <span class="hint">(CTA, NYC Subway, MBTA, SEPTA, WMATA, BART)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #c60c30;vertical-align:middle;margin-right:6px"></span>Subway / metro lines <span style="color:var(--muted);font-size:11px;font-weight:400">(CTA, NYC Subway, MBTA, SEPTA, WMATA, BART)</span></span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="amtrakToggle" onchange="toggleAmtrak(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:4px dashed #1d4ed8;vertical-align:middle;margin-right:6px"></span>Amtrak / intercity rail <span class="hint">(Chicago ↔ Milwaukee, Michigan, Indiana · NY ↔ DC, Boston, Albany/Buffalo)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:0;border-top:4px dashed #1d4ed8;vertical-align:middle;margin-right:6px"></span>Amtrak / intercity rail <span style="color:var(--muted);font-size:11px;font-weight:400">(Chicago ↔ Milwaukee, Michigan, Indiana · NY ↔ DC, Boston, Albany/Buffalo)</span></span>
       </label>
       <div style="font-size:11px;color:var(--muted);margin:2px 0 0;line-height:1.4">Hover a station for approximate travel time to that hub terminal (◆). Lines and times are schematic estimates — commuter/subway for typical weekday service, Amtrak for typical end-to-end trips.</div>
     </div>
@@ -1194,7 +679,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
         <h3 style="margin:0 0 8px;font-size:14px;color:#b45309">His (the OMFS resident)</h3>
         <label style="font-size:12px;color:var(--muted)">Name</label>
-        <input id="pf_him_name" placeholder="His first name" />
+        <input id="pf_him_name" placeholder="e.g. Dillon" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
         <input id="pf_him_home" placeholder="e.g. Grand Rapids, MI" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Role / position</label>
@@ -1206,7 +691,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
         <h3 style="margin:0 0 8px;font-size:14px;color:#9d174d">Hers (the partner)</h3>
         <label style="font-size:12px;color:var(--muted)">Name</label>
-        <input id="pf_her_name" placeholder="Her first name" />
+        <input id="pf_her_name" placeholder="e.g. Isabel" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
         <input id="pf_her_home" placeholder="e.g. Notre Dame, IN" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Role / position</label>
@@ -1264,6 +749,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     <h2>Houses / listings</h2>
     <p style="color:var(--muted);font-size:13px;margin-top:0">Paste in Zillow (or any) listings you're considering. Turn on the "Houses" map layer to see them, click a pin for a quick card.</p>
     <div id="housesList"></div>
+    <button type="button" onclick="addHouseRow()" style="margin-top:8px;padding:6px 10px;border:1px dashed var(--line);border-radius:6px;background:white;cursor:pointer;font-size:12px;width:100%">+ Add a house</button>
     <div class="modal-actions">
       <button type="button" onclick="closeHouses()">Cancel</button>
       <button type="button" class="primary" onclick="saveHousesFromForm()">Save</button>
@@ -1355,239 +841,15 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
   </div>
 </div>
 
-<!-- Timeline (Calendar) Modal -->
+<!-- Timeline Modal -->
 <div class="modal-backdrop" id="timelineModal">
-  <div class="modal" style="width:min(960px,96vw)">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:16px">
-        <h2 style="margin:0">Calendar</h2>
-        <!-- View toggle (left side) -->
-        <div id="calViewToggle" style="display:inline-flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em">
-          <button type="button" data-view="month" onclick="setCalView('month')" class="calViewBtn on" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted);border-right:1px solid var(--line)">Month</button>
-          <button type="button" data-view="list"  onclick="setCalView('list')"  class="calViewBtn" style="background:transparent;border:none;cursor:pointer;padding:5px 10px;font:inherit;color:var(--muted)">List</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:18px;align-items:center;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);flex-wrap:wrap">
-        <label style="margin:0;font-size:11px;display:inline-flex;align-items:center;gap:4px;max-width:200px">
-          Show:
-          <select id="calJobFilter" onchange="renderCalendar()"
-            style="border:none;background:transparent;color:var(--ink);padding:0 14px 0 4px;font:inherit;cursor:pointer;
-                   max-width:140px;text-overflow:ellipsis;overflow:hidden;
-                   appearance:none;-webkit-appearance:none;
-                   background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0l4 6 4-6z' fill='%238c867a'/></svg>&quot;);
-                   background-repeat:no-repeat;background-position:right 0 center"></select>
-        </label>
-        <button type="button" onclick="openAddDate()" style="background:transparent;border:none;cursor:pointer;font:inherit;color:var(--ink-2);text-transform:uppercase;letter-spacing:0.08em">+ Date</button>
-        <button type="button" onclick="toggleGcalPanel()" id="gcalToggleBtn" title="Google Calendar sync" style="background:transparent;border:none;cursor:pointer;font:inherit;color:var(--ink-2);text-transform:uppercase;letter-spacing:0.08em">Google ▾</button>
-      </div>
-    </div>
-
-    <!-- Google Calendar sync panel (hidden by default) -->
-    <div id="gcalPanel" style="display:none;background:var(--panel-2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;margin-bottom:14px;font-size:12px;color:var(--ink-2);line-height:1.5">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px">
-        <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">Google Calendar Sync</div>
-        <button type="button" onclick="toggleGcalPanel()" style="background:none;border:none;cursor:pointer;color:var(--muted);font:11px var(--font-mono);text-transform:uppercase;letter-spacing:0.08em">Close</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <div style="font-weight:500;color:var(--ink);margin-bottom:6px">Export to Google</div>
-          <p style="margin:0 0 8px;color:var(--muted);font-size:11px">Download all dates as one calendar file, then in Google Calendar: <b>Settings → Import &amp; Export → Import</b>.</p>
-          <button type="button" onclick="exportAllIcs()" style="background:var(--ink);color:var(--panel);border:none;padding:6px 12px;cursor:pointer;font:11px var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;border-radius:2px">Download .ics</button>
-          <p style="margin:8px 0 0;color:var(--muted);font-size:11px">Or use the "G" link next to any event in <b>List</b> view to add a single event.</p>
-        </div>
-        <div>
-          <div style="font-weight:500;color:var(--ink);margin-bottom:6px">Import from Google</div>
-          <p style="margin:0 0 8px;color:var(--muted);font-size:11px">In Google Calendar: <b>Settings → Import &amp; Export → Export</b>. Then upload the .ics here — events will be matched to jobs by company name in the title.</p>
-          <label style="display:inline-block;background:var(--panel);color:var(--ink);border:1px solid var(--line-strong);padding:5px 11px;cursor:pointer;font:11px var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;border-radius:2px">
-            Upload .ics
-            <input type="file" accept=".ics,text/calendar" onchange="importIcsFile(event)" style="display:none" />
-          </label>
-          <p style="margin:8px 0 0;color:var(--muted);font-size:10.5px;font-style:italic">Live two-way sync isn't possible from a standalone file — this is the offline-safe equivalent.</p>
-        </div>
-      </div>
-    </div>
-
-    <div id="calNav" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:8px">
-      <button type="button" onclick="calStep(-1)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--ink-2);padding:0 6px">‹</button>
-      <div id="calLabel" style="font-family:var(--font-serif);font-size:22px;letter-spacing:-0.01em"></div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <button type="button" onclick="calToday()" style="background:none;border:none;cursor:pointer;font:11px var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Today</button>
-        <button type="button" onclick="calStep(1)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--ink-2);padding:0 6px">›</button>
-      </div>
-    </div>
+  <div class="modal" style="width:min(900px,96vw)">
+    <h2>Timeline</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:0">Applied dates · interview dates · status. Sorted chronologically.</p>
     <div id="timelineBody"></div>
-    <div id="calLegend" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)"></div>
     <div class="modal-actions">
       <button type="button" class="primary" onclick="closeTimeline()">Close</button>
     </div>
-  </div>
-</div>
-
-<style>
-  /* Collapsible entry rows (People / Houses modals) */
-  .entry-row .entry-body { display: none; }
-  .entry-row.expanded .entry-body { display: block; }
-  .entry-row.expanded .entry-header { background: var(--panel-2); }
-  .entry-row:hover { border-color: var(--line-strong); }
-  .entry-x:hover { background: var(--panel-2) !important; color: var(--ink) !important; border-color: var(--line-strong) !important; }
-  /* "+ Add" button — toolbar-style with animated underline */
-  .add-entry-btn {
-    background: transparent; border: none; cursor: pointer;
-    font-family: inherit; font-size: 13px; color: var(--ink-2);
-    line-height: 1; padding: 6px 0; margin-top: 6px;
-    position: relative; display: inline-block;
-  }
-  .add-entry-btn:hover { color: var(--ink); }
-  .add-entry-btn::after {
-    content: ""; position: absolute; left: 0; right: 0; bottom: 0;
-    height: 1px; background: var(--ink); transform: scaleX(0);
-    transform-origin: left; transition: transform 0.18s ease;
-  }
-  .add-entry-btn:hover::after { transform: scaleX(1); }
-
-  /* Calendar view toggle states */
-  #calViewToggle .calViewBtn.on { background:var(--ink); color:var(--panel); }
-  /* Fixed-size month cell with scrollable overflow when many events stack up */
-  .cal-cell {
-    height: 110px;
-    padding: 5px 6px;
-    border-right: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    display: flex; flex-direction: column; gap: 3px;
-    background: var(--panel);
-    overflow: hidden;
-  }
-  .cal-cell.blank { background: var(--panel-2); }
-  .cal-cell-events {
-    display: flex; flex-direction: column; gap: 2px;
-    overflow-y: auto;
-    flex: 1; min-height: 0;
-    scrollbar-width: thin;
-  }
-  .cal-cell-events::-webkit-scrollbar { width: 4px; }
-  .cal-cell-events::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 2px; }
-  .cal-event-chip {
-    display: flex; align-items: flex-start; gap: 5px;
-    padding: 2px 5px;
-    background: var(--panel-2);
-    border-left: 2px solid var(--muted);
-    font-size: 10px; line-height: 1.25;
-    color: var(--ink-2); cursor: pointer;
-    border-radius: 1px;
-    /* Wrap, never ellipsize */
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    flex-shrink: 0;
-  }
-  .cal-event-chip .ev-tag {
-    font: 9px/1.4 var(--font-mono);
-    color: var(--muted);
-    letter-spacing: 0.04em;
-    flex-shrink: 0;
-  }
-  /* List view */
-  .cal-list { display: flex; flex-direction: column; }
-  .cal-list-month {
-    font-family: var(--font-mono); font-size: 10px;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    color: var(--muted);
-    padding: 14px 0 6px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 4px;
-  }
-  .cal-list-month:first-child { padding-top: 0; }
-  .cal-list-row {
-    display: grid;
-    grid-template-columns: 64px 70px 1fr auto;
-    gap: 14px;
-    align-items: baseline;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-    cursor: pointer;
-  }
-  .cal-list-row:hover { background: var(--panel-2); }
-  .cal-list-date {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .cal-list-date .dow {
-    display: block;
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-  .cal-list-type {
-    font: 10px/1.4 var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ink-2);
-    padding: 3px 0 3px 8px;
-    border-left: 2px solid var(--muted);
-  }
-  .cal-list-co {
-    font-family: var(--font-serif);
-    font-size: 15px;
-    color: var(--ink);
-    line-height: 1.2;
-  }
-  .cal-list-co .role {
-    display: block;
-    font-family: var(--font-sans);
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-  .cal-list-actions {
-    display: flex; gap: 10px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .cal-list-actions a {
-    color: var(--muted);
-    text-decoration: none;
-  }
-  .cal-list-actions a:hover { color: var(--ink); }
-  .cal-list-today {
-    display: inline-block;
-    background: var(--ink); color: var(--panel);
-    padding: 1px 5px; border-radius: 2px;
-    font: 9px/1.4 var(--font-mono);
-    letter-spacing: 0.08em;
-    margin-left: 4px;
-  }
-</style>
-
-<!-- Add Date (from Calendar) Modal -->
-<div class="modal-backdrop" id="addDateModal">
-  <div class="modal" style="width:min(440px,94vw)">
-    <h2>Add a date</h2>
-    <form onsubmit="submitAddDate(event)">
-      <label>Job</label>
-      <select id="ad_job" required></select>
-      <label>Event</label>
-      <select id="ad_event" required>
-        <option value="dateApplied">Applied</option>
-        <option value="datePhoneInterview">Phone interview</option>
-        <option value="dateInterview">In-person interview</option>
-        <option value="dateInterview2">In-person interview #2</option>
-        <option value="offerDate">Offer received</option>
-        <option value="offerDeadline">Offer deadline</option>
-      </select>
-      <label>Date</label>
-      <input type="date" id="ad_date" required />
-      <p class="help">Saves directly to the selected job — same as editing it in the Add Job form.</p>
-      <div class="modal-actions">
-        <button type="button" onclick="closeAddDate()">Cancel</button>
-        <button type="submit" class="primary">Save</button>
-      </div>
-    </form>
   </div>
 </div>
 
@@ -4307,115 +3569,59 @@ document.getElementById('destinationsModal').addEventListener('click', e => {
 });
 
 /* ---------- People (family & friends) ---------- */
-/* In-memory commit so we don't lose unsaved edits when expand/collapse/add/remove re-renders. */
-function commitPeopleForm() {
-  people.forEach((p, i) => {
-    // Only if the expanded inputs are actually in the DOM for this index
-    const nameEl = document.getElementById('p_name_' + i);
-    if (!nameEl) return;
-    const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-    p.name     = get('p_name_' + i).trim();
-    p.location = get('p_location_' + i).trim();
-    p.type     = get('p_type_' + i) || 'family';
-    p.owner    = get('p_owner_' + i) || 'both';
-    p.college  = get('p_college_' + i).trim();
-  });
-}
-/* Which person rows are currently expanded (by index). */
-let peopleExpanded = new Set();
-function togglePerson(i) {
-  if (peopleExpanded.has(i)) peopleExpanded.delete(i); else peopleExpanded.add(i);
-  // Re-render only the affected row's expanded class — no full redraw, so input state survives.
-  const row = document.getElementById('p_row_' + i);
-  if (row) row.classList.toggle('expanded', peopleExpanded.has(i));
-}
-
 function openPeople() {
-  // First open: collapse all saved entries, expand the empty ones
-  peopleExpanded = new Set(people.map((p,i) => (!p || !p.name || !p.name.trim()) ? i : -1).filter(i => i >= 0));
-  renderPeopleList();
-  document.getElementById('peopleStatus').textContent = '';
-  document.getElementById('peopleModal').classList.add('open');
-}
-function renderPeopleList() {
   const list = document.getElementById('peopleList');
   list.innerHTML = people.map((p, i) => {
     const type = p.type || 'family';
     const owner = p.owner || 'both';
-    const name = (p.name || '').trim();
-    const loc  = (p.location || '').trim();
-    const expanded = peopleExpanded.has(i);
-    const ownerLbl = owner === 'him' ? `${profile.him.name}'s` : owner === 'her' ? `${profile.her.name}'s` : 'Both';
-    const typeLbl  = type === 'friend' ? 'Friend' : 'Family';
-    const dotColor = type === 'friend' ? '#2563eb' : '#ec4899';
-    const summary = name
-      ? `${escape(name)}<span style="color:var(--muted);margin-left:8px;font-family:var(--font-mono);font-size:11px">${escape(loc || '—')}</span>`
-      : `<span style="color:var(--muted);font-style:italic">New person…</span>`;
     return `
-    <div id="p_row_${i}" class="entry-row ${expanded ? 'expanded' : ''}" style="border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--panel)">
-      <div class="entry-header" onclick="togglePerson(${i})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;cursor:pointer">
-        <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
-        <div style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${summary}</div>
-        <span style="font:10px var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">${typeLbl} · ${ownerLbl}</span>
-        <span class="entry-chev" style="color:var(--muted);font-size:11px;font-family:var(--font-mono);width:14px;text-align:center">${expanded ? '▾' : '▸'}</span>
-        <button type="button" class="entry-x" onclick="event.stopPropagation();removePerson(${i})" title="Remove" style="width:24px;height:24px;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+    <div style="border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px">
+        <input id="p_name_${i}" value="${escape(p.name || '')}" placeholder="Name (e.g. My mom)" />
+        <input id="p_loc_${i}" value="${escape(p.location || '')}" placeholder="City, State" />
+        <button type="button" onclick="removePerson(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
       </div>
-      <div class="entry-body" style="padding:0 10px 10px;border-top:1px solid var(--line)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
-          <input id="p_name_${i}" value="${escape(p.name || '')}" placeholder="Name (e.g. My mom)" />
-          <input id="p_location_${i}" value="${escape(p.location || '')}" placeholder="City, State" />
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
-          <select id="p_type_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px">
-            <option value="family" ${type==='family'?'selected':''}>Family</option>
-            <option value="friend" ${type==='friend'?'selected':''}>Friend</option>
-          </select>
-          <select id="p_owner_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px" title="Whose person is this?">
-            <option value="him" ${owner==='him'?'selected':''}>${escape(profile.him.name)}'s</option>
-            <option value="her" ${owner==='her'?'selected':''}>${escape(profile.her.name)}'s</option>
-            <option value="both" ${owner==='both'?'selected':''}>Both</option>
-          </select>
-          <input id="p_college_${i}" value="${escape(p.college || '')}" placeholder="College (optional)" style="font-size:13px" />
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
+        <select id="p_type_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px">
+          <option value="family" ${type==='family'?'selected':''}>Family</option>
+          <option value="friend" ${type==='friend'?'selected':''}>Friend</option>
+        </select>
+        <select id="p_owner_${i}" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px" title="Whose person is this? Affects which modal shows them.">
+          <option value="him" ${owner==='him'?'selected':''}>${escape(profile.him.name)}'s</option>
+          <option value="her" ${owner==='her'?'selected':''}>${escape(profile.her.name)}'s</option>
+          <option value="both" ${owner==='both'?'selected':''}>Both</option>
+        </select>
+        <input id="p_college_${i}" value="${escape(p.college || '')}" placeholder="College (optional)" style="font-size:13px" />
       </div>
     </div>
   `;
   }).join('') + `
-    <button type="button" class="add-entry-btn" onclick="addPersonRow()">+ Add person</button>
+    <button type="button" onclick="addPersonRow()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:white;cursor:pointer;font-size:12px;margin-top:4px">+ Add person</button>
     <div class="help" style="margin-top:6px">Family pins are pink hearts, friends are blue triangles. "Whose person" decides whether the entry shows in His Impressions, Her Situation, or both. College field clusters people on the Community tab.</div>
   `;
+  document.getElementById('peopleStatus').textContent = '';
+  document.getElementById('peopleModal').classList.add('open');
 }
 function closePeople() { document.getElementById('peopleModal').classList.remove('open'); }
-function addPersonRow() {
-  commitPeopleForm();
-  people.push({ name: '', location: '', lat: null, lng: null, type: 'family', owner: 'both', college: '' });
-  peopleExpanded.add(people.length - 1);
-  renderPeopleList();
-}
-function removePerson(i) {
-  commitPeopleForm();
-  people.splice(i, 1);
-  // Rebuild expanded set, shifting indices > i down by 1
-  const next = new Set();
-  peopleExpanded.forEach(x => { if (x < i) next.add(x); else if (x > i) next.add(x - 1); });
-  peopleExpanded = next;
-  renderPeopleList();
-}
+function addPersonRow() { people.push({ name: '', location: '', lat: null, lng: null, type: 'family', owner: 'both', college: '' }); openPeople(); }
+function removePerson(i) { people.splice(i, 1); openPeople(); }
 async function savePeopleFromForm() {
-  commitPeopleForm();
   const status = document.getElementById('peopleStatus');
   const newPeople = [];
   status.textContent = 'Looking up coordinates…'; status.style.color = '';
   for (let i = 0; i < people.length; i++) {
-    const p = people[i];
-    const name = (p.name || '').trim();
-    const loc  = (p.location || '').trim();
-    const type = p.type || 'family';
-    const owner = p.owner || 'both';
-    const college = (p.college || '').trim();
+    const name = document.getElementById('p_name_' + i).value.trim();
+    const loc = document.getElementById('p_loc_' + i).value.trim();
+    const typeEl = document.getElementById('p_type_' + i);
+    const ownerEl = document.getElementById('p_owner_' + i);
+    const collegeEl = document.getElementById('p_college_' + i);
+    const type = (typeEl && typeEl.value) || 'family';
+    const owner = (ownerEl && ownerEl.value) || 'both';
+    const college = collegeEl ? collegeEl.value.trim() : '';
     if (!name || !loc) continue;
-    if (p.location === loc && p.lat != null) {
-      newPeople.push({ ...p, name, location: loc, type, owner, college });
+    const existing = people[i];
+    if (existing && existing.location === loc && existing.lat != null) {
+      newPeople.push({ ...existing, name, location: loc, type, owner, college });
       continue;
     }
     try {
@@ -4437,111 +3643,58 @@ document.getElementById('peopleModal').addEventListener('click', e => {
 });
 
 /* ---------- Houses / listings ---------- */
-function commitHousesForm() {
-  houses.forEach((h, i) => {
-    if (!document.getElementById('h_addr_' + i)) return;
-    const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-    h.address  = get('h_addr_' + i).trim();
-    h.price    = get('h_price_' + i).trim();
-    h.beds     = get('h_beds_' + i).trim();
-    h.baths    = get('h_baths_' + i).trim();
-    h.sqft     = get('h_sqft_' + i).trim();
-    h.zillowUrl= get('h_zillow_' + i).trim();
-    h.imageUrl = get('h_image_' + i).trim();
-    h.notes    = get('h_notes_' + i);
-    h._latlngInput = get('h_latlng_' + i).trim();
-  });
-}
-let housesExpanded = new Set();
-function toggleHouse(i) {
-  if (housesExpanded.has(i)) housesExpanded.delete(i); else housesExpanded.add(i);
-  const row = document.getElementById('h_row_' + i);
-  if (row) row.classList.toggle('expanded', housesExpanded.has(i));
-}
-
 function openHouses() {
-  housesExpanded = new Set(houses.map((h,i) => (!h || !h.address || !h.address.trim()) ? i : -1).filter(i => i >= 0));
-  renderHousesList();
+  const list = document.getElementById('housesList');
+  list.innerHTML = houses.map((h, i) => `
+    <div style="border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px">
+        <input id="h_addr_${i}"  value="${escape(h.address || '')}"  placeholder="Address or city, state" />
+        <input id="h_price_${i}" value="${escape(h.price || '')}"    placeholder="Price (e.g. $425k)" />
+        <button type="button" onclick="removeHouse(${i})" style="padding:6px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;cursor:pointer">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
+        <input id="h_beds_${i}"  value="${escape(h.beds || '')}"  placeholder="Beds (e.g. 3)" />
+        <input id="h_baths_${i}" value="${escape(h.baths || '')}" placeholder="Baths (e.g. 2.5)" />
+        <input id="h_sqft_${i}"  value="${escape(h.sqft || '')}"  placeholder="Sq ft (e.g. 1850)" />
+      </div>
+      <input id="h_latlng_${i}" value="${h.lat != null && h.lng != null ? `${h.lat}, ${h.lng}` : ''}" placeholder="Lat, Lng (optional — paste from Google Maps if address won't geocode)" style="margin-top:6px" />
+      <input id="h_zillow_${i}" value="${escape(h.zillowUrl || '')}" placeholder="Zillow URL (https://www.zillow.com/...)" style="margin-top:6px" />
+      <input id="h_image_${i}"  value="${escape(h.imageUrl || '')}"  placeholder="Image URL (right-click photo on Zillow → Copy Image Address)" style="margin-top:6px" />
+      <textarea id="h_notes_${i}" placeholder="Quick notes: fenced yard, nice kitchen, no garage…" style="margin-top:6px;min-height:50px">${escape(h.notes || '')}</textarea>
+    </div>
+  `).join('');
   document.getElementById('housesStatus').textContent = '';
   document.getElementById('housesModal').classList.add('open');
 }
-function renderHousesList() {
-  const list = document.getElementById('housesList');
-  list.innerHTML = houses.map((h, i) => {
-    const expanded = housesExpanded.has(i);
-    const addr = (h.address || '').trim();
-    const bits = [h.price, h.beds && `${h.beds}bd`, h.baths && `${h.baths}ba`, h.sqft && `${h.sqft} sqft`].filter(Boolean).join(' · ');
-    const summary = addr
-      ? `${escape(addr)}${bits ? `<span style="color:var(--muted);margin-left:8px;font-family:var(--font-mono);font-size:11px">${escape(bits)}</span>` : ''}`
-      : `<span style="color:var(--muted);font-style:italic">New listing…</span>`;
-    return `
-    <div id="h_row_${i}" class="entry-row ${expanded ? 'expanded' : ''}" style="border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--panel)">
-      <div class="entry-header" onclick="toggleHouse(${i})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;cursor:pointer">
-        <span style="width:8px;height:8px;border-radius:2px;background:var(--accent);flex-shrink:0"></span>
-        <div style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${summary}</div>
-        <span class="entry-chev" style="color:var(--muted);font-size:11px;font-family:var(--font-mono);width:14px;text-align:center">${expanded ? '▾' : '▸'}</span>
-        <button type="button" class="entry-x" onclick="event.stopPropagation();removeHouse(${i})" title="Remove" style="width:24px;height:24px;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
-      </div>
-      <div class="entry-body" style="padding:0 10px 10px;border-top:1px solid var(--line)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
-          <input id="h_addr_${i}"  value="${escape(h.address || '')}"  placeholder="Address or city, state" />
-          <input id="h_price_${i}" value="${escape(h.price || '')}"    placeholder="Price (e.g. $425k)" />
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
-          <input id="h_beds_${i}"  value="${escape(h.beds || '')}"  placeholder="Beds (e.g. 3)" />
-          <input id="h_baths_${i}" value="${escape(h.baths || '')}" placeholder="Baths (e.g. 2.5)" />
-          <input id="h_sqft_${i}"  value="${escape(h.sqft || '')}"  placeholder="Sq ft (e.g. 1850)" />
-        </div>
-        <input id="h_latlng_${i}" value="${h.lat != null && h.lng != null ? `${h.lat}, ${h.lng}` : (h._latlngInput || '')}" placeholder="Lat, Lng (optional — paste from Google Maps if address won't geocode)" style="margin-top:6px" />
-        <input id="h_zillow_${i}" value="${escape(h.zillowUrl || '')}" placeholder="Zillow URL (https://www.zillow.com/...)" style="margin-top:6px" />
-        <input id="h_image_${i}"  value="${escape(h.imageUrl || '')}"  placeholder="Image URL (right-click photo on Zillow → Copy Image Address)" style="margin-top:6px" />
-        <textarea id="h_notes_${i}" placeholder="Quick notes: fenced yard, nice kitchen, no garage…" style="margin-top:6px;min-height:50px">${escape(h.notes || '')}</textarea>
-      </div>
-    </div>
-  `;
-  }).join('') + `
-    <button type="button" class="add-entry-btn" onclick="addHouseRow()">+ Add listing</button>
-  `;
-}
 function closeHouses() { document.getElementById('housesModal').classList.remove('open'); }
-function addHouseRow() {
-  commitHousesForm();
-  houses.push({ address: '', lat: null, lng: null, price: '', beds: '', baths: '', sqft: '', zillowUrl: '', imageUrl: '', notes: '' });
-  housesExpanded.add(houses.length - 1);
-  renderHousesList();
-}
-function removeHouse(i) {
-  commitHousesForm();
-  houses.splice(i, 1);
-  const next = new Set();
-  housesExpanded.forEach(x => { if (x < i) next.add(x); else if (x > i) next.add(x - 1); });
-  housesExpanded = next;
-  renderHousesList();
-}
+function addHouseRow() { houses.push({ address: '', lat: null, lng: null, price: '', beds: '', baths: '', sqft: '', zillowUrl: '', imageUrl: '', notes: '' }); openHouses(); }
+function removeHouse(i) { houses.splice(i, 1); openHouses(); }
 async function saveHousesFromForm() {
-  commitHousesForm();
   const status = document.getElementById('housesStatus');
   status.textContent = 'Looking up coordinates…'; status.style.color = '';
   const newHouses = [];
   for (let i = 0; i < houses.length; i++) {
-    const h = houses[i];
-    const addr   = (h.address || '').trim();
-    const latlng = (h._latlngInput || '').trim();
-    const price  = (h.price || '').trim();
-    const beds   = (h.beds || '').trim();
-    const baths  = (h.baths || '').trim();
-    const sqft   = (h.sqft || '').trim();
-    const zillow = (h.zillowUrl || '').trim();
-    const image  = (h.imageUrl || '').trim();
-    const notes  = (h.notes || '').trim();
+    const get = id => (document.getElementById(id) || {}).value || '';
+    const addr   = get(`h_addr_${i}`).trim();
+    const latlng = get(`h_latlng_${i}`).trim();
+    const price  = get(`h_price_${i}`).trim();
+    const beds   = get(`h_beds_${i}`).trim();
+    const baths  = get(`h_baths_${i}`).trim();
+    const sqft   = get(`h_sqft_${i}`).trim();
+    const zillow = get(`h_zillow_${i}`).trim();
+    const image  = get(`h_image_${i}`).trim();
+    const notes  = get(`h_notes_${i}`).trim();
     if (!addr) continue;
+    // If the user pasted "lat, lng" coords directly, skip geocoding entirely (handles rural addresses Nominatim can't find).
     const latlngMatch = latlng.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
     if (latlngMatch) {
       newHouses.push({ address: addr, lat: parseFloat(latlngMatch[1]), lng: parseFloat(latlngMatch[2]), price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
       continue;
     }
-    if (h.address === addr && h.lat != null) {
-      newHouses.push({ address: addr, lat: h.lat, lng: h.lng, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
+    const existing = houses[i];
+    // Reuse existing coords if address unchanged and no override given
+    if (existing && existing.address === addr && existing.lat != null) {
+      newHouses.push({ ...existing, address: addr, price, beds, baths, sqft, zillowUrl: zillow, imageUrl: image, notes });
       continue;
     }
     try {
@@ -4766,62 +3919,40 @@ function decisionBreakdown(job) {
   };
 }
 
-/* ---------- Calendar (formerly Timeline) ---------- */
-const CAL_EVENT_TYPES = [
-  { key: 'dateApplied',         label: 'Applied',          short: 'APP', color: 'var(--applied)' },
-  { key: 'datePhoneInterview',  label: 'Phone interview',  short: 'PHN', color: 'oklch(0.55 0.13 290)' },
-  { key: 'dateInterview',       label: 'In-person',        short: 'INT', color: 'var(--interviewing)' },
-  { key: 'dateInterview2',      label: 'In-person #2',     short: 'IN2', color: 'var(--interviewing)' },
-  { key: 'offerDate',           label: 'Offer received',   short: 'OFR', color: 'var(--offer)' },
-  { key: 'offerDeadline',       label: 'Offer deadline',   short: 'DDL', color: 'var(--rejected)' },
-];
-
-let calState = { year: new Date().getFullYear(), month: new Date().getMonth(), jobId: 'all', view: 'month' };
-
-function setCalView(v) {
-  calState.view = v;
-  document.querySelectorAll('.calViewBtn').forEach(b => {
-    b.classList.toggle('on', b.dataset.view === v);
-  });
-  // Month-only nav controls
-  const monthOnly = v === 'month';
-  document.getElementById('calNav').style.display = monthOnly ? 'flex' : 'none';
-  renderCalendar();
-}
-
-function toggleGcalPanel() {
-  const p = document.getElementById('gcalPanel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
+/* ---------- Timeline ---------- */
 function openTimeline() {
-  // Default to a month with the most events, if any
-  const all = gatherCalendarEvents('all');
-  if (all.length) {
-    // Pick the latest event's month so user lands somewhere useful
-    const latest = all[all.length - 1].date;
-    const d = new Date(latest + 'T00:00:00');
-    if (!isNaN(d)) { calState.year = d.getFullYear(); calState.month = d.getMonth(); }
-  }
-  // Build job filter dropdown
-  const sel = document.getElementById('calJobFilter');
-  const jobOpts = jobs.filter(j => j.kind !== 'sister')
-    .slice().sort((a,b) => a.company.localeCompare(b.company))
-    .map(j => `<option value="${j.id}">${escape(j.company)}</option>`).join('');
-  sel.innerHTML = `<option value="all">All jobs</option>${jobOpts}`;
-  sel.value = calState.jobId;
-  // Legend
-  document.getElementById('calLegend').innerHTML = CAL_EVENT_TYPES.map(t =>
-    `<span style="display:inline-flex;align-items:center;gap:5px">
-      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${t.color}"></span>${t.label}
-    </span>`).join('');
-  // Reset gcal panel & reflect current view in toggle/nav
-  document.getElementById('gcalPanel').style.display = 'none';
-  document.querySelectorAll('.calViewBtn').forEach(b => {
-    b.classList.toggle('on', b.dataset.view === calState.view);
+  const events = [];
+  const eventTypes = [
+    { key: 'dateApplied', label: 'applied', color: '#3b82f6' },
+    { key: 'datePhoneInterview', label: 'phone interview', color: '#8b5cf6' },
+    { key: 'dateInterview', label: 'in-person interview', color: '#f59e0b' },
+    { key: 'dateInterview2', label: 'in-person interview #2', color: '#f59e0b' },
+    { key: 'offerDate', label: 'offer received', color: '#10b981' },
+    { key: 'offerDeadline', label: 'offer deadline', color: '#dc2626' },
+  ];
+  jobs.filter(j => j.kind !== 'sister').forEach(j => {
+    eventTypes.forEach(et => {
+      if (j[et.key]) events.push({ date: j[et.key], type: et.label, color: et.color, job: j });
+    });
   });
-  document.getElementById('calNav').style.display = calState.view === 'month' ? 'flex' : 'none';
-  renderCalendar();
+  events.sort((a, b) => a.date.localeCompare(b.date));
+  const body = document.getElementById('timelineBody');
+  if (events.length === 0) {
+    body.innerHTML = '<p style="color:var(--muted)">No dates entered yet. Add application/interview/offer dates in any job to see them here.</p>';
+  } else {
+    body.innerHTML = `
+      <div style="border-left:3px solid var(--line);padding-left:14px;margin-top:10px">
+        ${events.map(e => `
+          <div style="margin-bottom:14px;position:relative">
+            <div style="position:absolute;left:-21px;top:4px;width:11px;height:11px;border-radius:50%;background:${e.color};border:2px solid white;box-shadow:0 0 0 2px ${e.color}"></div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${e.date} · <span style="color:${e.color};font-weight:600">${e.type}</span></div>
+            <div style="font-weight:600;margin-top:2px"><a href="#" onclick="closeTimeline();focusJob('${e.job.id}');return false" style="color:var(--ink);text-decoration:none">${escape(e.job.company)}</a></div>
+            <div style="font-size:12px;color:var(--muted)">${escape(e.job.location)} · <span class="status-pill status-${e.job.status}">${e.job.status}</span></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
   document.getElementById('timelineModal').classList.add('open');
 }
 function closeTimeline() { document.getElementById('timelineModal').classList.remove('open'); }
@@ -4829,344 +3960,11 @@ document.getElementById('timelineModal').addEventListener('click', e => {
   if (e.target.id === 'timelineModal') closeTimeline();
 });
 
-function gatherCalendarEvents(jobId) {
-  const events = [];
-  jobs.filter(j => j.kind !== 'sister' && (jobId === 'all' || j.id === jobId)).forEach(j => {
-    CAL_EVENT_TYPES.forEach(et => {
-      if (j[et.key]) events.push({ date: j[et.key], type: et, job: j });
-    });
-  });
-  events.sort((a, b) => a.date.localeCompare(b.date));
-  return events;
-}
-
-function calStep(delta) {
-  let m = calState.month + delta, y = calState.year;
-  if (m < 0)  { m = 11; y -= 1; }
-  if (m > 11) { m = 0;  y += 1; }
-  calState.month = m; calState.year = y;
-  renderCalendar();
-}
-function calToday() {
-  const d = new Date();
-  calState.year = d.getFullYear(); calState.month = d.getMonth();
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const sel = document.getElementById('calJobFilter');
-  calState.jobId = sel ? sel.value : 'all';
-  const events = gatherCalendarEvents(calState.jobId);
-
-  if (calState.view === 'list') {
-    renderCalendarList(events);
-    return;
-  }
-  renderCalendarMonth(events);
-}
-
-function renderCalendarMonth(events) {
-  const monthName = new Date(calState.year, calState.month, 1).toLocaleString('en-US', { month: 'long' });
-  document.getElementById('calLabel').textContent = `${monthName} ${calState.year}`;
-
-  // Group events by ISO date
-  const byDate = {};
-  events.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
-
-  // Build 6-row month grid, Sun-start
-  const first = new Date(calState.year, calState.month, 1);
-  const startWeekday = first.getDay();
-  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
-  const todayISO = new Date().toISOString().slice(0,10);
-
-  const cells = [];
-  for (let i = 0; i < startWeekday; i++) cells.push({ blank: true });
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = `${calState.year}-${String(calState.month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    cells.push({ day: d, iso, events: byDate[iso] || [], today: iso === todayISO });
-  }
-  while (cells.length % 7 !== 0) cells.push({ blank: true });
-
-  const dayHeaders = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d =>
-    `<div style="padding:8px 6px;font:10px var(--font-mono);text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);border-bottom:1px solid var(--line)">${d}</div>`
-  ).join('');
-
-  const cellHtml = cells.map(c => {
-    if (c.blank) return `<div class="cal-cell blank"></div>`;
-    const eventChips = c.events.map(ev => {
-      const showCompany = calState.jobId === 'all';
-      const label = showCompany ? ev.job.company : ev.type.label;
-      return `<div class="cal-event-chip"
-                   onclick="event.stopPropagation();focusJobFromCal('${ev.job.id}')"
-                   title="${escape(ev.job.company)} — ${ev.type.label}"
-                   style="border-left-color:${ev.type.color}">
-        <span class="ev-tag">${ev.type.short}</span>
-        <span>${escape(label)}</span>
-      </div>`;
-    }).join('');
-    const todayMark = c.today
-      ? `<span style="background:var(--ink);color:var(--panel);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--font-mono)">${c.day}</span>`
-      : `<span style="font:11px var(--font-mono);color:var(--ink-2)">${c.day}</span>`;
-    return `<div class="cal-cell">
-      <div style="display:flex;justify-content:flex-end;flex-shrink:0">${todayMark}</div>
-      <div class="cal-cell-events">${eventChips}</div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('timelineBody').innerHTML = `
-    <div style="border-left:1px solid var(--line);border-top:1px solid var(--line);background:var(--panel)">
-      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${dayHeaders}</div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${cellHtml}</div>
-    </div>
-    ${events.length === 0 ? `<p style="color:var(--muted);font-size:12px;margin-top:10px">No dates yet for this view. Use <b>+ Date</b> to add one.</p>` : ''}
-  `;
-}
-
-function renderCalendarList(events) {
-  document.getElementById('calLabel').textContent = '';
-  if (!events.length) {
-    document.getElementById('timelineBody').innerHTML =
-      `<p style="color:var(--muted);font-size:12px;margin-top:10px">No dates yet for this view. Use <b>+ Date</b> to add one.</p>`;
-    return;
-  }
-  // Sort chronologically (upcoming first when in future, past last)
-  const sorted = events.slice().sort((a, b) => a.date.localeCompare(b.date));
-  const todayISO = new Date().toISOString().slice(0, 10);
-
-  // Group by year-month
-  const groups = {};
-  sorted.forEach(ev => {
-    const key = ev.date.slice(0, 7);
-    (groups[key] = groups[key] || []).push(ev);
-  });
-
-  const html = Object.keys(groups).sort().map(key => {
-    const [y, m] = key.split('-');
-    const monthName = new Date(Number(y), Number(m) - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const rows = groups[key].map(ev => {
-      const d = new Date(ev.date + 'T00:00:00');
-      const dayNum = d.getDate();
-      const dow = d.toLocaleString('en-US', { weekday: 'short' });
-      const isToday = ev.date === todayISO;
-      const role = ev.job.type || ev.job.role || '';
-      const gcalUrl = googleCalLink(ev);
-      const icsUrl = singleIcsDataUrl(ev);
-      const filename = `${ev.job.company.replace(/[^a-z0-9]/gi,'_')}_${ev.type.short}.ics`;
-      return `<div class="cal-list-row" onclick="focusJobFromCal('${ev.job.id}')">
-        <div class="cal-list-date">
-          ${String(dayNum).padStart(2,'0')}${isToday ? '<span class="cal-list-today">Today</span>' : ''}
-          <span class="dow">${dow}</span>
-        </div>
-        <div class="cal-list-type" style="border-left-color:${ev.type.color}">${ev.type.label}</div>
-        <div class="cal-list-co">
-          ${escape(ev.job.company)}
-          ${role ? `<span class="role">${escape(role)}</span>` : ''}
-        </div>
-        <div class="cal-list-actions" onclick="event.stopPropagation()">
-          <a href="${gcalUrl}" target="_blank" rel="noopener" title="Add to Google Calendar">+ Google</a>
-          <a href="${icsUrl}" download="${filename}" title="Download .ics for this event">.ics</a>
-        </div>
-      </div>`;
-    }).join('');
-    return `<div class="cal-list-month">${monthName}</div>${rows}`;
-  }).join('');
-
-  document.getElementById('timelineBody').innerHTML = `<div class="cal-list">${html}</div>`;
-}
-
-/* ---------- Google Calendar / ICS export & import ---------- */
-
-function eventTitle(ev) {
-  return `${ev.job.company} — ${ev.type.label}`;
-}
-
-function googleCalLink(ev) {
-  // All-day single-day event. Google expects YYYYMMDD/YYYYMMDD (end exclusive next day).
-  const d = ev.date.replace(/-/g, '');
-  const next = new Date(ev.date + 'T00:00:00');
-  next.setDate(next.getDate() + 1);
-  const dn = next.toISOString().slice(0,10).replace(/-/g,'');
-  const title = encodeURIComponent(eventTitle(ev));
-  const details = encodeURIComponent(
-    [`Tracked in Job Map.`,
-     ev.job.location ? `Location: ${ev.job.location}` : '',
-     ev.job.contact  ? `Contact: ${ev.job.contact}`   : '',
-     ev.job.link     ? `Link: ${ev.job.link}`         : ''
-    ].filter(Boolean).join('\n')
-  );
-  const loc = ev.job.location ? `&location=${encodeURIComponent(ev.job.location)}` : '';
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${d}/${dn}&details=${details}${loc}`;
-}
-
-function icsEscape(s) {
-  return String(s || '').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
-}
-
-function buildIcsForEvents(events) {
-  const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/, '');
-  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Job Map//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
-  events.forEach(ev => {
-    const d = ev.date.replace(/-/g,'');
-    const next = new Date(ev.date + 'T00:00:00');
-    next.setDate(next.getDate() + 1);
-    const dn = next.toISOString().slice(0,10).replace(/-/g,'');
-    const uid = `jobmap-${ev.job.id}-${ev.type.key}@local`;
-    const desc = [
-      'Tracked in Job Map.',
-      ev.job.location ? `Location: ${ev.job.location}` : '',
-      ev.job.contact  ? `Contact: ${ev.job.contact}`   : '',
-      ev.job.link     ? `Link: ${ev.job.link}`         : ''
-    ].filter(Boolean).join('\\n');
-    lines.push(
-      'BEGIN:VEVENT',
-      `UID:${uid}`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART;VALUE=DATE:${d}`,
-      `DTEND;VALUE=DATE:${dn}`,
-      `SUMMARY:${icsEscape(eventTitle(ev))}`,
-      `DESCRIPTION:${desc}`,
-      ev.job.location ? `LOCATION:${icsEscape(ev.job.location)}` : '',
-      'TRANSP:TRANSPARENT',
-      'END:VEVENT'
-    );
-  });
-  lines.push('END:VCALENDAR');
-  return lines.filter(Boolean).join('\r\n');
-}
-
-function singleIcsDataUrl(ev) {
-  const ics = buildIcsForEvents([ev]);
-  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
-}
-
-function exportAllIcs() {
-  const events = gatherCalendarEvents(calState.jobId);
-  if (!events.length) { alert('No dates to export.'); return; }
-  const ics = buildIcsForEvents(events);
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `job-map-${new Date().toISOString().slice(0,10)}.ics`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-
-function importIcsFile(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const result = applyImportedIcs(String(reader.result || ''));
-      alert(`Imported ${result.matched} date${result.matched===1?'':'s'} into existing jobs.` +
-        (result.unmatched ? `\n${result.unmatched} event${result.unmatched===1?'':'s'} couldn't be matched to a job by company name and were skipped.` : ''));
-      renderCalendar();
-      if (typeof renderList === 'function') renderList();
-    } catch (err) {
-      alert('Could not parse that .ics file.\n' + (err && err.message || err));
-    }
-    e.target.value = '';
-  };
-  reader.readAsText(file);
-}
-
-function applyImportedIcs(text) {
-  // Unfold lines (RFC 5545: continuation lines start with space or tab)
-  const raw = text.replace(/\r\n[ \t]/g,'').replace(/\n[ \t]/g,'').split(/\r?\n/);
-  const veventBlocks = [];
-  let cur = null;
-  raw.forEach(line => {
-    if (line === 'BEGIN:VEVENT') cur = {};
-    else if (line === 'END:VEVENT') { if (cur) veventBlocks.push(cur); cur = null; }
-    else if (cur) {
-      const i = line.indexOf(':');
-      if (i < 0) return;
-      const lhs = line.slice(0, i);
-      const val = line.slice(i + 1);
-      const key = lhs.split(';')[0];
-      cur[key] = val;
-    }
-  });
-
-  let matched = 0, unmatched = 0;
-  veventBlocks.forEach(ev => {
-    const summary = (ev.SUMMARY || '').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\n/gi,' ').replace(/\\\\/g,'\\');
-    const dtRaw = (ev.DTSTART || '').replace(/[^0-9]/g,'').slice(0,8);
-    if (!dtRaw || dtRaw.length !== 8) return;
-    const iso = `${dtRaw.slice(0,4)}-${dtRaw.slice(4,6)}-${dtRaw.slice(6,8)}`;
-
-    // Try to detect event type from summary keywords
-    const lower = summary.toLowerCase();
-    let typeKey = null;
-    if (/phone/.test(lower)) typeKey = 'datePhoneInterview';
-    else if (/deadline/.test(lower)) typeKey = 'offerDeadline';
-    else if (/offer/.test(lower)) typeKey = 'offerDate';
-    else if (/#\s*2|interview 2|second interview/.test(lower)) typeKey = 'dateInterview2';
-    else if (/interview/.test(lower)) typeKey = 'dateInterview';
-    else if (/applied|application/.test(lower)) typeKey = 'dateApplied';
-    else typeKey = 'dateApplied'; // safe default
-
-    // Match a job by company name appearing anywhere in summary (longest match wins)
-    const candidates = jobs
-      .filter(j => j.kind !== 'sister' && j.company)
-      .filter(j => lower.includes(j.company.toLowerCase()))
-      .sort((a,b) => b.company.length - a.company.length);
-    const job = candidates[0];
-    if (!job) { unmatched++; return; }
-    job[typeKey] = iso;
-    matched++;
-  });
-  if (matched) { saveJobs(); }
-  return { matched, unmatched };
-}
-
-function focusJobFromCal(id) {
-  closeTimeline();
-  focusJob(id);
-}
-
-/* ---------- Add Date inline modal ---------- */
-function openAddDate() {
-  const sel = document.getElementById('ad_job');
-  const opts = jobs.filter(j => j.kind !== 'sister')
-    .slice().sort((a,b) => a.company.localeCompare(b.company))
-    .map(j => `<option value="${j.id}">${escape(j.company)}</option>`).join('');
-  sel.innerHTML = opts || '<option value="">No jobs yet</option>';
-  // Prefill from calendar filter if a single job is selected
-  if (calState.jobId && calState.jobId !== 'all') sel.value = calState.jobId;
-  document.getElementById('ad_event').value = 'dateApplied';
-  document.getElementById('ad_date').value = new Date().toISOString().slice(0,10);
-  document.getElementById('addDateModal').classList.add('open');
-}
-function closeAddDate() { document.getElementById('addDateModal').classList.remove('open'); }
-document.getElementById('addDateModal').addEventListener('click', e => {
-  if (e.target.id === 'addDateModal') closeAddDate();
-});
-
-function submitAddDate(e) {
-  e.preventDefault();
-  const jobId = document.getElementById('ad_job').value;
-  const field = document.getElementById('ad_event').value;
-  const date  = document.getElementById('ad_date').value;
-  const job = jobs.find(j => j.id === jobId);
-  if (!job || !field || !date) return;
-  job[field] = date;
-  saveJobs();
-  if (markers[job.id]) markers[job.id].setPopupContent(popupHtml(job));
-  renderList();
-  closeAddDate();
-  renderCalendar();
-  // Jump calendar to the month of the date that was added
-  const d = new Date(date + 'T00:00:00');
-  if (!isNaN(d)) { calState.year = d.getFullYear(); calState.month = d.getMonth(); renderCalendar(); }
-}
-
 /* ---------- Profile (his/her names, home bases, fields, interests) ---------- */
 const PROFILE_KEY = 'jobmap.profile.v1';
 const DEFAULT_PROFILE = {
-  him: { name: 'Him', homeCity: '', homeLat: null, homeLng: null, role: '', interests: '' },
-  her: { name: 'Her', homeCity: '', homeLat: null, homeLng: null, role: '', field: '', interests: '' },
+  him: { name: 'Dillon', homeCity: 'Grand Rapids, MI', homeLat: 42.9634, homeLng: -85.6681, role: 'OMFS resident', interests: '' },
+  her: { name: 'Isabel', homeCity: 'Notre Dame, IN', homeLat: 41.7001, homeLng: -86.2379, role: 'PhD candidate', field: '', interests: '' },
   loans: { balance: 0, rate: 0, monthlyPayment: 0 }
 };
 function loadProfile() {
@@ -5549,16 +4347,16 @@ window._jobmapShowNotes = function(jobId) {
 
   // User-entered prose sections (everything they filled in the form)
   const omfsBlock = (job.practiceGroup || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice || job.insuranceCashPay || job.workdaysPerWeek) ? `<div class="popup-section"><strong>OMFS specifics</strong>
-    ${job.workdaysPerWeek ? `<div><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : ''}
-    ${job.practiceGroup ? `<div><b>Practice group:</b> ${escape(job.practiceGroup)}</div>` : ''}
-    ${job.partnershipTrack ? `<div><b>Partnership:</b> ${escape(job.partnershipTrack)}</div>` : ''}
-    ${job.signingBonus ? `<div><b>Signing:</b> ${escape(job.signingBonus)}</div>` : ''}
-    ${job.callSchedule ? `<div><b>Call:</b> ${escape(job.callSchedule)}</div>` : ''}
-    ${job.loanAssist ? `<div><b>Loans:</b> ${escape(job.loanAssist)}</div>` : ''}
-    ${job.insuranceCashPay ? `<div><b>Insurance / cash pay:</b> ${escape(job.insuranceCashPay)}</div>` : ''}
-    ${job.hospitals ? `<div><b>Hospitals:</b> ${escape(job.hospitals)}</div>` : ''}
-    ${job.malpractice ? `<div><b>Malpractice:</b> ${escape(job.malpractice)}</div>` : ''}
-    ${job.caseMix ? `<div style="margin-top:4px"><b>Cases:</b> ${escape(job.caseMix)}</div>` : ''}
+    ${job.workdaysPerWeek ? `<div>Workdays: ${escape(job.workdaysPerWeek)}</div>` : ''}
+    ${job.practiceGroup ? `<div>Practice group: ${escape(job.practiceGroup)}</div>` : ''}
+    ${job.partnershipTrack ? `<div>Partnership: ${escape(job.partnershipTrack)}</div>` : ''}
+    ${job.signingBonus ? `<div>Signing: ${escape(job.signingBonus)}</div>` : ''}
+    ${job.callSchedule ? `<div>Call: ${escape(job.callSchedule)}</div>` : ''}
+    ${job.loanAssist ? `<div>Loans: ${escape(job.loanAssist)}</div>` : ''}
+    ${job.insuranceCashPay ? `<div>Insurance / cash pay: ${escape(job.insuranceCashPay)}</div>` : ''}
+    ${job.hospitals ? `<div>Hospitals: ${escape(job.hospitals)}</div>` : ''}
+    ${job.malpractice ? `<div>Malpractice: ${escape(job.malpractice)}</div>` : ''}
+    ${job.caseMix ? `<div style="margin-top:4px">Cases: ${escape(job.caseMix)}</div>` : ''}
   </div>` : '';
   const datesBlock = (job.dateApplied || job.dateInterview || job.contact) ? `<div class="popup-section">
     ${job.dateApplied ? `<div><strong>Applied</strong> ${job.dateApplied}</div>` : ''}
@@ -5954,24 +4752,23 @@ L.control.scale({ position: 'bottomright', imperial: true, metric: false, maxWid
 
 const markers = {}; // id -> marker
 
-// Map pin colors — read live from the same CSS vars the sidebar/chips use, so they stay in sync
-function statusColor(key) {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--' + key).trim();
-  return v || '#9ca3af';
-}
-const STATUS_COLORS = new Proxy({}, { get: (_, k) => statusColor(k) });
+const STATUS_COLORS = {
+  potential: '#9ca3af', applied: '#3b82f6',
+  interviewing: '#f59e0b', offer: '#10b981', rejected: '#ef4444',
+  current: '#059669'
+};
 
 function makeIcon(status, excitement, kind, parentJob) {
   let color;
   let label;
   if (kind === 'sister' && parentJob) {
     color = parentJob.kind === 'me' ? '#8b5cf6'
-          : parentJob.kind === 'current' ? STATUS_COLORS.current
+          : parentJob.kind === 'current' ? '#059669'
           : (STATUS_COLORS[parentJob.status] || '#6b7280');
     label = '';
   } else {
     color = kind === 'me' ? '#8b5cf6'
-          : kind === 'current' ? STATUS_COLORS.current
+          : kind === 'current' ? '#059669'
           : (STATUS_COLORS[status] || '#6b7280');
     label = kind === 'current' ? '★' : (excitement || '');
   }
@@ -6031,7 +4828,7 @@ function popupHtml(job, sister) {
   return `
     ${sisterBanner}
     <div class="popup-company">${escape(job.company)}</div>
-    <div class="popup-role">${escape(job.location)}${near ? ` · ${near.dist} mi to ${escape(near.city.name)}` : ''}</div>
+    <div class="popup-role">${escape(job.location)}${near ? ` · ${near.dist}mi to ${escape(near.city.name)}` : ''}</div>
     <div style="margin-top:4px"><span class="status-pill status-${job.status}">${job.status}</span></div>
     ${job.salary ? `<div style="margin-top:6px;font-size:13px"><b>${escape(job.salary)}</b></div>` : ''}
     <div style="margin-top:4px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;white-space:nowrap"><span style="color:#f59e0b">His: ${stars}</span>${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}</div>
@@ -6074,16 +4871,16 @@ function renderJobDetails(job) {
 
     <!-- OMFS specifics (inline — the job-central stuff) -->
     ${(job.practiceGroup || job.dsoAffiliation || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice || job.insuranceCashPay) ? `<div class="popup-section"><strong>OMFS specifics</strong>
-      ${job.practiceGroup ? `<div><b>Practice group:</b> ${escape(job.practiceGroup)}</div>` : ''}
-      ${job.dsoAffiliation ? `<div><b>DSO affiliation:</b> ${escape(job.dsoAffiliation)}</div>` : ''}
-      ${job.partnershipTrack ? `<div><b>Partnership:</b> ${escape(job.partnershipTrack)}</div>` : ''}
-      ${job.signingBonus ? `<div><b>Signing:</b> ${escape(job.signingBonus)}</div>` : ''}
-      ${job.callSchedule ? `<div><b>Call:</b> ${escape(job.callSchedule)}</div>` : ''}
-      ${job.loanAssist ? `<div><b>Loans:</b> ${escape(job.loanAssist)}</div>` : ''}
-      ${job.insuranceCashPay ? `<div><b>Insurance / cash pay:</b> ${escape(job.insuranceCashPay)}</div>` : ''}
-      ${job.hospitals ? `<div><b>Hospitals:</b> ${escape(job.hospitals)}</div>` : ''}
-      ${job.malpractice ? `<div><b>Malpractice:</b> ${escape(job.malpractice)}</div>` : ''}
-      ${job.caseMix ? `<div style="margin-top:4px"><b>Cases:</b> ${escape(job.caseMix)}</div>` : ''}
+      ${job.practiceGroup ? `<div>Practice group: ${escape(job.practiceGroup)}</div>` : ''}
+      ${job.dsoAffiliation ? `<div>DSO affiliation: ${escape(job.dsoAffiliation)}</div>` : ''}
+      ${job.partnershipTrack ? `<div>Partnership: ${escape(job.partnershipTrack)}</div>` : ''}
+      ${job.signingBonus ? `<div>Signing: ${escape(job.signingBonus)}</div>` : ''}
+      ${job.callSchedule ? `<div>Call: ${escape(job.callSchedule)}</div>` : ''}
+      ${job.loanAssist ? `<div>Loans: ${escape(job.loanAssist)}</div>` : ''}
+      ${job.insuranceCashPay ? `<div>Insurance / cash pay: ${escape(job.insuranceCashPay)}</div>` : ''}
+      ${job.hospitals ? `<div>Hospitals: ${escape(job.hospitals)}</div>` : ''}
+      ${job.malpractice ? `<div>Malpractice: ${escape(job.malpractice)}</div>` : ''}
+      ${job.caseMix ? `<div style="margin-top:4px">Cases: ${escape(job.caseMix)}</div>` : ''}
     </div>` : ''}
 
     <!-- Dates + Contact (inline) -->
@@ -6357,22 +5154,16 @@ function renderList() {
     return;
   }
   const sorted = [...filtered].sort(jobSortComparator());
-  list.innerHTML = sorted.map(job => {
-    const stars = job.excitement
-      ? `<span class="stars">${'★'.repeat(job.excitement)}${'☆'.repeat(5-job.excitement)}</span>`
-      : '';
-    const salary = job.salary ? `<span>${escape(String(job.salary))}</span>` : '';
-    const meta = [stars, salary].filter(Boolean).join('<span class="sep"></span>');
-    return `
-    <div class="job-card card-${job.status}" onclick="focusJob('${job.id}')">
+  list.innerHTML = sorted.map(job => `
+    <div class="job-card" onclick="focusJob('${job.id}')">
       <div class="row1">
         <div class="company">${escape(job.company)}</div>
         <span class="status-pill status-${job.status}">${job.status}</span>
       </div>
-      <div class="loc">${escape(job.location)}</div>
-      ${meta ? `<div class="meta">${meta}</div>` : ''}
-    </div>`;
-  }).join('');
+      <div class="loc">📍 ${escape(job.location)}</div>
+      ${job.excitement ? `<div class="excitement">${'★'.repeat(job.excitement)}${'☆'.repeat(5-job.excitement)}</div>` : ''}
+    </div>
+  `).join('');
 }
 
 function toggleCityDistance(on) {
@@ -6629,11 +5420,6 @@ function openJobForm(jobId) {
   }
   document.getElementById('formTitle').textContent = jobId ? 'Edit Job' : 'Add a Job';
   document.getElementById('deleteBtn').style.display = jobId ? 'inline-block' : 'none';
-  // Reflect profile names in the form section headers
-  const hisSummary = document.getElementById('f_hisImpressionsSummary');
-  const couplesSummary = document.getElementById('f_couplesContextSummary');
-  if (hisSummary) hisSummary.textContent = `His Impressions${profile.him && profile.him.name && profile.him.name !== 'Him' ? ` (${profile.him.name})` : ''}`;
-  if (couplesSummary) couplesSummary.textContent = `Couple's Context${profile.her && profile.her.name && profile.her.name !== 'Her' ? ` (${profile.her.name})` : ''}`;
   // Populate parent-job dropdown for sister selection
   const psel = document.getElementById('f_parentId');
   if (psel) {
@@ -6928,136 +5714,5 @@ renderList();
 updateFilterIndicator();
 if (sheetUrl) pullFromSheet();
 </script>
-
-<!-- Tweaks Panel -->
-<div id="tweakPanel">
-  <button class="tw-close" onclick="closeTweaks()" aria-label="Close">✕</button>
-  <div class="tw-title">Tweaks</div>
-  <div class="tw-label">Theme</div>
-  <div class="tw-group" id="twTheme">
-    <button class="tw-opt" data-theme="paper">Paper</button>
-    <button class="tw-opt" data-theme="soft">Soft</button>
-    <button class="tw-opt" data-theme="mono">Mono</button>
-  </div>
-  <div class="tw-label">Accent</div>
-  <div class="tw-swatch-row" id="twAccent"></div>
-  <div class="tw-label">Density</div>
-  <div class="tw-group" id="twDensity">
-    <button class="tw-opt" data-density="airy">Airy</button>
-    <button class="tw-opt" data-density="compact">Compact</button>
-  </div>
-</div>
-
-<script>
-/* ---------- Tweaks (theme + accent + density) ---------- */
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "theme": "soft",
-  "accent": "indigo",
-  "density": "compact"
-}/*EDITMODE-END*/;
-
-const ACCENTS = [
-  { id: 'terracotta', label: 'Terracotta',
-    accent: 'oklch(0.58 0.12 38)', soft: 'oklch(0.96 0.018 60)', ink: 'oklch(0.38 0.10 38)' },
-  { id: 'indigo', label: 'Indigo',
-    accent: 'oklch(0.52 0.13 270)', soft: 'oklch(0.96 0.014 270)', ink: 'oklch(0.35 0.11 270)' },
-  { id: 'forest', label: 'Forest',
-    accent: 'oklch(0.50 0.09 155)', soft: 'oklch(0.96 0.012 155)', ink: 'oklch(0.32 0.08 155)' },
-  { id: 'slate', label: 'Slate',
-    accent: 'oklch(0.40 0.02 250)', soft: 'oklch(0.96 0.005 250)', ink: 'oklch(0.25 0.02 250)' }
-];
-
-let tweakState = { ...TWEAK_DEFAULTS };
-try {
-  const saved = JSON.parse(localStorage.getItem('jobmap.tweaks') || 'null');
-  if (saved && typeof saved === 'object') tweakState = { ...tweakState, ...saved };
-} catch (e) {}
-
-function applyTweaks() {
-  const body = document.body;
-  body.classList.remove('theme-paper','theme-soft','theme-mono');
-  body.classList.add('theme-' + tweakState.theme);
-  body.classList.toggle('density-compact', tweakState.density === 'compact');
-
-  const a = ACCENTS.find(x => x.id === tweakState.accent) || ACCENTS[0];
-  const root = document.documentElement.style;
-  root.setProperty('--accent', a.accent);
-  root.setProperty('--accent-soft', a.soft);
-  root.setProperty('--accent-ink', a.ink);
-
-  document.querySelectorAll('#twTheme .tw-opt').forEach(b =>
-    b.classList.toggle('active', b.dataset.theme === tweakState.theme));
-  document.querySelectorAll('#twDensity .tw-opt').forEach(b =>
-    b.classList.toggle('active', b.dataset.density === tweakState.density));
-  document.querySelectorAll('#twAccent .tw-swatch').forEach(b =>
-    b.classList.toggle('active', b.dataset.accent === tweakState.accent));
-}
-
-function setTweak(key, value) {
-  tweakState[key] = value;
-  localStorage.setItem('jobmap.tweaks', JSON.stringify(tweakState));
-  applyTweaks();
-  try {
-    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
-  } catch (e) {}
-}
-
-function openTweaks()  { document.getElementById('tweakPanel').classList.add('open'); }
-function closeTweaks() {
-  document.getElementById('tweakPanel').classList.remove('open');
-  try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch (e) {}
-}
-
-// Build accent swatches
-(function buildAccentSwatches() {
-  const row = document.getElementById('twAccent');
-  row.innerHTML = ACCENTS.map(a =>
-    `<button class="tw-swatch" data-accent="${a.id}" title="${a.label}"
-       style="background:${a.accent}"></button>`).join('');
-  row.querySelectorAll('.tw-swatch').forEach(b => {
-    b.addEventListener('click', () => setTweak('accent', b.dataset.accent));
-  });
-})();
-document.querySelectorAll('#twTheme .tw-opt').forEach(b => {
-  b.addEventListener('click', () => setTweak('theme', b.dataset.theme));
-});
-document.querySelectorAll('#twDensity .tw-opt').forEach(b => {
-  b.addEventListener('click', () => setTweak('density', b.dataset.density));
-});
-
-// Edit-mode protocol — listener first, THEN announce
-window.addEventListener('message', (e) => {
-  const t = e.data && e.data.type;
-  if (t === '__activate_edit_mode')   openTweaks();
-  if (t === '__deactivate_edit_mode') closeTweaks();
-});
-try {
-  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
-} catch (e) {}
-
-applyTweaks();
-</script>
-
-<style>
-  /* Density: compact tightens vertical rhythm without losing hierarchy */
-  body.density-compact #sidebar header { padding: 16px 22px 14px; }
-  body.density-compact #sidebar header h1 { font-size: 24px; }
-  body.density-compact #toolbar { padding: 10px 22px; }
-  body.density-compact #filterTrigger { padding: 8px 22px; }
-  body.density-compact .job-card { padding: 10px 22px 10px 28px; }
-  body.density-compact .job-card::before { top: 10px; bottom: 10px; }
-  body.density-compact .job-card .company { font-size: 17px; }
-</style>
 </body>
 </html>
-
-<style id="__om-edit-overrides">
-#map .leaflet-popup .leaflet-popup-content b { font-family: "JetBrains Mono" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 10px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-weight: 200 !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 6px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-family: "Instrument Serif" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-family: "JetBrains Mono" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 11px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-weight: 200 !important }
-</style>
