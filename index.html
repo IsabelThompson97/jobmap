@@ -1499,7 +1499,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
   .cal-list-month:first-child { padding-top: 0; }
   .cal-list-row {
     display: grid;
-    grid-template-columns: 56px 110px 1fr auto;
+    grid-template-columns: 56px 140px 1fr auto;
     gap: 16px;
     align-items: center;
     padding: 12px 4px;
@@ -1526,8 +1526,11 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--ink-2);
-    padding: 3px 0 3px 8px;
-    border-left: 2px solid var(--muted);
+    padding: 3px 0 3px 10px;
+    border-left: 4px solid var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .cal-list-co {
     font-family: var(--font-serif);
@@ -4852,11 +4855,43 @@ function gatherCalendarEvents(jobId) {
   const events = [];
   (jobs || []).filter(j => j && j.kind !== 'sister' && (jobId === 'all' || j.id === jobId)).forEach(j => {
     CAL_EVENT_TYPES.forEach(et => {
-      if (j[et.key]) events.push({ date: j[et.key], type: et, job: j });
+      const raw = j[et.key];
+      if (!raw) return;
+      const iso = normalizeISODate(raw);
+      if (!iso) {
+        console.warn('[calendar] skipping bad date', et.key, '=', raw, 'on job', j.company || j.id);
+        return;
+      }
+      events.push({ date: iso, type: et, job: j });
     });
   });
-  events.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  events.sort((a, b) => a.date.localeCompare(b.date));
   return events;
+}
+
+/* Accept 'YYYY-MM-DD', 'YYYY/MM/DD', 'M/D/YYYY', 'MM/DD/YYYY', JS Date objects,
+   or anything `new Date()` can parse. Returns 'YYYY-MM-DD' or null. */
+function normalizeISODate(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date && !isNaN(raw)) {
+    return `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2,'0')}-${String(raw.getDate()).padStart(2,'0')}`;
+  }
+  const s = String(raw).trim();
+  // Already ISO
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+  // YYYY/MM/DD
+  m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+  // M/D/YYYY (US)
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return `${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}`;
+  // Last resort
+  const d = new Date(s);
+  if (!isNaN(d)) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  return null;
 }
 
 function calStep(delta) {
