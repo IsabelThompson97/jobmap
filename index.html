@@ -4963,29 +4963,38 @@ function renderCalendarList(events) {
     const [y, m] = key.split('-');
     const monthName = new Date(Number(y), Number(m) - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
     const rows = groups[key].map(ev => {
-      const d = new Date(ev.date + 'T00:00:00');
-      const dayNum = d.getDate();
-      const dow = d.toLocaleString('en-US', { weekday: 'short' });
-      const isToday = ev.date === todayISO;
-      const role = ev.job.type || ev.job.role || '';
-      const gcalUrl = googleCalLink(ev);
-      const icsUrl = singleIcsDataUrl(ev);
-      const filename = `${ev.job.company.replace(/[^a-z0-9]/gi,'_')}_${ev.type.short}.ics`;
-      return `<div class="cal-list-row" onclick="focusJobFromCal('${ev.job.id}')">
-        <div class="cal-list-date">
-          ${String(dayNum).padStart(2,'0')}${isToday ? '<span class="cal-list-today">Today</span>' : ''}
-          <span class="dow">${dow}</span>
-        </div>
-        <div class="cal-list-type" style="border-left-color:${ev.type.color}">${ev.type.label}</div>
-        <div class="cal-list-co">
-          ${escape(ev.job.company)}
-          ${role ? `<span class="role">${escape(role)}</span>` : ''}
-        </div>
-        <div class="cal-list-actions" onclick="event.stopPropagation()">
-          <a href="${gcalUrl}" target="_blank" rel="noopener" title="Add to Google Calendar">+ Google</a>
-          <a href="${icsUrl}" download="${filename}" title="Download .ics for this event">.ics</a>
-        </div>
-      </div>`;
+      try {
+        const d = new Date(ev.date + 'T00:00:00');
+        if (isNaN(d)) return '';
+        const dayNum = d.getDate();
+        const dow = d.toLocaleString('en-US', { weekday: 'short' });
+        const isToday = ev.date === todayISO;
+        const company = ev.job.company || '(untitled)';
+        const role = ev.job.type || ev.job.role || '';
+        let gcalUrl = '#', icsUrl = '#';
+        try { gcalUrl = googleCalLink(ev); } catch (e) { console.warn('gcal link:', e); }
+        try { icsUrl  = singleIcsDataUrl(ev); } catch (e) { console.warn('ics link:', e); }
+        const safeName = String(company).replace(/[^a-z0-9]/gi, '_') || 'event';
+        const filename = `${safeName}_${ev.type.short}.ics`;
+        return `<div class="cal-list-row" onclick="focusJobFromCal('${ev.job.id}')">
+          <div class="cal-list-date">
+            ${String(dayNum).padStart(2,'0')}${isToday ? '<span class="cal-list-today">Today</span>' : ''}
+            <span class="dow">${dow}</span>
+          </div>
+          <div class="cal-list-type" style="border-left-color:${ev.type.color}">${ev.type.label}</div>
+          <div class="cal-list-co">
+            ${escape(company)}
+            ${role ? `<span class="role">${escape(role)}</span>` : ''}
+          </div>
+          <div class="cal-list-actions" onclick="event.stopPropagation()">
+            <a href="${gcalUrl}" target="_blank" rel="noopener" title="Add to Google Calendar">+ Google</a>
+            <a href="${icsUrl}" download="${filename}" title="Download .ics for this event">.ics</a>
+          </div>
+        </div>`;
+      } catch (e) {
+        console.warn('[renderCalendarList] row error:', e, ev);
+        return '';
+      }
     }).join('');
     return `<div class="cal-list-month">${monthName}</div>${rows}`;
   }).join('');
