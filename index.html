@@ -560,6 +560,34 @@
   .popup-section .preserve-lines { white-space: pre-wrap; }
   #detailsBody .popup-section { padding-top: 16px; margin-top: 16px; }
   #detailsBody .city-links a { font-size: 13px; }
+
+    /* ---------- Detail-panel & popup tweaks (folded in from the old #__om-edit-overrides block) ----------
+     !important is kept where it's load-bearing: the salary line and a few rows carry inline
+     styles, so these rules need !important to win against them. The nth-child / single-URL
+     selectors below are position-dependent and will need revisiting if field order changes. */
+  #map .leaflet-popup .leaflet-popup-content b {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 200 !important;
+  }
+  #detailsBody > div > b { font-size: 13px !important; }
+  /* Salary line (2nd child) — !important beats the inline font-size:12px on the <b> */
+  #detailsBody > div:nth-child(2) > b {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+  }
+  /* Positional spacing tweaks (brittle: depend on the order of generated rows) */
+  #detailsBody > div:nth-child(6) > div:nth-child(4),
+  #detailsBody > div:nth-child(6) > div:nth-child(7),
+  #detailsBody > .popup-section > div:nth-child(9) { margin: 0 !important; }
+  /* City-stats value widths */
+  #citystatsBody div:nth-child(1) > b { width: 200px !important; }
+  #citystatsBody div:last-child  > b { width: 170px !important; }
+  /* One-off width/alignment on a single job's LinkedIn link (brittle: matches one exact URL) */
+  #detailsBody [href="https://www.linkedin.com/jobs/search/?keywords=computational%20chemistry&location=Madison%2C%20WI"] {
+    text-align: left !important;
+    width: 400px !important;
+  }
   .modal h3 {
     font-size: 13px; font-weight: 500; color: var(--ink);
     margin: 18px 0 10px;
@@ -6166,10 +6194,9 @@ function popupHtml(job, sister) {
     ${sisterBanner}
     <div class="popup-company">${escape(job.company)}</div>
     <div class="popup-role">${escape(job.location)}${near ? ` · ${near.dist} mi to ${escape(near.city.name)}` : ''}</div>
-    <div style="margin-top:4px"><span class="status-pill status-${job.status}">${job.status}</span></div>
+    <div style="margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px"><span class="status-pill status-${job.status}">${job.status}</span>${job.dsoAffiliation ? `<span style="color:var(--muted);font-size:11px">·</span><span style="font-size:11px;color:var(--muted)">${escape(job.dsoAffiliation)}</span>` : ''}</div>
     ${job.salary ? `<div style="margin-top:6px;font-size:13px"><b>${escape(job.salary)}</b></div>` : ''}
     <div style="margin-top:4px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;white-space:nowrap"><span style="color:#f59e0b">His: ${stars}</span>${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}</div>
-    ${job.dsoAffiliation ? `<div style="margin-top:4px;font-size:11px;color:var(--muted)">${escape(job.dsoAffiliation)}</div>` : ''}
     <div class="popup-actions" style="margin-top:10px">
       <button class="primary" onclick="window._jobmapOpenDetails('${job.id}')">View details</button>
       <button onclick="openJobForm('${job.id}')">Edit</button>
@@ -6188,10 +6215,11 @@ function renderJobDetails(job) {
     <!-- Top: job basics -->
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px">
       <span class="status-pill status-${job.status}">${job.status}</span>
+      <span style="color:var(--muted)">·</span>
       <span style="color:#f59e0b">His: ${stars}</span>
       ${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}
     </div>
-    ${job.salary ? `<div style="margin-bottom:10px;font-size:15px"><b>${escape(job.salary)}</b></div>` : ''}
+    ${job.salary ? `<div style="margin-bottom:10px;font-size:15px"><b style="font-size:12px;font-weight:300;font-family:'JetBrains Mono'">${escape(job.salary)}</b></div>` : ''}
 
     <!-- Action buttons row (all uniform style) -->
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
@@ -7067,8 +7095,8 @@ if (sheetUrl) pullFromSheet();
 <script>
 /* ---------- Tweaks (theme + accent + density) ---------- */
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "theme": "soft",
-  "accent": "indigo",
+  "theme": "mono",
+  "accent": "plum",
   "density": "compact"
 }/*EDITMODE-END*/;
 
@@ -7172,26 +7200,3 @@ applyTweaks();
 </style>
 </body>
 </html>
-
-<style id="__om-edit-overrides">
-#map .leaflet-popup .leaflet-popup-content b {
-  font-family: "JetBrains Mono" !important;
-  font-size: 11px !important;
-  font-weight: 200 !important;
-}
-#detailsBody > div > b {
-  font-size: 13px !important;
-}
-#detailsBody > div:nth-child(2) > b {
-  font-family: "JetBrains Mono" !important;
-}
-#detailsBody [href="https://www.linkedin.com/jobs/search/?keywords=computational%20chemistry&location=Madison%2C%20WI"] {
-  text-align: left !important;
-  width: 400px !important;
-}
-#detailsBody > div:nth-child(6) > div:nth-child(4) { margin: 0 !important; }
-#detailsBody > div:nth-child(6) > div:nth-child(7) { margin: 0 !important; }
-#detailsBody > .popup-section > div:nth-child(9) { margin: 0 !important; }
-#citystatsBody div:nth-child(1) > b { width: 200px !important; }
-#citystatsBody div:last-child  > b { width: 170px !important; }
-</style>
