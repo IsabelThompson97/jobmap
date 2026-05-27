@@ -6228,8 +6228,8 @@ function renderJobDetails(job) {
 
     <!-- COL notes / Vibe (inline) -->
     ${(job.col || job.lifestyle) ? `<div class="popup-section">
-      ${job.col ? `<div><strong>COL notes</strong> ${escape(job.col)}</div>` : ''}
-      ${job.lifestyle ? `<div><strong>Vibe</strong> ${escape(job.lifestyle)}</div>` : ''}
+      ${job.col ? `<div><strong>COL notes:</strong> ${escape(job.col)}</div>` : ''}
+      ${job.lifestyle ? `<div><strong>Vibe:</strong> ${escape(job.lifestyle)}</div>` : ''}
     </div>` : ''}
 
     <!-- Competing OMFS nearby -->
@@ -7174,12 +7174,24 @@ applyTweaks();
 </html>
 
 <style id="__om-edit-overrides">
-#map .leaflet-popup .leaflet-popup-content b { font-family: "JetBrains Mono" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 10px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-weight: 200 !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 6px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-family: "Instrument Serif" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-family: "JetBrains Mono" !important }
-#map .leaflet-popup .leaflet-popup-content b { font-size: 11px !important }
-#map .leaflet-popup .leaflet-popup-content b { font-weight: 200 !important }
+#map .leaflet-popup .leaflet-popup-content b {
+  font-family: "JetBrains Mono" !important;
+  font-size: 11px !important;
+  font-weight: 200 !important;
+}
+#detailsBody > div > b {
+  font-size: 13px !important;
+}
+#detailsBody > div:nth-child(2) > b {
+  font-family: "JetBrains Mono" !important;
+}
+#detailsBody [href="https://www.linkedin.com/jobs/search/?keywords=computational%20chemistry&location=Madison%2C%20WI"] {
+  text-align: left !important;
+  width: 400px !important;
+}
+#detailsBody > div:nth-child(6) > div:nth-child(4) { margin: 0 !important; }
+#detailsBody > div:nth-child(6) > div:nth-child(7) { margin: 0 !important; }
+#detailsBody > .popup-section > div:nth-child(9) { margin: 0 !important; }
+#citystatsBody div:nth-child(1) > b { width: 200px !important; }
+#citystatsBody div:last-child  > b { width: 170px !important; }
 </style>
