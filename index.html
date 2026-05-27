@@ -577,10 +577,11 @@
     font-size: 13px !important;
   }
   /* Positional spacing tweaks (brittle: depend on the order of generated rows) */
+  #detailsBody >div:nth-child(4) >div:nth-child(4) { margin: 0px !important }
   #detailsBody > div:nth-child(6) > div:nth-child(4),
   #detailsBody > div:nth-child(6) > div:nth-child(7),
   #detailsBody > .popup-section > div:nth-child(9) { margin: 0 !important; }
-  /* City-stats value widths */
+  /* City-stats value widths */s
   #citystatsBody div:nth-child(1) > b { width: 200px !important; }
   #citystatsBody div:last-child  > b { width: 170px !important; }
   /* One-off width/alignment on a single job's LinkedIn link (brittle: matches one exact URL) */
@@ -1992,7 +1993,7 @@ function careerFieldsPopupHtml(job, opts) {
     ? `<div><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : '';
   if (!present.length && !workdays) return '';
   const rows = present.map(f => {
-    const style = f.type === 'textarea' ? ' style="margin-top:4px"' : '';
+    const style = f.type === 'textarea' ? ' style="margin-top:0px"' : '';
     return `<div${style}><b>${f.short}:</b> ${escape(job[f.key])}</div>`;
   }).join('');
   return `<div class="popup-section"><strong>${CAREER_SCHEMA.groupLabel}</strong>${workdays}${rows}</div>`;
@@ -6245,7 +6246,7 @@ function renderJobDetails(job) {
       ${job.dateInterview2 ? `<div><b>In-person interview #2:</b> ${job.dateInterview2}</div>` : ''}
       ${job.offerDate ? `<div><b>Offer received:</b> ${job.offerDate}</div>` : ''}
       ${job.offerDeadline ? `<div style="color:#b91c1c"><b>Offer deadline:</b> ${job.offerDeadline}</div>` : ''}
-      ${job.contact ? `<div style="margin-top:4px"><b>Contact:</b> ${escape(job.contact)}</div>` : ''}
+      ${job.contact ? `<div style="margin-top:0px"><b>Contact:</b> ${escape(job.contact)}</div>` : ''}
     </div>` : ''}
 
     <!-- Pros / Cons / Vibe tags / Notes (inline) -->
