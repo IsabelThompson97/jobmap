@@ -9,9 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Job Map" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="theme-color" content="#4f46e5" />
-<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='38' fill='%234f46e5'/><path d='M90 28c-25 0-46 21-46 46 0 36 46 78 46 78s46-42 46-78c0-25-21-46-46-46zm0 62a16 16 0 110-32 16 16 0 010 32z' fill='white'/></svg>" />
-<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%234f46e5'/><path d='M16 5c-4 0-8 4-8 8 0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z' fill='white'/></svg>" />
+<meta name="theme-color" content="#605d96" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='38' fill='%23605d96'/><path d='M90 28c-25 0-46 21-46 46 0 36 46 78 46 78s46-42 46-78c0-25-21-46-46-46zm0 62a16 16 0 110-32 16 16 0 010 32z' fill='white'/></svg>" />
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23605d96'/><path d='M16 5c-4 0-8 4-8 8 0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z' fill='white'/></svg>" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,16 +34,18 @@
     --line: #e4dfd2;
     --line-strong: #cfc8b6;
     /* Single accent — terracotta default (tweakable) */
-    --accent: oklch(0.58 0.12 38);
-    --accent-soft: oklch(0.96 0.018 60);
-    --accent-ink: oklch(0.38 0.10 38);
+    --accent: #b55e43;       /* terracotta — sRGB hex (was oklch) for Chrome/Safari parity */
+    --accent-soft: #fbefe6;
+    --accent-ink: #6d2b16;
     /* Status — muted, harmonised set (lower chroma than the originals) */
-    --potential:    oklch(0.70 0.01 80);
-    --applied:      oklch(0.72 0.13 75);
-    --interviewing: oklch(0.60 0.10 250);
-    --offer:        oklch(0.62 0.10 150);
-    --rejected:     oklch(0.60 0.13 25);
-    --current:      oklch(0.55 0.09 160);
+    /* sRGB hex (not oklch) so Chrome & Safari render identically; hues spread
+       far apart so no two statuses blur together. */
+    --potential:    #9a9086; /* greige  — dormant / undecided */
+    --applied:      #c16b45; /* terracotta — submitted, in motion */
+    --interviewing: #3e8fb5; /* sky blue — active conversation */
+    --offer:        #6f7d54; /* sage-olive — success */
+    --rejected:     #7e2e42; /* wine — declined */
+    --current:      #7c3b6f; /* plum — current position */
 
     --radius: 4px;
     --radius-lg: 8px;
@@ -292,8 +294,8 @@
     letter-spacing: 0.04em;
   }
   #syncStatus.visible { display: block; }
-  #syncStatus.error { color: oklch(0.55 0.13 25); }
-  #syncStatus.success { color: oklch(0.55 0.10 150); }
+  #syncStatus.error { color: #b14e49; }
+  #syncStatus.success { color: #428252; }
 
   /* ---------- Job list ---------- */
   #jobList { overflow-y: auto; flex: 1; padding: 4px 0 12px; }
@@ -311,7 +313,7 @@
   .job-card::before {
     content: ""; position: absolute;
     left: 0; top: 14px; bottom: 14px;
-    width: 4px; border-radius: 0 2px 2px 0;
+    width: 7px; border-radius: 0 2px 2px 0;
     background: var(--card-c, var(--muted));
   }
   .job-card:hover { background: var(--panel-2); }
@@ -352,21 +354,26 @@
     border-radius: 2px; color: var(--ink);
     text-transform: uppercase; letter-spacing: 0.1em;
     white-space: nowrap;
-    background: var(--panel-2);
+    background: var(--pill-bg, var(--panel-2));   /* very faint tint of the status color */
     font-family: var(--font-mono); font-weight: 400;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line);                /* neutral hairline — no colored border */
     display: inline-flex; align-items: center; gap: 5px;
+    transition: box-shadow 0.14s ease;            /* for the hover underline */
   }
   .status-pill::before {
-    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
     background: var(--pill-c, var(--muted));
   }
-  .status-potential    { --pill-c: var(--potential); }
-  .status-applied      { --pill-c: var(--applied); }
-  .status-interviewing { --pill-c: var(--interviewing); }
-  .status-offer        { --pill-c: var(--offer); }
-  .status-rejected     { --pill-c: var(--rejected); }
-  .status-current      { --pill-c: var(--current); }
+  /* Colored underline appears on hover (row or pill); no border at rest */
+  .job-card:hover .status-pill,
+  .status-pill:hover { box-shadow: inset 0 -2px 0 var(--pill-c); }
+  /* --pill-bg = the status colour at ~7% alpha (8-digit hex, browser-consistent) */
+  .status-potential    { --pill-c: var(--potential);    --pill-bg: #9a908612; }
+  .status-applied      { --pill-c: var(--applied);      --pill-bg: #c16b4512; }
+  .status-interviewing { --pill-c: var(--interviewing); --pill-bg: #3e8fb512; }
+  .status-offer        { --pill-c: var(--offer);        --pill-bg: #6f7d5412; }
+  .status-rejected     { --pill-c: var(--rejected);     --pill-bg: #7e2e4212; }
+  .status-current      { --pill-c: var(--current);      --pill-bg: #7c3b6f12; }
   .excitement {
     color: var(--ink); font-size: 11px; margin-top: 4px;
     letter-spacing: 0.05em;
@@ -616,26 +623,27 @@
   /* ---------- Marker / map decorations (preserved) ---------- */
   .leaflet-div-icon.label-icon { background: transparent; border: none; padding: 0; }
   .map-label { background: var(--panel); border: 1px solid var(--accent); color: var(--accent-ink); padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); display: inline-block; font-family: var(--font-mono); }
-  .airport-marker { background: #1e293b; color: white; font-size: 10px; font-weight: 500; padding: 2px 5px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; font-family: var(--font-mono); }
-  .uni-marker { background: #16a34a; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
-  .pharma-marker { background: #ea580c; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
-  .pharma-marker.compchem { background: #7c3aed; }
-  .lab-marker { background: #dc2626; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
-  .ml-marker { background: #06b6d4; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; }
-  .person-marker { background: #ec4899; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
-  .person-marker.friend { background: #2563eb; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.4); width: 14px; height: 14px; font-size: 0; }
+  .airport-marker { background: rgba(86, 71, 77, 0.72); color: white; font-size: 10px; font-weight: 500; padding: 2px 5px; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.18); white-space: nowrap; font-family: var(--font-mono); }
+  .uni-marker { background: #3ca5dd; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; opacity: 0.75; }
+  .pharma-marker { background: #cb7533; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; opacity: 0.75; }
+  .compchem-marker { background: #a06d9b; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; opacity: 0.80; } /* comp chem / AI drug discovery — its own layer */
+  .lab-marker { background: #6453af; color: white; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; opacity: 0.80; }
+  .ml-marker { background: #29938ac3; color: white; font-size: 10px; font-weight: 700; min-width: 20px; height: 18px; padding: 0 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; opacity: 0.95; }
+  .person-marker { background: #dd417b; color: white; font-size: 13px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
+  .person-marker.friend { background: #5058b6; border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none; width: 14px; height: 14px; font-size: 0; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff) drop-shadow(0 1px 2px rgba(0,0,0,0.45)); }
   .citytab-btn { padding: 9px 14px; border: none; background: none; cursor: pointer; font-weight: 400; border-bottom: 1px solid transparent; margin-bottom: -1px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
   .citytab-btn.active { font-weight: 500; border-bottom-color: var(--ink); color: var(--ink); }
   .citytab-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-  .trauma-marker { background: #b91c1c; color: white; font-size: 10px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; }
-  .pin-marker.kind-me { background: #8b5cf6 !important; }
+  .trauma-marker { background: #a30808; color: white; font-size: 10px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 2px solid white; line-height: 1; opacity: 0.75; }
+  .pin-marker.kind-me { background: #a06d9b !important; } /* mauve — her possible employers */
   .pin-marker {
     width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
     border: 2px solid white;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
-  .pin-marker .inner { transform: rotate(45deg); display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 11px; font-weight: 700; }
+  .pin-marker .inner { transform: rotate(45deg); display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 9px; font-weight: 600; font-family: var(--font-mono); }
+  .pin-marker .inner.star { font-size: 15px; font-weight: 700; }
   .pin-badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: white; font-size: 9px; font-weight: 700; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; display: flex; align-items: center; justify-content: center; transform: rotate(45deg); border: 1.5px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1; }
 
   .modal input[type="date"] { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
@@ -703,7 +711,7 @@
     content: ""; position: absolute; inset: -3px;
     border: 1.5px solid var(--ink); border-radius: 50%;
   }
-  #tweakPanel .tw-swatch-row { display: flex; gap: 8px; }
+  #tweakPanel .tw-swatch-row { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -770,6 +778,7 @@
         <button onclick="openPeople(); closeManageMenu()">Family & friends…</button>
         <button onclick="openHouses(); closeManageMenu()">Houses / listings…</button>
         <button onclick="openWeights(); closeManageMenu()">Decision matrix weights…</button>
+        <button onclick="openTweaks(); closeManageMenu()">Appearance / colors…</button>
         <button onclick="exportData(); closeManageMenu()">Export backup</button>
         <button onclick="document.getElementById('importFile').click(); closeManageMenu()">Import backup</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
@@ -788,10 +797,10 @@
 
       <label>This pin is for</label>
       <select id="f_kind" onchange="updateKindUI()">
-        <option value="omfs">His OMFS practice (status-colored pins)</option>
-        <option value="current">His CURRENT position (green pin)</option>
-        <option value="me">Her possible employer (purple pin)</option>
+        <option value="omfs">His :: Potential position (status-colored pins)</option>
         <option value="sister">Sister location (linked to a main job)</option>
+        <option value="current">His/Hers :: CURRENT position (wine pin)</option>
+        <option value="me">Her :: Possible employer (mauve pin)</option>
       </select>
 
       <div id="sisterParentRow" style="display:none;margin-top:8px">
@@ -897,49 +906,12 @@
       <label>Notes</label>
       <textarea id="f_notes"></textarea>
 
+      <!-- Role-specific fields — generated from CAREER_SCHEMA at init by renderCareerForm().
+           The summary text and inputs below are filled in by JS; this is the seam that
+           makes the field group career-agnostic instead of hardcoded OMFS. -->
       <details style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px">
-        <summary>OMFS specifics</summary>
-        <label>Practice group (links to sister locations)</label>
-        <input id="f_practiceGroup" placeholder="e.g. 'Smith OMFS Group' — for linking practice locations" />
-        <div class="help">Jobs with the same value here will link to each other as sister locations.</div>
-        <label>DSO affiliation</label>
-        <input id="f_dsoAffiliation" placeholder="e.g. Heartland Dental, MB2, Pacific Dental Services, or 'independent'" />
-        <div class="help">Informational — which DSO owns or supports this practice.</div>
-        <div class="grid-2">
-          <div>
-            <label>Partnership track</label>
-            <input id="f_partnershipTrack" placeholder="e.g. 2 yrs to buy-in" />
-          </div>
-          <div>
-            <label>Signing bonus</label>
-            <input id="f_signingBonus" placeholder="e.g. $50k" />
-          </div>
-        </div>
-        <div class="grid-2">
-          <div>
-            <label>Call schedule</label>
-            <input id="f_callSchedule" placeholder="e.g. 1:5, no trauma" />
-          </div>
-          <div>
-            <label>Loan repayment / PSLF</label>
-            <input id="f_loanAssist" placeholder="e.g. $25k/yr, PSLF eligible" />
-          </div>
-        </div>
-        <label>Insurance or cash pay?</label>
-        <input id="f_insuranceCashPay" placeholder="e.g. cash-pay only, mostly PPO, Medicaid-heavy" />
-        <div class="help">Insurance mix vs. fee-for-service / cash-pay. Affects collections and patient demographics.</div>
-        <label>Case mix</label>
-        <textarea id="f_caseMix" placeholder="e.g. wisdom teeth 50%, implants 20%, trauma 15%, orthognathic 10%, pathology 5%"></textarea>
-        <div class="grid-2">
-          <div>
-            <label>Hospital affiliations</label>
-            <input id="f_hospitals" placeholder="e.g. Denver Health (Level 1 trauma)" />
-          </div>
-          <div>
-            <label>Malpractice / tail</label>
-            <input id="f_malpractice" placeholder="e.g. occurrence, tail covered" />
-          </div>
-        </div>
+        <summary id="careerGroupSummary">Role-specific details</summary>
+        <div id="careerFieldsContainer"></div>
       </details>
 
       <details style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
@@ -1117,49 +1089,48 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       <div class="eyebrow layers-cap">People</div>
       <label class="toggle-row">
         <input type="checkbox" id="peopleToggle" onchange="togglePeople(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ec4899;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #ec4899;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#dd417b;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #dd417b;vertical-align:middle;margin-right:6px"></span>Family & friends</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="housesToggle" onchange="toggleHouses(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Houses / listings <span class="hint">(add under Manage → Houses)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#d5b23f;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #d5b23f;vertical-align:middle;margin-right:6px"></span>Houses / listings <span class="hint">(add under Manage → Houses)</span></span>
       </label>
 
       <div class="eyebrow layers-cap">His career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="traumaToggle" onchange="toggleTrauma(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#b91c1c;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #b91c1c;vertical-align:middle;margin-right:6px"></span>Level 1 trauma centers</span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#a30808;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #a30808;vertical-align:middle;margin-right:6px"></span>Level 1 trauma centers</span>
       </label>
 
       <div class="eyebrow layers-cap">Her career context</div>
       <label class="toggle-row">
         <input type="checkbox" id="universitiesToggle" onchange="toggleUniversities(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #16a34a;vertical-align:middle;margin-right:6px"></span>Universities (comp chem / R1)</span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#3ca5dd;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px #3ca5dd;vertical-align:middle;margin-right:6px"></span>Universities (comp chem / R1)</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="labsToggle" onchange="toggleLabs(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #dc2626;vertical-align:middle;margin-right:6px"></span>National labs & research institutes</span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#6453af;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #6453af;vertical-align:middle;margin-right:6px"></span>National labs & research institutes</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="mlLabsToggle" onchange="toggleMLLabs(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:18px;height:14px;background:#06b6d4;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #06b6d4;vertical-align:middle;margin-right:6px"></span>AI / ML research labs</span>
+        <span class="toggle-label"><span style="display:inline-block;width:18px;height:14px;background:#29938a;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #29938a;vertical-align:middle;margin-right:6px"></span>AI / ML research labs</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="pharmaToggle" onchange="togglePharma(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#ea580c;border-radius:9px;border:2px solid white;box-shadow:0 0 0 1px #ea580c;vertical-align:middle;margin-right:6px"></span>Pharma <span class="hint">(orange = big pharma · violet = comp chem / AI drug discovery)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#cb7533;border-radius:9px;border:2px solid white;box-shadow:0 0 0 1px #cb7533;vertical-align:middle;margin-right:6px"></span>Pharma</span>
       </label>
-
+      <label class="toggle-row">
+        <input type="checkbox" id="compChemToggle" onchange="toggleCompChem(this.checked)" />
+        <span class="toggle-label"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#a06d9b;border-radius:9px;border:2px solid white;box-shadow:0 0 0 1px #a06d9b;vertical-align:middle;margin-right:6px;color:#fff;font-size:8px;line-height:1"></span>Comp chem / AI drug discovery</span>
+      </label>
       <div class="eyebrow layers-cap">Travel &amp; geography</div>
       <label class="toggle-row">
         <input type="checkbox" id="jobRadiusToggle" onchange="toggleJobRadius(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:transparent;border-radius:50%;border:2px solid #4f46e5;vertical-align:middle;margin-right:6px"></span>25-mile radius around each job</span>
-      </label>
-      <label class="toggle-row">
-        <input type="checkbox" id="cityDistanceToggle" onchange="toggleCityDistance(this.checked)" />
-        <span class="toggle-label">Show distance to nearest major city</span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:transparent;border-radius:50%;border:2px solid #605d96;vertical-align:middle;margin-right:6px"></span>25-mile radius around each job</span>
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="airportsToggle" onchange="toggleAirports(this.checked)" />
-        <span class="toggle-label">Show major US airports</span>
+        <span class="toggle-label"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#4c4154;border-radius:2px;border:2px solid white;box-shadow:0 0 0 1px #4c4154;vertical-align:middle;margin-right:6px;color:#fff;font-size:8px;line-height:1">✈</span>Show major US airports</span>
       </label>
 
       <div class="eyebrow layers-cap">Rail / transit connectivity</div>
@@ -1192,7 +1163,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px">
       <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
-        <h3 style="margin:0 0 8px;font-size:14px;color:#b45309">His (the OMFS resident)</h3>
+        <h3 style="margin:0 0 8px;font-size:14px;color:#b45309">Job Hunter</h3>
         <label style="font-size:12px;color:var(--muted)">Name</label>
         <input id="pf_him_name" placeholder="His first name" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
@@ -1204,7 +1175,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
         <div class="help" style="margin-top:4px">Prefills the per-job "His interests" box when adding new jobs.</div>
       </div>
       <div style="border:1px solid var(--line);border-radius:8px;padding:12px">
-        <h3 style="margin:0 0 8px;font-size:14px;color:#9d174d">Hers (the partner)</h3>
+        <h3 style="margin:0 0 8px;font-size:14px;color:#9d174d">Partner</h3>
         <label style="font-size:12px;color:var(--muted)">Name</label>
         <input id="pf_her_name" placeholder="Her first name" />
         <label style="font-size:12px;color:var(--muted);margin-top:6px">Current home (City, State)</label>
@@ -1874,8 +1845,6 @@ let currentPartnerRating = 0;
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwKYxttX4h8HnQUbZpVBI54HLz45AwVzixqI-qI0QyYRleA6yWfsPlOvoBP4zr_i6wJ/exec';
 let sheetUrl = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
 let filterState = { search: '', statuses: new Set(['potential','applied','interviewing','offer','rejected','current']), minExcite: 0, minPartner: 0, minScore: 0 };
-let showCityDistance = false;
-let cityDistanceLayer = null;
 let showAirports = false;
 let airportsLayer = null;
 const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','insuranceCashPay','workdaysPerWeek','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId','website',
@@ -1889,6 +1858,117 @@ const RATING_FIELDS = [
   'hisCommFit','hisEducFit','hisCareerGrowth','hisOutdoorFit','hisCultureFit','hisUrbanRural','hisSafety',
   'herCommFit','herEducFit','herPartnerCareer','herOutdoorFit','herCultureFit','herUrbanRural','herSafety'
 ];
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CAREER SCHEMA — single source of truth for the role-specific field group
+   (formerly the hardcoded "OMFS specifics" section). This is the seam that
+   makes the app career-agnostic: every place that used to spell out
+   "practiceGroup / partnershipTrack / caseMix / ..." now loops over
+   CAREER_SCHEMA.fields, so adding, renaming, or removing a field happens in
+   exactly ONE place — the add-job form, the map popups, and (next) the
+   details modal all follow.
+
+   To generalize for another career, the setup wizard will eventually just
+   swap this object for a different template (e.g. an "Attorney" or
+   "Physician" field-set). For now it is seeded from the existing OMFS fields
+   so behavior is unchanged.
+
+   IMPORTANT: every `key` here must also remain listed in EXTRA_FIELDS above,
+   because save/load loops over EXTRA_FIELDS to read/write the f_<key> inputs.
+
+   Field options:
+     key         data property + input id (f_<key>)
+     label       full label shown in the add-job form
+     short        compact label for the details modal / popups
+     type        'text' (default) or 'textarea'
+     placeholder input placeholder
+     help         optional grey helper line under the input
+     half         true = sits in a 2-up row with the next half:true field
+   ────────────────────────────────────────────────────────────────────────── */
+const CAREER_SCHEMA = {
+  id: 'omfs',
+  label: 'Oral & Maxillofacial Surgery',
+  groupLabel: 'OMFS specifics',           // section header text shown to the user
+  fields: [
+    { key:'practiceGroup',    label:'Practice group (links to sister locations)', short:'Practice group',
+      placeholder:"e.g. 'Smith OMFS Group' — for linking practice locations",
+      help:'Jobs with the same value here will link to each other as sister locations.' },
+    { key:'dsoAffiliation',   label:'DSO affiliation', short:'DSO affiliation', hideIn:['detailBlock'],
+      placeholder:"e.g. Heartland Dental, MB2, Pacific Dental Services, or 'independent'",
+      help:'Informational — which DSO owns or supports this practice.' },
+    { key:'partnershipTrack', label:'Partnership track', short:'Partnership', half:true,
+      placeholder:'e.g. 2 yrs to buy-in' },
+    { key:'signingBonus',     label:'Signing bonus', short:'Signing', half:true,
+      placeholder:'e.g. $50k' },
+    { key:'callSchedule',     label:'Call schedule', short:'Call', half:true,
+      placeholder:'e.g. 1:5, no trauma' },
+    { key:'loanAssist',       label:'Loan repayment / PSLF', short:'Loans', half:true,
+      placeholder:'e.g. $25k/yr, PSLF eligible' },
+    { key:'insuranceCashPay', label:'Insurance or cash pay?', short:'Insurance / cash pay',
+      placeholder:'e.g. cash-pay only, mostly PPO, Medicaid-heavy',
+      help:'Insurance mix vs. fee-for-service / cash-pay. Affects collections and patient demographics.' },
+    { key:'caseMix',          label:'Case mix', short:'Cases', type:'textarea',
+      placeholder:'e.g. wisdom teeth 50%, implants 20%, trauma 15%, orthognathic 10%, pathology 5%' },
+    { key:'hospitals',        label:'Hospital affiliations', short:'Hospitals', half:true,
+      placeholder:'e.g. Denver Health (Level 1 trauma)' },
+    { key:'malpractice',      label:'Malpractice / tail', short:'Malpractice', half:true,
+      placeholder:'e.g. occurrence, tail covered' },
+  ]
+};
+
+// Build one form input (label + input/textarea + optional help) from a schema field.
+function careerFieldInputHtml(f) {
+  const ph = (f.placeholder || '').replace(/"/g, '&quot;');
+  const help = f.help ? `<div class="help">${f.help}</div>` : '';
+  const control = f.type === 'textarea'
+    ? `<textarea id="f_${f.key}" placeholder="${ph}"></textarea>`
+    : `<input id="f_${f.key}" placeholder="${ph}" />`;
+  return `<label>${f.label}</label>${control}${help}`;
+}
+
+// Build the whole role-specific form section, pairing consecutive half:true fields into 2-up rows.
+function careerFieldsFormHtml() {
+  const fs = CAREER_SCHEMA.fields;
+  let html = '';
+  for (let i = 0; i < fs.length; i++) {
+    const f = fs[i], next = fs[i + 1];
+    if (f.half && next && next.half) {
+      html += `<div class="grid-2"><div>${careerFieldInputHtml(f)}</div><div>${careerFieldInputHtml(next)}</div></div>`;
+      i++;
+    } else {
+      html += careerFieldInputHtml(f);
+    }
+  }
+  return html;
+}
+
+// Populate the form's role-specific section from the schema (called at init).
+function renderCareerForm() {
+  const summary = document.getElementById('careerGroupSummary');
+  const container = document.getElementById('careerFieldsContainer');
+  if (summary) summary.textContent = CAREER_SCHEMA.groupLabel;
+  if (container) container.innerHTML = careerFieldsFormHtml();
+}
+
+// Build the role-specific block for a map popup, in schema order. Skips empty fields.
+// opts.includeWorkdays prepends the workdays line (popup #1 behavior).
+// opts.variant identifies the surface: 'mapPopup' (the Leaflet pin popup) or
+// 'detailBlock' (the detail modal's block). A field is hidden on a surface if
+// its hideIn array lists that variant — this lets the two surfaces show
+// different subsets (e.g. map popup shows DSO, detail block shows practice group).
+function careerFieldsPopupHtml(job, opts) {
+  opts = opts || {};
+  const present = CAREER_SCHEMA.fields.filter(f =>
+    job[f.key] && !(f.hideIn && opts.variant && f.hideIn.indexOf(opts.variant) !== -1));
+  const workdays = (opts.includeWorkdays && job.workdaysPerWeek)
+    ? `<div><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : '';
+  if (!present.length && !workdays) return '';
+  const rows = present.map(f => {
+    const style = f.type === 'textarea' ? ' style="margin-top:4px"' : '';
+    return `<div${style}><b>${f.short}:</b> ${escape(job[f.key])}</div>`;
+  }).join('');
+  return `<div class="popup-section"><strong>${CAREER_SCHEMA.groupLabel}</strong>${workdays}${rows}</div>`;
+}
 
 const MAJOR_CITIES = [
   {name:'New York', lat:40.7128, lng:-74.0060, col:187},
@@ -1907,6 +1987,7 @@ const MAJOR_CITIES = [
   {name:'Austin', lat:30.2672, lng:-97.7431, col:119},
   {name:'Minneapolis', lat:44.9778, lng:-93.2650, col:107},
   {name:'Philadelphia', lat:39.9526, lng:-75.1652, col:101},
+  {name:'Trenton', lat:40.2171, lng:-74.7429, col:104},
   {name:'Portland OR', lat:45.5152, lng:-122.6784, col:130},
   {name:'San Diego', lat:32.7157, lng:-117.1611, col:161},
   {name:'Charlotte', lat:35.2271, lng:-80.8431, col:103},
@@ -1978,6 +2059,7 @@ const AIRPORTS = [
   {code:'LGA',name:'New York LaGuardia',lat:40.7769,lng:-73.8740},
   {code:'DTW',name:'Detroit',lat:42.2162,lng:-83.3554},
   {code:'PHL',name:'Philadelphia',lat:39.8744,lng:-75.2424},
+  {code:'TTN',name:'Trenton-Mercer',lat:40.2766,lng:-74.8135},
   {code:'SLC',name:'Salt Lake City',lat:40.7899,lng:-111.9791},
   {code:'BWI',name:'Baltimore/Washington',lat:39.1774,lng:-76.6684},
   {code:'DCA',name:'Reagan National',lat:38.8512,lng:-77.0402},
@@ -2429,6 +2511,7 @@ const TRAUMA_CENTERS = [
 
 let showUniversities = false, universitiesLayer = null;
 let showPharma = false, pharmaLayer = null;
+let showCompChem = false, compChemLayer = null;
 let showLabs = false, labsLayer = null;
 let showMLLabs = false, mlLabsLayer = null;
 let showTrauma = false, traumaLayer = null;
@@ -3452,6 +3535,7 @@ async function fetchDrivingRoute(fromLat, fromLng, toLat, toLng) {
   };
 }
 
+
 async function refreshDrivingInfo(job) {
   if (job.lat == null) return;
   // Test the 5 closest cities by straight-line, then route to each; pick shortest drive
@@ -3687,7 +3771,6 @@ document.getElementById('settingsModal').addEventListener('click', e => {
 
 /* ---------- Layers / Manage ---------- */
 function openLayers() {
-  document.getElementById('cityDistanceToggle').checked = showCityDistance;
   document.getElementById('airportsToggle').checked = showAirports;
   document.getElementById('universitiesToggle').checked = showUniversities;
   document.getElementById('labsToggle').checked = showLabs;
@@ -3695,6 +3778,7 @@ function openLayers() {
   document.getElementById('peopleToggle').checked = showPeople;
   document.getElementById('traumaToggle').checked = showTrauma;
   document.getElementById('pharmaToggle').checked = showPharma;
+  document.getElementById('compChemToggle').checked = showCompChem;
   document.getElementById('commuterRailToggle').checked = showCommuterRail;
   document.getElementById('subwayToggle').checked = showSubway;
   document.getElementById('amtrakToggle').checked = showAmtrak;
@@ -4011,11 +4095,11 @@ function renderCommunityView(job) {
   };
   const familyBlock = family.length === 0 ? '' : `
     <h3 style="font-size:14px;margin:14px 0 8px">Family (${family.length})</h3>
-    <div style="margin-bottom:14px">${family.map(p => personRow(p, '♥', '#ec4899')).join('')}</div>
+    <div style="margin-bottom:14px">${family.map(p => personRow(p, '♥', '#dd417b')).join('')}</div>
   `;
   const friendsBlock = friends.length === 0 ? '' : `
     <h3 style="font-size:14px;margin:0 0 8px">Friends (${friends.length})</h3>
-    <div style="margin-bottom:14px">${friends.map(p => personRow(p, '▲', '#2563eb')).join('')}</div>
+    <div style="margin-bottom:14px">${friends.map(p => personRow(p, '▲', '#5058b6')).join('')}</div>
   `;
 
   // Family distance summary (job.distanceFamily) + dual-career notes
@@ -4578,7 +4662,7 @@ function drawHouses() {
   housesLayer = L.layerGroup().addTo(map);
   const icon = L.divIcon({
     className: '',
-    html: '<div style="background:#16a34a;color:white;font-size:13px;font-weight:700;width:14px;height:14px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);border:2px solid white;line-height:1">⌂</div>',
+    html: '<div style="background:#d5b23f;color:white;font-size:13px;font-weight:700;width:15px;height:15px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);border:2px solid white;line-height:1;opacity:0.8">⌂</div>',
     iconSize: [22, 22], iconAnchor: [11, 11]
   });
   houses.forEach(h => {
@@ -4599,7 +4683,7 @@ function housePopupHtml(h) {
   `;
 }
 
-/* ---------- 40-mile radius layer (drawn around each visible job pin) ---------- */
+/* ---------- 25-mile radius layer (drawn around each visible job pin) ---------- */
 let showJobRadius = false, jobRadiusLayer = null;
 function toggleJobRadius(on) { showJobRadius = on; if (on) drawJobRadius(); else clearJobRadius(); }
 function clearJobRadius() { if (jobRadiusLayer) { map.removeLayer(jobRadiusLayer); jobRadiusLayer = null; } }
@@ -4609,14 +4693,12 @@ function drawJobRadius() {
   const MI_TO_M = 1609.34;
   jobs.forEach(job => {
     if (job.lat == null || job.kind === 'me') return;
-    if (job.kind === 'sister') {
-      const parent = jobs.find(p => p.id === job.parentId);
-      if (!parent || !passesFilter(parent)) return;
-    } else if (!passesFilter(job)) return;
+    if (job.kind === 'sister') return;   // radius only on the main job, not sister locations
+    if (!passesFilter(job)) return;
     L.circle([job.lat, job.lng], {
       radius: 25 * MI_TO_M,
-      color: '#4f46e5', weight: 1.5, opacity: 0.55,
-      fillColor: '#4f46e5', fillOpacity: 0.05, interactive: false
+      color: '#605d96', weight: 1.5, opacity: 0.55,
+      fillColor: '#605d96', fillOpacity: 0.05, interactive: false
     }).addTo(jobRadiusLayer);
   });
 }
@@ -4631,7 +4713,7 @@ function drawPeople() {
     const type = p.type || 'family';
     const isFriend = type === 'friend';
     const html = isFriend
-      ? `<div class="person-marker friend"></div>`
+      ? `<svg width="22" height="19" viewBox="0 0 22 19" style="display:block;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))"><polygon points="11,1.5 20.5,17.5 1.5,17.5" fill="#5058b6" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/></svg>`
       : `<div class="person-marker">♥</div>`;
     const collegeNote = p.college ? ` · ${p.college}` : '';
     L.marker([p.lat, p.lng], {
@@ -4639,7 +4721,7 @@ function drawPeople() {
         className: 'label-icon',
         html,
         iconSize: null,
-        iconAnchor: [10, 10]
+        iconAnchor: isFriend ? [11, 11] : [10, 10]
       })
     }).addTo(peopleLayer).bindTooltip(`${p.name} (${p.location})${collegeNote}`, { direction: 'top' });
   });
@@ -4774,7 +4856,7 @@ function decisionBreakdown(job) {
 /* ---------- Calendar (formerly Timeline) ---------- */
 const CAL_EVENT_TYPES = [
   { key: 'dateApplied',         label: 'Applied',          short: 'APP', color: 'var(--applied)' },
-  { key: 'datePhoneInterview',  label: 'Phone interview',  short: 'PHN', color: 'oklch(0.55 0.13 290)' },
+  { key: 'datePhoneInterview',  label: 'Phone interview',  short: 'PHN', color: '#7262b7' },
   { key: 'dateInterview',       label: 'In-person',        short: 'INT', color: 'var(--interviewing)' },
   { key: 'dateInterview2',      label: 'In-person #2',     short: 'IN2', color: 'var(--interviewing)' },
   { key: 'offerDate',           label: 'Offer received',   short: 'OFR', color: 'var(--offer)' },
@@ -5353,10 +5435,10 @@ window._jobmapShowMySituation = function(jobId) {
   const point = { lat: job.lat, lng: job.lng };
   const RADIUS = 50;
   const cats = [
-    { label: 'Universities', source: UNIVERSITIES, color: '#16a34a' },
-    { label: 'Pharma (incl. comp-chem shops)', source: PHARMA, color: '#ea580c' },
-    { label: 'National labs / institutes', source: NATIONAL_LABS, color: '#dc2626' },
-    { label: 'AI / ML research labs', source: ML_LABS, color: '#06b6d4' }
+    { label: 'Universities', source: UNIVERSITIES, color: '#3ca5dd' },
+    { label: 'Pharma (incl. comp-chem shops)', source: PHARMA, color: '#cb7533' },
+    { label: 'National labs / institutes', source: NATIONAL_LABS, color: '#6453af' },
+    { label: 'AI / ML research labs', source: ML_LABS, color: '#29938a' }
   ];
   let totalCount = 0;
   const catBlocks = cats.map(c => {
@@ -5475,7 +5557,7 @@ window._jobmapShowMySituation = function(jobId) {
     <div class="popup-section"><strong>Her family & friends nearby</strong>
       ${herPeople.map(p => {
         const miles = haversine({lat:job.lat,lng:job.lng}, p);
-        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:#be123c">♥</span>';
+        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#5058b6">▲</span>' : '<span style="color:#dd417b">♥</span>';
         return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
           <span>${badge} <b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})${p.college ? ' · ' + escape(p.college) : ''}</span></span>
           <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
@@ -5579,7 +5661,7 @@ window._jobmapShowHisImpressions = function(jobId) {
     <div class="popup-section"><strong>His family & friends nearby</strong>
       ${hisPeople.map(p => {
         const miles = haversine({lat:job.lat,lng:job.lng}, p);
-        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#2563eb">▲</span>' : '<span style="color:#ec4899">♥</span>';
+        const badge = (p.type || 'family') === 'friend' ? '<span style="color:#5058b6">▲</span>' : '<span style="color:#dd417b">♥</span>';
         return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
           <span>${badge} <b>${escape(p.name)}</b> <span style="color:var(--muted);font-size:11px">(${escape(p.location)})${p.college ? ' · ' + escape(p.college) : ''}</span></span>
           <span style="color:var(--muted);white-space:nowrap">${miles.toLocaleString()} mi · ${travelEstimate(miles)}</span>
@@ -5611,18 +5693,7 @@ window._jobmapShowNotes = function(jobId) {
   const cityShort = encodeURIComponent((job.location || '').split(',')[0]);
 
   // User-entered prose sections (everything they filled in the form)
-  const omfsBlock = (job.practiceGroup || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice || job.insuranceCashPay || job.workdaysPerWeek) ? `<div class="popup-section"><strong>OMFS specifics</strong>
-    ${job.workdaysPerWeek ? `<div><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : ''}
-    ${job.practiceGroup ? `<div><b>Practice group:</b> ${escape(job.practiceGroup)}</div>` : ''}
-    ${job.partnershipTrack ? `<div><b>Partnership:</b> ${escape(job.partnershipTrack)}</div>` : ''}
-    ${job.signingBonus ? `<div><b>Signing:</b> ${escape(job.signingBonus)}</div>` : ''}
-    ${job.callSchedule ? `<div><b>Call:</b> ${escape(job.callSchedule)}</div>` : ''}
-    ${job.loanAssist ? `<div><b>Loans:</b> ${escape(job.loanAssist)}</div>` : ''}
-    ${job.insuranceCashPay ? `<div><b>Insurance / cash pay:</b> ${escape(job.insuranceCashPay)}</div>` : ''}
-    ${job.hospitals ? `<div><b>Hospitals:</b> ${escape(job.hospitals)}</div>` : ''}
-    ${job.malpractice ? `<div><b>Malpractice:</b> ${escape(job.malpractice)}</div>` : ''}
-    ${job.caseMix ? `<div style="margin-top:4px"><b>Cases:</b> ${escape(job.caseMix)}</div>` : ''}
-  </div>` : '';
+  const omfsBlock = careerFieldsPopupHtml(job, { includeWorkdays: true, variant: 'detailBlock' });
   const datesBlock = (job.dateApplied || job.dateInterview || job.contact) ? `<div class="popup-section">
     ${job.dateApplied ? `<div><strong>Applied</strong> ${job.dateApplied}</div>` : ''}
     ${job.dateInterview ? `<div><strong>Interview</strong> ${job.dateInterview}</div>` : ''}
@@ -6028,12 +6099,12 @@ function makeIcon(status, excitement, kind, parentJob) {
   let color;
   let label;
   if (kind === 'sister' && parentJob) {
-    color = parentJob.kind === 'me' ? '#8b5cf6'
+    color = parentJob.kind === 'me' ? '#a06d9b'
           : parentJob.kind === 'current' ? STATUS_COLORS.current
           : (STATUS_COLORS[parentJob.status] || '#6b7280');
     label = '';
   } else {
-    color = kind === 'me' ? '#8b5cf6'
+    color = kind === 'me' ? '#a06d9b'
           : kind === 'current' ? STATUS_COLORS.current
           : (STATUS_COLORS[status] || '#6b7280');
     label = kind === 'current' ? '★' : (excitement || '');
@@ -6041,7 +6112,7 @@ function makeIcon(status, excitement, kind, parentJob) {
   const extraStyle = kind === 'sister' ? 'opacity:0.45;border:2px dashed white;box-shadow:none' : '';
   return L.divIcon({
     className: '',
-    html: `<div class="pin-marker" style="background:${color};${extraStyle}"><div class="inner">${label}</div></div>`,
+    html: `<div class="pin-marker" style="background:${color};${extraStyle}"><div class="inner${kind === 'current' ? ' star' : ''}">${label}</div></div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 26],
     popupAnchor: [0, -24]
@@ -6098,7 +6169,7 @@ function popupHtml(job, sister) {
     <div style="margin-top:4px"><span class="status-pill status-${job.status}">${job.status}</span></div>
     ${job.salary ? `<div style="margin-top:6px;font-size:13px"><b>${escape(job.salary)}</b></div>` : ''}
     <div style="margin-top:4px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;white-space:nowrap"><span style="color:#f59e0b">His: ${stars}</span>${pStars ? `<span style="color:#ec4899">Hers: ${pStars}</span>` : ''}</div>
-    ${job.practiceGroup ? `<div style="margin-top:4px;font-size:11px;color:var(--muted)">${escape(job.practiceGroup)}</div>` : ''}
+    ${job.dsoAffiliation ? `<div style="margin-top:4px;font-size:11px;color:var(--muted)">${escape(job.dsoAffiliation)}</div>` : ''}
     <div class="popup-actions" style="margin-top:10px">
       <button class="primary" onclick="window._jobmapOpenDetails('${job.id}')">View details</button>
       <button onclick="openJobForm('${job.id}')">Edit</button>
@@ -6135,19 +6206,8 @@ function renderJobDetails(job) {
     <!-- Workdays/week (inline, prominent — sits in the main section) -->
     ${job.workdaysPerWeek ? `<div style="margin-bottom:10px;font-size:13px"><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : ''}
 
-    <!-- OMFS specifics (inline — the job-central stuff) -->
-    ${(job.practiceGroup || job.dsoAffiliation || job.partnershipTrack || job.signingBonus || job.callSchedule || job.loanAssist || job.caseMix || job.hospitals || job.malpractice || job.insuranceCashPay) ? `<div class="popup-section"><strong>OMFS specifics</strong>
-      ${job.practiceGroup ? `<div><b>Practice group:</b> ${escape(job.practiceGroup)}</div>` : ''}
-      ${job.dsoAffiliation ? `<div><b>DSO affiliation:</b> ${escape(job.dsoAffiliation)}</div>` : ''}
-      ${job.partnershipTrack ? `<div><b>Partnership:</b> ${escape(job.partnershipTrack)}</div>` : ''}
-      ${job.signingBonus ? `<div><b>Signing:</b> ${escape(job.signingBonus)}</div>` : ''}
-      ${job.callSchedule ? `<div><b>Call:</b> ${escape(job.callSchedule)}</div>` : ''}
-      ${job.loanAssist ? `<div><b>Loans:</b> ${escape(job.loanAssist)}</div>` : ''}
-      ${job.insuranceCashPay ? `<div><b>Insurance / cash pay:</b> ${escape(job.insuranceCashPay)}</div>` : ''}
-      ${job.hospitals ? `<div><b>Hospitals:</b> ${escape(job.hospitals)}</div>` : ''}
-      ${job.malpractice ? `<div><b>Malpractice:</b> ${escape(job.malpractice)}</div>` : ''}
-      ${job.caseMix ? `<div style="margin-top:4px"><b>Cases:</b> ${escape(job.caseMix)}</div>` : ''}
-    </div>` : ''}
+    <!-- Role-specific fields (inline — the job-central stuff), generated from CAREER_SCHEMA -->
+    ${careerFieldsPopupHtml(job)}
 
     <!-- Dates + Contact (inline) -->
     ${(job.dateApplied || job.datePhoneInterview || job.dateInterview || job.dateInterview2 || job.offerDate || job.offerDeadline || job.contact) ? `<div class="popup-section"><strong>Key dates</strong>
@@ -6182,17 +6242,23 @@ function renderJobDetails(job) {
     <!-- Sister practices -->
     ${(() => {
       const group = (job.practiceGroup || '').trim();
-      if (!group) return '';
-      const siblings = jobs.filter(j => j.id !== job.id && (j.practiceGroup || '').trim().toLowerCase() === group.toLowerCase());
+      // Linked locations = same practice-group value, OR sister pins linked to this job,
+      // OR (if this job is itself a sister) its parent + co-sisters.
+      const ids = new Set(); const sibs = [];
+      const add = j => { if (j && j.id !== job.id && !ids.has(j.id)) { ids.add(j.id); sibs.push(j); } };
+      if (group) jobs.filter(j => (j.practiceGroup || '').trim().toLowerCase() === group.toLowerCase()).forEach(add);
+      jobs.filter(j => j.parentId === job.id).forEach(add);
+      if (job.parentId) { add(jobs.find(p => p.id === job.parentId)); jobs.filter(j => j.parentId === job.parentId).forEach(add); }
+      if (!group && sibs.length === 0) return '';
       return `<div class="popup-section city-links">
-        <strong>Other locations of ${escape(group)}</strong><br>
-        ${siblings.length > 0
-          ? siblings.map(s => `<div style="padding:3px 0;font-size:13px">→ ${escape(s.location)}</div>`).join('')
+        <strong>Other locations${group ? ' of ' + escape(group) : ''}</strong><br>
+        ${sibs.length > 0
+          ? sibs.map(s => `<div style="padding:3px 0;font-size:13px">→ ${escape(s.location)}</div>`).join('')
           : '<span style="color:var(--muted);font-size:11px">No other locations added yet</span>'}
-        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+        ${group ? `<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
           <a href="https://www.google.com/search?q=${encodeURIComponent('"' + group + '" locations')}" target="_blank" title="Search Google for other offices in this group">Find on Google</a>
           <a href="https://www.google.com/maps/search/${encodeURIComponent(group)}" target="_blank" title="Search Google Maps for all locations">Google Maps</a>
-        </div>
+        </div>` : ''}
       </div>`;
     })()}
 
@@ -6368,7 +6434,6 @@ function renderMarkers() {
       .addTo(map).bindPopup(popupHtml(job));
     markers[job.id] = m;
   });
-  if (showCityDistance) drawCityDistance();
   if (showJobRadius) drawJobRadius();
 }
 
@@ -6438,10 +6503,6 @@ function renderList() {
   }).join('');
 }
 
-function toggleCityDistance(on) {
-  showCityDistance = on;
-  if (on) drawCityDistance(); else clearCityDistance();
-}
 function toggleAirports(on) {
   showAirports = on;
   if (on) drawAirports(); else clearAirports();
@@ -6553,15 +6614,35 @@ function drawPharma() {
   clearPharma();
   pharmaLayer = L.layerGroup().addTo(map);
   PHARMA.forEach(p => {
-    const cls = p.kind === 'compchem' ? 'pharma-marker compchem' : 'pharma-marker';
+    if (p.kind === 'compchem') return;   // comp-chem has its own layer now
     L.marker([p.lat, p.lng], {
       icon: L.divIcon({
         className: 'label-icon',
-        html: `<div class="${cls}">${p.kind === 'compchem' ? 'C' : 'Rx'}</div>`,
+        html: `<div class="pharma-marker">Rx</div>`,
         iconSize: null,
         iconAnchor: [9, 9]
       })
     }).addTo(pharmaLayer).bindTooltip(`${p.name}${p.note ? ' — ' + p.note : ''}`, { direction: 'top' });
+  });
+}
+function toggleCompChem(on) {
+  showCompChem = on;
+  if (on) drawCompChem(); else clearCompChem();
+}
+function clearCompChem() { if (compChemLayer) { map.removeLayer(compChemLayer); compChemLayer = null; } }
+function drawCompChem() {
+  clearCompChem();
+  compChemLayer = L.layerGroup().addTo(map);
+  PHARMA.forEach(p => {
+    if (p.kind !== 'compchem') return;
+    L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: 'label-icon',
+        html: `<div class="compchem-marker">C</div>`,
+        iconSize: null,
+        iconAnchor: [9, 9]
+      })
+    }).addTo(compChemLayer).bindTooltip(`${p.name}${p.note ? ' — ' + p.note : ''}`, { direction: 'top' });
   });
 }
 
@@ -6635,41 +6716,6 @@ function clearAmtrak() {
   if (amtrakLayer) { map.removeLayer(amtrakLayer); amtrakLayer = null; }
 }
 
-function clearCityDistance() {
-  if (cityDistanceLayer) { map.removeLayer(cityDistanceLayer); cityDistanceLayer = null; }
-}
-function drawCityDistance() {
-  clearCityDistance();
-  cityDistanceLayer = L.layerGroup().addTo(map);
-  jobs.forEach(job => {
-    if (job.lat == null || !passesFilter(job)) return;
-    // Prefer cached route-based nearest city; fall back to haversine pick
-    let cityName, cityLat, cityLng, label;
-    if (job.carCity && job.carCityLat != null) {
-      cityName = job.carCity; cityLat = job.carCityLat; cityLng = job.carCityLng;
-      label = `${job.carMiles}mi drive → ${escape(cityName)}`;
-    } else {
-      const n = nearestMajorCity(job);
-      if (!n || n.dist < 5) return;
-      cityName = n.city.name; cityLat = n.city.lat; cityLng = n.city.lng;
-      label = `~${n.dist}mi → ${escape(cityName)}`;
-    }
-    L.polyline([[job.lat, job.lng], [cityLat, cityLng]], {
-      color: '#6366f1', weight: 2, dashArray: '6,6', opacity: 0.7
-    }).addTo(cityDistanceLayer);
-    const mid = [(job.lat + cityLat)/2, (job.lng + cityLng)/2];
-    L.marker(mid, {
-      icon: L.divIcon({
-        className: 'label-icon',
-        html: `<div class="map-label">${label}</div>`,
-        iconSize: null
-      })
-    }).addTo(cityDistanceLayer);
-    L.circleMarker([cityLat, cityLng], {
-      radius: 4, color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.8, weight: 1
-    }).addTo(cityDistanceLayer).bindTooltip(cityName, { permanent: false });
-  });
-}
 
 function focusJob(jobId) {
   const job = jobs.find(j => j.id === jobId);
@@ -6681,6 +6727,7 @@ function focusJob(jobId) {
 /* ---------- Form ---------- */
 function openJobForm(jobId) {
   editingId = jobId || null;
+  { const fm = document.getElementById('formModal'); if (fm) fm.dataset.editId = jobId || ''; }  // robust edit target
   // Auto-set status to 'current' when kind is changed to 'current'
   const kindEl = document.getElementById('f_kind');
   const statusEl = document.getElementById('f_status');
@@ -6889,7 +6936,11 @@ async function saveJob(e) {
     data.status = parent ? parent.status : 'potential';
   }
 
-  let existing = editingId ? jobs.find(j => j.id === editingId) : null;
+  // Resolve the edit target from the form itself so a stray modal-close (which nulls
+  // editingId) or an async race can't turn an edit into a brand-new pin.
+  const _fm = document.getElementById('formModal');
+  const editId = (_fm && _fm.dataset.editId) ? _fm.dataset.editId : (editingId || null);
+  let existing = editId ? jobs.find(j => j.id === editId) : null;
   const locationChanged = !existing || existing.location !== data.location;
 
   if (locationChanged) {
@@ -6983,6 +7034,7 @@ document.getElementById('formModal').addEventListener('click', e => {
 });
 
 /* ---------- Init ---------- */
+renderCareerForm();
 loadJobs();
 renderStatusChips();
 renderStarFilters();
@@ -7009,6 +7061,7 @@ if (sheetUrl) pullFromSheet();
     <button class="tw-opt" data-density="airy">Airy</button>
     <button class="tw-opt" data-density="compact">Compact</button>
   </div>
+  <button class="tw-opt" style="margin-top:14px;width:100%;justify-content:center" onclick="resetTweaks()">↺ Reset to my colors</button>
 </div>
 
 <script>
@@ -7020,14 +7073,14 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const ACCENTS = [
-  { id: 'terracotta', label: 'Terracotta',
-    accent: 'oklch(0.58 0.12 38)', soft: 'oklch(0.96 0.018 60)', ink: 'oklch(0.38 0.10 38)' },
-  { id: 'indigo', label: 'Indigo',
-    accent: 'oklch(0.52 0.13 270)', soft: 'oklch(0.96 0.014 270)', ink: 'oklch(0.35 0.11 270)' },
-  { id: 'forest', label: 'Forest',
-    accent: 'oklch(0.50 0.09 155)', soft: 'oklch(0.96 0.012 155)', ink: 'oklch(0.32 0.08 155)' },
-  { id: 'slate', label: 'Slate',
-    accent: 'oklch(0.40 0.02 250)', soft: 'oklch(0.96 0.005 250)', ink: 'oklch(0.25 0.02 250)' }
+  { id: 'indigo',     label: 'Indigo',     accent: '#4c62b3', soft: '#eef2fc', ink: '#253473' },
+  { id: 'skyblue',    label: 'Sky blue',   accent: '#3e8fb5', soft: '#ecf5fa', ink: '#1f4d65' },
+  { id: 'forest',     label: 'Forest',     accent: '#4f7a5a', soft: '#edf4ef', ink: '#2c4634' },
+  { id: 'terracotta', label: 'Terracotta', accent: '#b55e43', soft: '#fbefe6', ink: '#6d2b16' },
+  { id: 'wine',       label: 'Wine',       accent: '#7e2e42', soft: '#f7ecef', ink: '#4b1b27' },
+  { id: 'plum',       label: 'Plum',       accent: '#7c3b6f', soft: '#f5edf3', ink: '#492341' },
+  { id: 'mauve',      label: 'Mauve',      accent: '#a06d9b', soft: '#f6eff5', ink: '#5d3f59' },
+  { id: 'slate',      label: 'Slate',      accent: '#404952', soft: '#eff2f5', ink: '#1a222b' }
 ];
 
 let tweakState = { ...TWEAK_DEFAULTS };
@@ -7069,6 +7122,12 @@ function openTweaks()  { document.getElementById('tweakPanel').classList.add('op
 function closeTweaks() {
   document.getElementById('tweakPanel').classList.remove('open');
   try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch (e) {}
+}
+// Restore the original look (soft theme, indigo accent, compact density = your current defaults)
+function resetTweaks() {
+  tweakState = { ...TWEAK_DEFAULTS };
+  localStorage.removeItem('jobmap.tweaks');
+  applyTweaks();
 }
 
 // Build accent swatches
