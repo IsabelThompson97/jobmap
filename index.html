@@ -1122,7 +1122,7 @@ Career landscape here for me…" style="min-height:120px;white-space:pre-wrap"><
       </label>
       <label class="toggle-row">
         <input type="checkbox" id="housesToggle" onchange="toggleHouses(this.checked)" />
-        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#d5b23f;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #d5b23f;vertical-align:middle;margin-right:6px"></span>Houses / listings <span class="hint">(add under Manage → Houses)</span></span>
+        <span class="toggle-label"><span style="display:inline-block;width:14px;height:14px;background:#a04f99;border-radius:3px;border:2px solid white;box-shadow:0 0 0 1px #a04f99;vertical-align:middle;margin-right:6px"></span>Houses / listings <span class="hint">(add under Manage → Houses)</span></span>
       </label>
 
       <div class="eyebrow layers-cap">His career context</div>
@@ -1997,6 +1997,23 @@ function careerFieldsPopupHtml(job, opts) {
     return `<div${style}><b>${f.short}:</b> ${escape(job[f.key])}</div>`;
   }).join('');
   return `<div class="popup-section"><strong>${CAREER_SCHEMA.groupLabel}</strong>${workdays}${rows}</div>`;
+}
+
+// Build the Compare table's role-specific rows from CAREER_SCHEMA.fields. Returns an
+// array of [label, getter(j)] pairs in schema order — drop straight into the rows array
+// in renderComparison via spread. The optional `injections` map lets the caller attach
+// derived rows that should appear immediately after a given schema key (used for
+// "Sister locations", which is computed across jobs but visually belongs next to
+// practiceGroup). Labels use `f.short || f.label` to keep Compare cells compact.
+function careerFieldsCompareRows(injections) {
+  injections = injections || {};
+  const rows = [];
+  for (const f of CAREER_SCHEMA.fields) {
+    const label = f.short || f.label;
+    rows.push([label, j => escape(j[f.key] || '—')]);
+    if (injections[f.key]) rows.push(injections[f.key]);
+  }
+  return rows;
 }
 
 const MAJOR_CITIES = [
@@ -4246,30 +4263,27 @@ function renderComparison() {
     ['Location', j => escape(j.location)],
     ['Status', j => `<span class="status-pill status-${j.status}">${j.status}</span>`],
 
-    // ── 1. JOB & OMFS DETAILS (for him, central focus) ──
-    sectionHeader('Job & OMFS details'),
+    // ── 1. JOB & ROLE DETAILS (for him, central focus) ──
+    // Section header pulls its role label from CAREER_SCHEMA so switching templates
+    // updates this surface in lockstep with the form, popups, and Details modal.
+    sectionHeader('Job & ' + CAREER_SCHEMA.groupLabel),
     ['His excitement', j => '★'.repeat(j.excitement||0) + '<span style="color:#d1d5db">' + '★'.repeat(5-(j.excitement||0)) + '</span>'],
     ['Base salary', j => escape(j.salary || '—') + (colAdjustedSalary(j) ? `<br><span style="color:var(--muted);font-size:11px">${colAdjustedSalary(j)}</span>` : '')],
     ['Est. yearly production', j => escape(j.estimatedProduction || '—')],
     ['% production to income', j => j.productionPercent ? escape(j.productionPercent) + '%' : '—'],
     ['Total gross (est.)', j => { const t = totalGrossComp(j); return t > 0 ? `<b>${fmtMoney(t)}</b>` : '—'; }],
-    ['Signing bonus', j => escape(j.signingBonus || '—')],
-    ['Partnership track', j => escape(j.partnershipTrack || '—')],
-    ['Call schedule', j => escape(j.callSchedule || '—')],
     ['Workdays per week', j => escape(j.workdaysPerWeek || '—')],
-    ['Insurance / cash pay', j => escape(j.insuranceCashPay || '—')],
-    ['Hospitals', j => escape(j.hospitals || '—')],
-    ['Case mix', j => escape(j.caseMix || '—')],
-    ['DSO affiliation', j => escape(j.dsoAffiliation || '—')],
-    ['Practice group', j => escape(j.practiceGroup || '—')],
-    ['Sister locations', j => {
-      const g = (j.practiceGroup || '').trim().toLowerCase();
-      if (!g) return '—';
-      const sibs = jobs.filter(x => x.id !== j.id && (x.practiceGroup || '').trim().toLowerCase() === g);
-      return sibs.length > 0 ? sibs.map(s => escape(s.location)).join(', ') : '<span style="color:var(--muted)">none</span>';
-    }],
-    ['Loan repayment', j => escape(j.loanAssist || '—')],
-    ['Malpractice', j => escape(j.malpractice || '—')],
+    // Role-specific rows generated from CAREER_SCHEMA.fields in schema order. Sister
+    // locations is a derived row tied to practiceGroup; the injection map keeps it
+    // visually adjacent to its parent field without baking a special case into the helper.
+    ...careerFieldsCompareRows({
+      practiceGroup: ['Sister locations', j => {
+        const g = (j.practiceGroup || '').trim().toLowerCase();
+        if (!g) return '—';
+        const sibs = jobs.filter(x => x.id !== j.id && (x.practiceGroup || '').trim().toLowerCase() === g);
+        return sibs.length > 0 ? sibs.map(s => escape(s.location)).join(', ') : '<span style="color:var(--muted)">none</span>';
+      }],
+    }),
     ['Contact', j => escape(j.contact || '—')],
 
     // ── 2. KEY DATES ──
@@ -4691,7 +4705,7 @@ function drawHouses() {
   housesLayer = L.layerGroup().addTo(map);
   const icon = L.divIcon({
     className: '',
-    html: '<div style="background:#d5b23f;color:white;font-size:13px;font-weight:700;width:15px;height:15px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);border:2px solid white;line-height:1;opacity:0.8">⌂</div>',
+    html: '<div style="background:#a04f99;color:white;font-size:13px;font-weight:700;width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);border:2px solid white;line-height:1;opacity:0.8">⌂</div>',
     iconSize: [22, 22], iconAnchor: [11, 11]
   });
   houses.forEach(h => {
@@ -5766,7 +5780,7 @@ window._jobmapShowNotes = function(jobId) {
   const anyProse = omfsBlock || datesBlock || proseBlock || coupleBlock || cityNotesBlock;
   body.innerHTML = `
     ${anyProse}
-    ${!anyProse ? '<p style="color:var(--muted);font-size:13px;margin:8px 0">No notes entered yet for this job. Edit to add OMFS specifics, pros/cons, couple notes, etc.</p>' : ''}
+    ${!anyProse ? `<p style="color:var(--muted);font-size:13px;margin:8px 0">No notes entered yet for this job. Edit to add ${CAREER_SCHEMA.groupLabel}, pros/cons, couple notes, etc.</p>` : ''}
     ${careerHtml}
     ${renderTravelBlocks(job)}
 
@@ -6232,21 +6246,36 @@ function renderJobDetails(job) {
       ${job.kind !== 'me' ? `<button onclick="window._jobmapShowScore('${job.id}')" style="${btn}">Decision matrix</button>` : ''}
     </div>
 
-    <!-- Workdays/week (inline, prominent — sits in the main section) -->
-    ${job.workdaysPerWeek ? `<div style="margin-bottom:10px;font-size:13px"><b>Workdays:</b> ${escape(job.workdaysPerWeek)}</div>` : ''}
+    <!-- Basic job info — headline data mirroring the form's first block.
+         Wrapped in .popup-section so it gets the same border-top + uppercase-mono header
+         treatment as OMFS SPECIFICS, KEY DATES, etc. Order A: salary → production →
+         % to income → total comp → workdays → contact. Rows omit if empty. -->
+    ${(() => {
+      const totalComp = totalGrossComp(job);
+      const row = (label, val) => val ? `<div><b>${label}:</b> ${val}</div>` : '';
+      const lines = [
+        row('Salary',     job.salary              ? escape(job.salary)              : ''),
+        row('Production', job.estimatedProduction ? escape(job.estimatedProduction) : ''),
+        row('% to income',job.productionPercent   ? escape(job.productionPercent) + '%' : ''),
+        row('Total comp', totalComp > 0           ? fmtMoney(totalComp)             : ''),
+        row('Workdays',   job.workdaysPerWeek     ? escape(job.workdaysPerWeek)     : ''),
+        row('Contact',    job.contact             ? escape(job.contact)             : ''),
+      ].join('');
+      return lines ? `<div class="popup-section"><strong>Basic job info</strong>${lines}</div>` : '';
+    })()}
 
     <!-- Role-specific fields (inline — the job-central stuff), generated from CAREER_SCHEMA -->
     ${careerFieldsPopupHtml(job)}
 
-    <!-- Dates + Contact (inline) -->
-    ${(job.dateApplied || job.datePhoneInterview || job.dateInterview || job.dateInterview2 || job.offerDate || job.offerDeadline || job.contact) ? `<div class="popup-section"><strong>Key dates</strong>
-      ${job.dateApplied ? `<div><b>Applied:</b> ${job.dateApplied}</div>` : ''}
-      ${job.datePhoneInterview ? `<div><b>Phone interview:</b> ${job.datePhoneInterview}</div>` : ''}
-      ${job.dateInterview ? `<div><b>In-person interview:</b> ${job.dateInterview}</div>` : ''}
-      ${job.dateInterview2 ? `<div><b>In-person interview #2:</b> ${job.dateInterview2}</div>` : ''}
-      ${job.offerDate ? `<div><b>Offer received:</b> ${job.offerDate}</div>` : ''}
-      ${job.offerDeadline ? `<div style="color:#b91c1c"><b>Offer deadline:</b> ${job.offerDeadline}</div>` : ''}
-      ${job.contact ? `<div style="margin-top:0px"><b>Contact:</b> ${escape(job.contact)}</div>` : ''}
+    <!-- Dates (inline) — Contact moved to the general-info block above. All dates run through
+         fmtDate() so older entries with different formats display uniformly as yyyy-mm-dd. -->
+    ${(job.dateApplied || job.datePhoneInterview || job.dateInterview || job.dateInterview2 || job.offerDate || job.offerDeadline) ? `<div class="popup-section"><strong>Key dates</strong>
+      ${job.dateApplied ? `<div><b>Applied:</b> ${fmtDate(job.dateApplied)}</div>` : ''}
+      ${job.datePhoneInterview ? `<div><b>Phone interview:</b> ${fmtDate(job.datePhoneInterview)}</div>` : ''}
+      ${job.dateInterview ? `<div><b>In-person interview:</b> ${fmtDate(job.dateInterview)}</div>` : ''}
+      ${job.dateInterview2 ? `<div><b>In-person interview #2:</b> ${fmtDate(job.dateInterview2)}</div>` : ''}
+      ${job.offerDate ? `<div><b>Offer received:</b> ${fmtDate(job.offerDate)}</div>` : ''}
+      ${job.offerDeadline ? `<div style="color:#b91c1c"><b>Offer deadline:</b> ${fmtDate(job.offerDeadline)}</div>` : ''}
     </div>` : ''}
 
     <!-- Pros / Cons / Vibe tags / Notes (inline) -->
@@ -6260,13 +6289,6 @@ function renderJobDetails(job) {
       ${job.col ? `<div><strong>COL notes:</strong> ${escape(job.col)}</div>` : ''}
       ${job.lifestyle ? `<div><strong>Vibe:</strong> ${escape(job.lifestyle)}</div>` : ''}
     </div>` : ''}
-
-    <!-- Competing OMFS nearby -->
-    <div class="popup-section city-links">
-      <strong>Competing OMFS practices nearby</strong><br>
-      <a href="https://www.google.com/maps/search/oral+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Live Google Maps search of oral surgery practices in this area">Google Maps: oral surgery near here ↗</a>
-      <a href="https://www.google.com/maps/search/oral+and+maxillofacial+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Search OMFS specifically">OMFS specifically ↗</a>
-    </div>
 
     <!-- Sister practices -->
     ${(() => {
@@ -6332,6 +6354,13 @@ function renderJobDetails(job) {
       </div>`;
     })()}
 
+    <!-- Competing OMFS nearby — moved to bottom per Isabel's request -->
+    <div class="popup-section city-links">
+      <strong>Competing OMFS practices nearby</strong><br>
+      <a href="https://www.google.com/maps/search/oral+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Live Google Maps search of oral surgery practices in this area">Google Maps: oral surgery near here ↗</a>
+      <a href="https://www.google.com/maps/search/oral+and+maxillofacial+surgery/@${job.lat},${job.lng},11z" target="_blank" title="Search OMFS specifically">OMFS specifically ↗</a>
+    </div>
+
     <!-- Drive / Fly blocks moved to Notes & Info modal -->
   `;
 }
@@ -6363,6 +6392,26 @@ function renderTravelBlocks(job) {
 }
 
 function escape(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Normalize any reasonable date string to yyyy-mm-dd for display. Returns '' for
+// empty/missing values. Leaves the stored value untouched — only the rendered form changes.
+// Order of precedence: (1) string already starts with yyyy-mm-dd → keep that prefix
+// (handles "2026-04-27" and ISO timestamps like "2026-04-27T10:30:00Z"); (2) try Date.parse
+// and reformat using LOCAL methods (so US-style "4/12/2026" doesn't get UTC-shifted into the
+// prior day); (3) unparseable → return the original string unchanged, so we never silently
+// destroy data we don't recognize.
+function fmtDate(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${da}`;
+}
 
 function renderVibeChips(str, color) {
   if (!str) return '';
