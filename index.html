@@ -44,7 +44,9 @@
     --applied:      #c16b45; /* terracotta — submitted, in motion */
     --interviewing: #3e8fb5; /* sky blue — active conversation */
     --offer:        #6f7d54; /* sage-olive — success */
-    --rejected:     #7e2e42; /* wine — declined */
+    --rejected:     #7e2e42; /* wine — company rejected */
+    --declined:     #a85d6b; /* muted rose — you declined their offer */
+    --uninterested: #6b7280; /* slate — you passed before applying */
     --current:      #7c3b6f; /* plum — current position */
 
     --radius: 4px;
@@ -278,6 +280,8 @@
   .chip.s-interviewing { --chip-c: var(--interviewing); }
   .chip.s-offer        { --chip-c: var(--offer); }
   .chip.s-rejected     { --chip-c: var(--rejected); }
+  .chip.s-declined     { --chip-c: var(--declined); }
+  .chip.s-uninterested { --chip-c: var(--uninterested); }
   .chip.s-current      { --chip-c: var(--current); }
   .chip:hover { color: var(--ink); border-color: var(--line-strong); }
   .chip.on {
@@ -348,6 +352,8 @@
   .job-card.card-interviewing { --card-c: var(--interviewing); }
   .job-card.card-offer        { --card-c: var(--offer); }
   .job-card.card-rejected     { --card-c: var(--rejected); }
+  .job-card.card-declined     { --card-c: var(--declined); }
+  .job-card.card-uninterested { --card-c: var(--uninterested); }
   .job-card.card-current      { --card-c: var(--current); }
   .status-pill {
     font-size: 11px; padding: 3px 8px;
@@ -373,6 +379,8 @@
   .status-interviewing { --pill-c: var(--interviewing); --pill-bg: #3e8fb512; }
   .status-offer        { --pill-c: var(--offer);        --pill-bg: #6f7d5412; }
   .status-rejected     { --pill-c: var(--rejected);     --pill-bg: #7e2e4212; }
+  .status-declined     { --pill-c: var(--declined);     --pill-bg: #a85d6b12; }
+  .status-uninterested { --pill-c: var(--uninterested); --pill-bg: #6b728012; }
   .status-current      { --pill-c: var(--current);      --pill-bg: #7c3b6f12; }
   .excitement {
     color: var(--ink); font-size: 11px; margin-top: 4px;
@@ -854,6 +862,8 @@
             <option value="interviewing">Interviewing</option>
             <option value="offer">Offer</option>
             <option value="rejected">Rejected</option>
+            <option value="declined">Declined</option>
+            <option value="uninterested">Uninterested</option>
             <option value="current">Current position</option>
           </select>
         </div>
@@ -1873,7 +1883,7 @@ let currentRating = 0;
 let currentPartnerRating = 0;
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwKYxttX4h8HnQUbZpVBI54HLz45AwVzixqI-qI0QyYRleA6yWfsPlOvoBP4zr_i6wJ/exec';
 let sheetUrl = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-let filterState = { search: '', statuses: new Set(['potential','applied','interviewing','offer','rejected','current']), minExcite: 0, minPartner: 0, minScore: 0 };
+let filterState = { search: '', statuses: new Set(['potential','applied','interviewing','offer','rejected','declined','uninterested','current']), minExcite: 0, minPartner: 0, minScore: 0 };
 let showAirports = false;
 let airportsLayer = null;
 const EXTRA_FIELDS = ['practiceGroup','dsoAffiliation','estimatedProduction','productionPercent','partnershipTrack','signingBonus','callSchedule','loanAssist','caseMix','hospitals','malpractice','insuranceCashPay','workdaysPerWeek','partnerFit','partnerNotes','distanceFamily','dualCareer','datePhoneInterview','dateInterview2','offerDate','offerDeadline','hisVibe','herVibe','her5Year','her30Year','parentId','website',
@@ -6439,7 +6449,7 @@ function passesFilter(job) {
 
 function renderStatusChips() {
   const el = document.getElementById('statusChips');
-  const statuses = ['potential','applied','interviewing','offer','rejected','current'];
+  const statuses = ['potential','applied','interviewing','offer','rejected','declined','uninterested','current'];
   el.innerHTML = statuses.map(s =>
     `<span class="chip s-${s} ${filterState.statuses.has(s) ? 'on' : ''}" onclick="toggleStatus('${s}')">${s}</span>`
   ).join('');
@@ -6481,7 +6491,7 @@ function toggleFilterPanel() {
   document.getElementById('filterBar').classList.toggle('collapsed');
 }
 function updateFilterIndicator() {
-  const allStatuses = ['potential','applied','interviewing','offer','rejected'];
+  const allStatuses = ['potential','applied','interviewing','offer','rejected','declined','uninterested'];
   const filtersActive = filterState.search || filterState.statuses.size !== allStatuses.length || filterState.minExcite > 0 || filterState.minPartner > 0 || filterState.minScore > 0;
   document.getElementById('filterDot').classList.toggle('active', !!filtersActive);
   const nonSister = jobs.filter(j => j.kind !== 'sister');
@@ -6524,7 +6534,7 @@ function setSortBy(v) {
 }
 // Comparator for the currently-selected sort. Falls back to status order on ties / when no value.
 function jobSortComparator() {
-  const statusOrder = { interviewing: 0, applied: 1, offer: 2, potential: 3, rejected: 4 };
+  const statusOrder = { interviewing: 0, applied: 1, offer: 2, potential: 3, rejected: 4, declined: 5, uninterested: 6 };
   const byStatus = (a,b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
   const num = (a, b, getter) => (Number(getter(b)) || -Infinity) - (Number(getter(a)) || -Infinity);
   const str = (a, b, getter) => (getter(a) || '').toString().toLowerCase().localeCompare((getter(b) || '').toString().toLowerCase());
